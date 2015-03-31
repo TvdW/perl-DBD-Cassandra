@@ -1,0 +1,13 @@
+Changes
+lib/DBD/Cassandra.pm
+lib/DBD/Cassandra/st.pm
+lib/DBD/Cassandra/db.pm
+lib/DBD/Cassandra/dr.pm
+lib/DBD/Cassandra/Protocol.pm
+lib/DBD/Cassandra/Type.pm
+Makefile.PL
+MANIFEST			This list of files
+README
+t/00-load.t
+t/manifest.t
+t/pod.t
