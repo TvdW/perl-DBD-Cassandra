@@ -37,7 +37,7 @@ sub _unpack {
 
 sub p2c_string {
     my ($i)= @_;
-    return "pack('l>/a', \$_[$i])";
+    return ("pack('l>/a', \$_[$i])", "utf8::encode \$_[$i]");
 }
 sub c2p_string { return shift }
 sub p2c_bigint { return   _pack('q>', 8, @_) }
@@ -62,15 +62,20 @@ sub build_row_encoder {
 
     my $count= 0+@$types;
 
-    my $code= "my \$null= pack('l>', -1);\nsub {\n    return\n";
+    my $code= "my \$null= pack('l>', -1);\nsub {\n";
     my $i= 0;
+
+    my $result;
     for my $type (@$types) {
         if (ref $type) { $type= $type->{type}; }
         my $t= $lookup{$type} or die "Unknown type $type";
-        $code .= "        (defined \$_[$i] ? (".$t->[0]($i).") : \$null) .\n";
+        my ($c, $prep)= $t->[0]($i);
+
+        $code .= "    $prep;\n" if $prep;
+        $result .= "        (defined \$_[$i] ? ($c) : \$null) .\n";
         $i++;
     }
-    $code = substr($code, 0, -3). "\n    ;\n}";
+    $code = $code  . "    return\n" . substr($result, 0, -3). "\n    ;\n}";
     return eval($code);
 }
 
