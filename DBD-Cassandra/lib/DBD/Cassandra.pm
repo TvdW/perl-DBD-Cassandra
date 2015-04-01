@@ -70,7 +70,9 @@ using the CQL3 query language.
 =over
 
 =item keyspace
+
 =item database
+
 =item db
 
 Optionally, a keyspace to use by default. If this is not specified,
@@ -103,7 +105,8 @@ Thread support is untested. Use at your own risk.
 
 =item *
 
-Not all of Cassandra's data types are currently supported. These are :
+Not all Cassandra data types are supported. These are currently
+supported:
 
 =over
 
