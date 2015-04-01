@@ -76,7 +76,7 @@ sub _cass_execute {
             $result= [];
         } elsif ($kind == RESULT_ROWS) {
             my $metadata= unpack_metadata($body);
-            my $decoder= build_row_decoder($metadata->{columns});
+            my $decoder= $sth->{cass_row_decoder};
             my $rows_count= unpack('N', substr $body, 0, 4, '');
 
             my @rows;

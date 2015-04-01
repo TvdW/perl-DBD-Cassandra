@@ -52,7 +52,7 @@ sub prepare {
     $sth->{cass_prepared_result_metadata}= $result_metadata;
     $sth->{cass_prepared_id}= $prepared_id;
     $sth->{cass_row_encoder}= build_row_encoder($metadata->{columns});
-    #$sth->{cass_row_decoder}= build_row_decoder($result_metadata->{columns});
+    $sth->{cass_row_decoder}= build_row_decoder($result_metadata->{columns});
     return $outer;
 }
 
