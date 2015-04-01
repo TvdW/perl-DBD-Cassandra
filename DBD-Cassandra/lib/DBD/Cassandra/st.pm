@@ -27,8 +27,14 @@ sub execute {
     return $sth->set_err($DBI::stderr, "Wrong number of parameters")
         if @$params != $param_count;
 
-    my $data= _cass_execute($sth, $params);
-    return undef unless defined $data;
+    my $data;
+    eval {
+        $data= _cass_execute($sth, $params);
+        1;
+    } or do {
+        my $err= $@ || "unknown error";
+        return $sth->set_err($DBI::stderr, "error in execute: $err");
+    };
 
     $sth->{cass_data}= $data;
     $sth->{cass_rows}= 0+@$data;
@@ -54,13 +60,15 @@ sub _cass_execute {
     my $result;
     {
         my ($version, $flags, $streamid, $opcode, $body)= recv_frame($fh);
-        if ($streamid != 1 || $version != 130 || $flags != 0) { die "Strange answer from server."; }
+        if ($streamid != 1 || $version != 130 || $flags != 0) {
+            die "Strange answer from server.";
+        }
 
         if ($opcode == OPCODE_ERROR) {
             my ($code, $message)= unpack('Nn/a', $body);
-            return $sth->set_err($DBI::stderr, "Execute failed with code $code: $message");
+            die "Code $code: $message";
         } elsif ($opcode != OPCODE_RESULT) {
-            die "Strange answer from server.";
+            die "Strange answer from server during execute";
         }
 
         my $kind= unpack 'N', substr $body, 0, 4, '';

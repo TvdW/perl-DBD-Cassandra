@@ -13,7 +13,8 @@ sub prepare {
 
     {
         my $body= pack_longstring($statement);
-        send_frame( $dbh->{cass_connection}, 2, 0, 1, Protocol::CassandraCQL::OPCODE_PREPARE, $body ) or die "Failed to send frame: $!";
+        send_frame( $dbh->{cass_connection}, 2, 0, 1, Protocol::CassandraCQL::OPCODE_PREPARE, $body )
+            or return $dbh->set_err($DBI::stderr, "Failed to send frame: $!");
     }
 
     my ($prepared_id, $metadata, $result_metadata, @names, $paramcount);
