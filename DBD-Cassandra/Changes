@@ -1,5 +1,13 @@
 Revision history for DBD-Cassandra
 
+0.03    2015/04/01
+        Add some documentation to the main module. Mostly for CPAN
+        Make keyspace an optional part of the connection's dsn
+        Add some new test cases for better coverage
+        Better error handling when the server misbehaves
+        Some performance improvements
+        Remove dependency on Protocol::CassandraCQL
+
 0.02    2015/04/01
         Better utf8 support for queries (not result sets)
 
