@@ -71,7 +71,7 @@ sub build_row_encoder {
         my $t= $lookup{$type} or die "Unknown type $type";
         my ($c, $prep)= $t->[0]($i);
 
-        $code .= "    $prep;\n" if $prep;
+        $code .= "    $prep if defined \$_[$i];\n" if $prep;
         $result .= "        (defined \$_[$i] ? ($c) : \$null) .\n";
         $i++;
     }
