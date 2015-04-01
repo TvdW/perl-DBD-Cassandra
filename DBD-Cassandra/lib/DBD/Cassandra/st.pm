@@ -53,13 +53,14 @@ sub _cass_execute {
     {
         my $values= pack('n', 0+@$params). ($sth->{cass_row_encoder}->(@$params));
         my $body= pack_shortbytes($prepared_id).pack_parameters({ values => $values });
-        send_frame( $fh, 2, 0, 1, OPCODE_EXECUTE, $body ) or die "Unable to execute statement: $!";
+        send_frame2( $fh, 0, 1, OPCODE_EXECUTE, $body )
+            or die "Unable to execute statement: $!";
     }
 
     my $result;
     {
-        my ($version, $flags, $streamid, $opcode, $body)= recv_frame($fh);
-        if ($streamid != 1 || $version != 130 || $flags != 0) {
+        my ($flags, $streamid, $opcode, $body)= recv_frame2($fh);
+        if ($streamid != 1 || $flags != 0) {
             die "Strange answer from server.";
         }
 

@@ -2,65 +2,70 @@ package DBD::Cassandra::Protocol;
 use v5.14;
 use warnings;
 
-use Protocol::CassandraCQL qw/send_frame recv_frame/;
-
 require Exporter;
+use Data::Dumper;
 
-my %constants= (
-    OPCODE_ERROR => 0,
-    OPCODE_STARTUP => 1,
-    OPCODE_READY => 2,
-    OPCODE_AUTHENTICATE => 3,
-    OPCODE_OPTIONS => 5,
-    OPCODE_SUPPORTED => 6,
-    OPCODE_QUERY => 7,
-    OPCODE_RESULT => 8,
-    OPCODE_PREPARE => 9,
-    OPCODE_EXECUTE => 10,
-    OPCODE_REGISTER => 11,
-    OPCODE_EVENT => 12,
-    OPCODE_BATCH => 13,
-    OPCODE_AUTH_CHALLENGE => 14,
-    OPCODE_AUTH_RESPONSE => 15,
-    OPCODE_AUTH_SUCCESS => 16,
+use DBD::Cassandra::Frame qw/recv_frame2 send_frame2/;
 
-    RESULT_VOID => 1,
-    RESULT_ROWS => 2,
-    RESULT_SET_KEYSPACE => 3,
-    RESULT_PREPARED => 4,
-    RESULT_SCHEMA_CHANGE => 5,
-);
+our (@EXPORT_OK, %EXPORT_TAGS);
+BEGIN {
+    my %constants= (
+        OPCODE_ERROR => 0,
+        OPCODE_STARTUP => 1,
+        OPCODE_READY => 2,
+        OPCODE_AUTHENTICATE => 3,
+        OPCODE_OPTIONS => 5,
+        OPCODE_SUPPORTED => 6,
+        OPCODE_QUERY => 7,
+        OPCODE_RESULT => 8,
+        OPCODE_PREPARE => 9,
+        OPCODE_EXECUTE => 10,
+        OPCODE_REGISTER => 11,
+        OPCODE_EVENT => 12,
+        OPCODE_BATCH => 13,
+        OPCODE_AUTH_CHALLENGE => 14,
+        OPCODE_AUTH_RESPONSE => 15,
+        OPCODE_AUTH_SUCCESS => 16,
 
-constant->import(\%constants);
+        RESULT_VOID => 1,
+        RESULT_ROWS => 2,
+        RESULT_SET_KEYSPACE => 3,
+        RESULT_PREPARED => 4,
+        RESULT_SCHEMA_CHANGE => 5,
+    );
+
+    @EXPORT_OK= (
+        keys %constants,
+        qw(
+            recv_frame2
+            send_frame2
+
+            unpack_string_map
+            pack_string_map
+            unpack_longstring
+            pack_longstring
+            unpack_shortbytes
+            pack_shortbytes
+            unpack_bytes
+            pack_bytes
+            unpack_string
+
+            unpack_metadata
+            unpack_type
+
+            pack_parameters
+        )
+    );
+
+    %EXPORT_TAGS= (
+        constants => [ keys %constants ],
+        all => [ @EXPORT_OK ]
+    );
+
+    constant->import( { %constants } );
+}
 
 our @ISA= qw(Exporter);
-our @EXPORT_OK= (
-    keys %constants,
-    qw(
-        recv_frame
-        send_frame
-
-        unpack_string_map
-        pack_string_map
-        unpack_longstring
-        pack_longstring
-        unpack_shortbytes
-        pack_shortbytes
-        unpack_bytes
-        pack_bytes
-        unpack_string
-
-        unpack_metadata
-        unpack_type
-
-        pack_parameters
-    )
-);
-
-our %EXPORT_TAGS= (
-    constants => [ keys %constants ],
-    all => [ @EXPORT_OK ]
-);
 
 
 sub unpack_string_map {

@@ -21,7 +21,6 @@ WriteMakefile(
     },
     PREREQ_PM => {
         'DBI'                    => '1.621',
-        'Protocol::CassandraCQL' => 0.12,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'DBD-Cassandra-*' },

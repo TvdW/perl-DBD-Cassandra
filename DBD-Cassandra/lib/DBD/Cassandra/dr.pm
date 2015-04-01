@@ -57,15 +57,12 @@ sub cass_connect {
 
     {
         my $body= pack_string_map({ CQL_VERSION => '3.0.0' });
-        send_frame( $socket, 2, 0, 1, OPCODE_STARTUP, $body ) or die "Could not send STARTUP: $!";
+        send_frame2( $socket, 0, 1, OPCODE_STARTUP, $body )
+            or die "Could not send STARTUP: $!";
     }
 
     {
-        my ($version, $flags, $streamid, $opcode, $body)= recv_frame($socket);
-        if ($version != (2 | 0x80)) {
-            die "Unknown CQLSH version sent by server";
-        }
-
+        my ($flags, $streamid, $opcode, $body)= recv_frame2($socket);
         if ($streamid != 1) {
             die "Server replied with a wrong StreamID";
         }
