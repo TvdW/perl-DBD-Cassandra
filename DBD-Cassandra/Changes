@@ -1,4 +1,7 @@
 Revision history for DBD-Cassandra
 
-0.01    Date/time
+0.02    2015/04/01
+        Better utf8 support for queries (not result sets)
+
+0.01    2015/03/31
         Needed something to reach Cassandra from Perl. Wrote something for it.
