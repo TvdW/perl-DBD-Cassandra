@@ -1,13 +1,14 @@
 Changes
+MANIFEST			This list of files
+Makefile.PL
+README
 lib/DBD/Cassandra.pm
-lib/DBD/Cassandra/st.pm
-lib/DBD/Cassandra/db.pm
-lib/DBD/Cassandra/dr.pm
+lib/DBD/Cassandra/Frame.pm
 lib/DBD/Cassandra/Protocol.pm
 lib/DBD/Cassandra/Type.pm
-Makefile.PL
-MANIFEST			This list of files
-README
+lib/DBD/Cassandra/db.pm
+lib/DBD/Cassandra/dr.pm
+lib/DBD/Cassandra/st.pm
 t/00-load.t
 t/01-connect.t
 t/10-crud.t
