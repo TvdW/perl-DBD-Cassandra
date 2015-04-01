@@ -3,7 +3,6 @@ use v5.14;
 use warnings;
 
 use DBD::Cassandra::Protocol qw/:all/;
-use DBD::Cassandra::Type qw/build_row_decoder/;
 
 # Documentation-driven cargocult
 $DBD::Cassandra::st::imp_data_size = 0;
