@@ -2,6 +2,7 @@ Revision history for DBD-Cassandra
 
 0.06    unreleased
         Automatically utf8::decode VARCHAR/TEXT columns
+        Automatically pick the best compression and CQL version settings
 
 0.05    2015/04/02
         Fix Makefile.PL to properly list the dependencies added in 0.04
