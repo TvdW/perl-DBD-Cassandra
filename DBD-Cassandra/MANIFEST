@@ -13,5 +13,6 @@ t/00-load.t
 t/01-connect.t
 t/05-compress.t
 t/10-crud.t
+t/20-utf8.t
 t/manifest.t
 t/pod.t
