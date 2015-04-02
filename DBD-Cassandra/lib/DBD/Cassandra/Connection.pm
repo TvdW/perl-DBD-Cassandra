@@ -100,6 +100,10 @@ sub request {
         or die "Unable to send frame with opcode $opcode: $!";
 
     my ($r_flags, $r_stream, $r_opcode, $r_body)= recv_frame2($self->{socket});
+    if (!defined $r_flags) {
+        die $self->unrecoverable_error("Server connection went away");
+    }
+
     if ($r_stream != 1) {
         die $self->unrecoverable_error("Received an unexpected reply from the server");
     }
