@@ -111,6 +111,21 @@ Cassandra manual to see which versions your database supports.
 
 =back
 
+=head1 CONSISTENCY LEVELS
+
+    $dbh->do("INSERT INTO some_table (id, field_name) VALUES (?, ?)",
+        { Consistency => "quorum" },
+        @values
+    );
+
+B<DBD::Cassandra> accepts a I<Consistency> attribute for statements.
+Supported consistency levels are C<any>, C<one>, C<two>, C<three>,
+C<quorum>, C<all>, C<local_quorum>, C<each_quorum>, C<serial>,
+C<local_serial> and C<local_one>.
+
+This attribute is ignored on statements that do not support it, such
+as C<CREATE>.
+
 =head1 CAVEATS, BUGS, TODO
 
 =over
