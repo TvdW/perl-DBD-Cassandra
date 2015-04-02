@@ -6,7 +6,7 @@ unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }
 
-plan tests => 3;
+plan tests => 6;
 
 my $keyspace= "dbd_cassandra_tests";
 
@@ -19,8 +19,13 @@ for my $compression (qw/lz4 snappy none/) {
 
     $dbh->do("create table $keyspace.test (id bigint primary key, b blob)");
 
+    my $original= '0' x 1000000;
+
     my $sth= $dbh->prepare("insert into $keyspace.test (id, b) values (?, ?)");
-    $sth->execute(1, ('0' x 1000000));
+    $sth->execute(1, $original);
+
+    my $row= $dbh->selectrow_arrayref("select b from $keyspace.test where id=1");
+    ok($row->[0] eq $original);
 
     $dbh->disconnect;
 }
