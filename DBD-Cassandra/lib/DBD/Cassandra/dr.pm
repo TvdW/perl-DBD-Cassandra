@@ -41,7 +41,8 @@ sub connect {
     $dbh->STORE('Active', 1);
     $dbh->{cass_connection}= $connection;
 
-    $outer->do("use $keyspace") if $keyspace;
+    $outer->do("use $keyspace") or return
+        if $keyspace;
 
     return $outer;
 }
