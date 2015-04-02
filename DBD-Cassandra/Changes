@@ -1,5 +1,11 @@
 Revision history for DBD-Cassandra
 
+0.04    2015/04/02
+        Bugfix: refuse to connect if the keyspace doesn't exist
+        Refactor some network code
+        Compression support through Compress:LZ4 and Compress::Snappy
+        Allow selecting a CQL version for the connection
+
 0.03    2015/04/01
         Add some documentation to the main module. Mostly for CPAN
         Make keyspace an optional part of the connection's dsn
