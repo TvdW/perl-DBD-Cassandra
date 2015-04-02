@@ -35,9 +35,7 @@ BEGIN {
     @EXPORT_OK= (
         keys %constants,
         qw(
-            unpack_string_map
             pack_string_map
-            unpack_longstring
             pack_longstring
             unpack_shortbytes
             pack_shortbytes
@@ -63,10 +61,6 @@ BEGIN {
 our @ISA= qw(Exporter);
 
 
-sub unpack_string_map {
-    ...
-}
-
 sub pack_string_map {
     my $hash= shift;
     my $body= '';
@@ -78,7 +72,6 @@ sub pack_string_map {
     return pack('n', $count).$body;
 }
 
-sub unpack_longstring { unpack('N/a', shift) }
 sub pack_longstring { pack('N/a', shift) }
 
 sub unpack_shortbytes {
