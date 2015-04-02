@@ -42,7 +42,7 @@ DBD::Cassandra - Database driver for Cassandra's CQL3
 
     use DBI;
 
-    my $dbh = DBI->connect("dbi:Cassandra:host=localhost;keyspace=test", $user, $password);
+    my $dbh = DBI->connect("dbi:Cassandra:host=localhost;keyspace=test", $user, $password, { RaiseError => 1 });
     my $rows = $dbh->selectall_arrayref("SELECT id, field_one, field_two FROM some_table");
 
     for my $row (@$rows) {
