@@ -2,8 +2,7 @@ package DBD::Cassandra::dr;
 use v5.14;
 use warnings;
 
-use IO::Socket::INET;
-use DBD::Cassandra::Protocol qw/:all/;
+use DBD::Cassandra::Connection;
 
 # "*FIX ME* Explain what the imp_data_size is, so that implementors aren't
 #  practicing cargo-cult programming" - DBI::DBD docs
@@ -30,7 +29,7 @@ sub connect {
 
     my $connection;
     eval {
-        $connection= cass_connect($host, $port, $user, $auth);
+        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth);
         1;
     } or do {
         my $err= $@ || "unknown error";
@@ -45,34 +44,6 @@ sub connect {
     $outer->do("use $keyspace") if $keyspace;
 
     return $outer;
-}
-
-sub cass_connect {
-    my ($host, $port, $user, $auth)= @_;
-    my $socket= IO::Socket::INET->new(
-        PeerAddr => $host,
-        PeerPort => $port,
-        Proto    => 'tcp',
-    ) or die "Can't connect: $@";
-
-    {
-        my $body= pack_string_map({ CQL_VERSION => '3.0.0' });
-        send_frame2( $socket, 0, 1, OPCODE_STARTUP, $body )
-            or die "Could not send STARTUP: $!";
-    }
-
-    {
-        my ($flags, $streamid, $opcode, $body)= recv_frame2($socket);
-        if ($streamid != 1) {
-            die "Server replied with a wrong StreamID";
-        }
-
-        if ($opcode != OPCODE_READY) {
-            die "Server sent an unsupported opcode";
-        }
-    }
-
-    return $socket;
 }
 
 sub data_sources {

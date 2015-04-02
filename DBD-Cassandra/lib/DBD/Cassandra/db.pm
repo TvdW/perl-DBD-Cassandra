@@ -11,36 +11,36 @@ $DBD::Cassandra::db::imp_data_size = 0;
 sub prepare {
     my ($dbh, $statement, @attribs)= @_;
 
-    {
-        my $body= pack_longstring($statement);
-        send_frame2( $dbh->{cass_connection}, 0, 1, OPCODE_PREPARE, $body )
-            or return $dbh->set_err($DBI::stderr, "Failed to send frame: $!");
+    my ($opcode, $body);
+    eval {
+        ($opcode, $body)= $dbh->{cass_connection}->request(
+            OPCODE_PREPARE,
+            pack_longstring($statement)
+        );
+        1;
+    } or do {
+        my $error= $@ || "unknown error";
+        return $dbh->set_err($DBI::stderr, "prepare failed: $error");
+    };
+
+    if ($opcode == OPCODE_ERROR) {
+        my ($code, $message)= unpack('Nn/a', $body);
+        return $dbh->set_err($DBI::stderr, "$code: $message");
+
+    } elsif ($opcode != OPCODE_RESULT) {
+        return $dbh->set_err($DBI::stderr, "Unknown response from server");
     }
 
-    my ($prepared_id, $metadata, $result_metadata, @names, $paramcount);
-
-    {
-        my ($flags, $streamid, $opcode, $body)= recv_frame2($dbh->{cass_connection});
-        if ($opcode == OPCODE_ERROR) {
-            my ($code, $message)= unpack('Nn/a', $body);
-            return $dbh->set_err($DBI::stderr, "$code: $message");
-
-        } elsif ($opcode == OPCODE_RESULT) {
-            my $kind= unpack('N', substr $body, 0, 4, '');
-            if ($kind != RESULT_PREPARED) {
-                return $dbh->set_err($DBI::stderr, "Server returned an unknown response");
-            }
-
-            $prepared_id= unpack_shortbytes($body);
-            $metadata= unpack_metadata($body);
-            $result_metadata= unpack_metadata($body);
-            $paramcount= 0+ @{ $metadata->{columns} };
-            @names= map { $_->{name} } @{$result_metadata->{columns}};
-
-        } else {
-            return $dbh->set_err($DBI::stderr, "Unknown response from server");
-        }
+    my $kind= unpack('N', substr $body, 0, 4, '');
+    if ($kind != RESULT_PREPARED) {
+        return $dbh->set_err($DBI::stderr, "Server returned an unknown response");
     }
+
+    my $prepared_id= unpack_shortbytes($body);
+    my $metadata= unpack_metadata($body);
+    my $result_metadata= unpack_metadata($body);
+    my $paramcount= 0+ @{ $metadata->{columns} };
+    my @names= map { $_->{name} } @{$result_metadata->{columns}};
 
     my ($outer, $sth)= DBI::_new_sth($dbh, { Statement => $statement });
     $sth->STORE('NUM_OF_PARAMS', $paramcount);
@@ -96,7 +96,7 @@ sub disconnect {
     my ($dbh)= @_;
     $dbh->STORE('Active', 0);
 
-    close $dbh->{cass_connection};
+    $dbh->{cass_connection}->close;
 }
 
 1;

@@ -5,8 +5,6 @@ use warnings;
 require Exporter;
 use Data::Dumper;
 
-use DBD::Cassandra::Frame qw/recv_frame2 send_frame2/;
-
 our (@EXPORT_OK, %EXPORT_TAGS);
 BEGIN {
     my %constants= (
@@ -37,9 +35,6 @@ BEGIN {
     @EXPORT_OK= (
         keys %constants,
         qw(
-            recv_frame2
-            send_frame2
-
             unpack_string_map
             pack_string_map
             unpack_longstring

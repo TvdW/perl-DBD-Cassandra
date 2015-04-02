@@ -48,48 +48,40 @@ sub _cass_execute {
     my $prepared_id= $sth->{cass_prepared_id};
 
     my $dbh= $sth->{Database};
-    my $fh= $dbh->{cass_connection};
+    my $conn= $dbh->{cass_connection};
 
-    {
-        my $values= pack('n', 0+@$params). ($sth->{cass_row_encoder}->(@$params));
-        my $body= pack_shortbytes($prepared_id).pack_parameters({ values => $values });
-        send_frame2( $fh, 0, 1, OPCODE_EXECUTE, $body )
-            or die "Unable to execute statement: $!";
+    my $values= pack('n', 0+@$params). ($sth->{cass_row_encoder}->(@$params));
+    my $request_body= pack_shortbytes($prepared_id).pack_parameters({ values => $values });
+
+    my ($opcode, $body)= $conn->request(
+        OPCODE_EXECUTE,
+        $request_body
+    );
+
+    if ($opcode == OPCODE_ERROR) {
+        my ($code, $message)= unpack('Nn/a', $body);
+        die "Code $code: $message";
+    } elsif ($opcode != OPCODE_RESULT) {
+        die "Strange answer from server during execute";
     }
 
-    my $result;
-    {
-        my ($flags, $streamid, $opcode, $body)= recv_frame2($fh);
-        if ($streamid != 1 || $flags != 0) {
-            die "Strange answer from server.";
-        }
-
-        if ($opcode == OPCODE_ERROR) {
-            my ($code, $message)= unpack('Nn/a', $body);
-            die "Code $code: $message";
-        } elsif ($opcode != OPCODE_RESULT) {
-            die "Strange answer from server during execute";
-        }
-
-        my $kind= unpack 'N', substr $body, 0, 4, '';
-        if ($kind == RESULT_VOID || $kind == RESULT_SET_KEYSPACE || $kind == RESULT_SCHEMA_CHANGE) {
-            $result= [];
-        } elsif ($kind == RESULT_ROWS) {
-            my $metadata= unpack_metadata($body);
-            my $decoder= $sth->{cass_row_decoder};
-            my $rows_count= unpack('N', substr $body, 0, 4, '');
-
-            my @rows;
-            for my $row (1..$rows_count) {
-                push @rows, $decoder->($body);
-            }
-            $result= \@rows;
-        } else {
-            die 'Unsupported response from server';
-        }
+    my $kind= unpack 'N', substr $body, 0, 4, '';
+    if ($kind == RESULT_VOID || $kind == RESULT_SET_KEYSPACE || $kind == RESULT_SCHEMA_CHANGE) {
+        return [];
+    } elsif ($kind != RESULT_ROWS) {
+        die 'Unsupported response from server';
     }
 
-    return $result;
+
+    my $metadata= unpack_metadata($body);
+    my $decoder= $sth->{cass_row_decoder};
+    my $rows_count= unpack('N', substr $body, 0, 4, '');
+
+    my @rows;
+    for my $row (1..$rows_count) {
+        push @rows, $decoder->($body);
+    }
+    return \@rows;
 }
 
 sub execute_for_fetch {
