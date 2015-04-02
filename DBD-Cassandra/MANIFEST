@@ -11,6 +11,7 @@ lib/DBD/Cassandra/dr.pm
 lib/DBD/Cassandra/st.pm
 t/00-load.t
 t/01-connect.t
+t/05-compress.t
 t/10-crud.t
 t/manifest.t
 t/pod.t
