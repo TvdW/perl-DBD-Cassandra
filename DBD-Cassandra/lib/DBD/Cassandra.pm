@@ -6,7 +6,7 @@ use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.05';
+our $VERSION= '0.06';
 our $drh= undef;
 
 sub driver {
