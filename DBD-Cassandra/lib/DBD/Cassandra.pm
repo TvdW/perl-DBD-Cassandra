@@ -49,6 +49,11 @@ DBD::Cassandra - Database driver for Cassandra's CQL3
         # Do something with your row
     }
 
+    $dbh->do("INSERT INTO some_table (id, field_one, field_two) VALUES (?, ?, ?)",
+        { Consistency => "quorum" },
+        1, "String value", 38962986
+    );
+
     $dbh->disconnect;
 
 =head1 DESCRIPTION

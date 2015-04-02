@@ -9,7 +9,7 @@ use DBD::Cassandra::Type qw/build_row_encoder build_row_decoder/;
 $DBD::Cassandra::db::imp_data_size = 0;
 
 sub prepare {
-    my ($dbh, $statement, @attribs)= @_;
+    my ($dbh, $statement, $attribs)= @_;
 
     my ($opcode, $body);
     eval {
@@ -53,6 +53,7 @@ sub prepare {
     $sth->{cass_prepared_id}= $prepared_id;
     $sth->{cass_row_encoder}= build_row_encoder($metadata->{columns});
     $sth->{cass_row_decoder}= build_row_decoder($result_metadata->{columns});
+    $sth->{cass_consistency}= $attribs->{consistency} // $attribs->{Consistency} // CONSISTENCY_ONE;
     return $outer;
 }
 
