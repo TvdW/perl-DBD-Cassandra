@@ -26,10 +26,8 @@ sub connect {
     my $keyspace= delete $attr->{cass_database} || delete $attr->{cass_db} || delete $attr->{cass_keyspace};
     my $host= delete $attr->{cass_host} || 'localhost';
     my $port= delete $attr->{cass_port} || 9042;
-    my $compression= delete $attr->{cass_compression} // 'lz4';
-    my $cql_version= delete $attr->{cass_cql_version} || '3.0.0';
-
-    $compression= '' if $compression eq "none";
+    my $compression= delete $attr->{cass_compression};
+    my $cql_version= delete $attr->{cass_cql_version};
 
     my $connection;
     eval {

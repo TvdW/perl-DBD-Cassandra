@@ -84,21 +84,23 @@ Hostname to connect to. Defaults to C<localhost>
 
 =item port
 
-Port number to connect to. Defaults to C<3306>
+Port number to connect to. Defaults to C<9042>
 
 =item compression
 
 The compression method we should use for the connection. Currently
-Cassandra allows C<lz4> and C<snappy>. We default to C<lz4>, which can
+Cassandra allows C<lz4> and C<snappy>. Defaults to the algorithm with
+the best compression ratio, if the server supports it. Compression can
 be disabled by setting C<compression=none>.
 
-Only used for data frames longer than 512 bytes.
+Only used for data frames longer than 512 bytes, smaller frames get
+sent uncompressed.
 
 =item cql_version
 
 There are several versions of the CQL language and this option lets you
-pick one. Defaults to C<3.0.0>. Consult your Cassandra manual to see
-which versions your database supports.
+pick one. Defaults to the highest available version. Consult your
+Cassandra manual to see which versions your database supports.
 
 =back
 

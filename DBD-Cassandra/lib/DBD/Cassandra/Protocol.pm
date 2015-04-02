@@ -36,6 +36,7 @@ BEGIN {
         keys %constants,
         qw(
             pack_string_map
+            unpack_string_multimap
             pack_longstring
             unpack_shortbytes
             pack_shortbytes
@@ -60,6 +61,21 @@ BEGIN {
 
 our @ISA= qw(Exporter);
 
+
+sub unpack_string_multimap {
+    my $result= {};
+    my $count= unpack('n', substr $_[0], 0, 2, '');
+    for (1..$count) {
+        my $key= unpack_string($_[0]);
+        my $valcount= unpack('n', substr $_[0], 0, 2, '');
+        my $values= [];
+        for (1..$valcount) {
+            push @$values, unpack_string($_[0]);
+        }
+        $result->{$key}= $values;
+    }
+    return $result;
+}
 
 sub pack_string_map {
     my $hash= shift;

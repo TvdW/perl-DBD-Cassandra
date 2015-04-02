@@ -18,19 +18,56 @@ sub connect {
 
     my $self= bless {
         socket => $socket,
-        compression => $compression,
     }, $class;
 
-    my ($opcode, $body)= $self->request(
-        OPCODE_STARTUP,
-        pack_string_map({
-            CQL_VERSION => $cql_version,
-            COMPRESSION => $compression,
-        })
-    );
+    {
+        my ($opcode, $body)= $self->request(
+            OPCODE_OPTIONS,
+            ''
+        );
 
-    if ($opcode != OPCODE_READY) {
-        die "Server sent an unsupported opcode";
+        my $supported= unpack_string_multimap($body);
+
+        # Try to find a somewhat sane compression format to use as a default
+        my %compression_supported= map { $_ => 1 } @{$supported->{COMPRESSION}};
+        if (!$compression) {
+            $compression= 'lz4' if $compression_supported{lz4};
+            $compression= 'snappy' if $compression_supported{snappy};
+        }
+        $compression= '' if $compression && $compression eq 'none';
+
+        if ($compression && !$compression_supported{$compression}) {
+            die "Tried to select a compression format the server does not understand: $compression";
+        }
+
+        # Use the latest CQL version supported unless we specify a version
+        my %cql_supported= map { $_ => 1 } @{$supported->{CQL_VERSION}};
+        if (!$cql_version) {
+            ($cql_version)= reverse sort keys %cql_supported;
+        }
+
+        if (!$cql_version) {
+            die 'Did not pick a CQL version. Are we talking to a Cassandra server?';
+        }
+        if (!$cql_supported{$cql_version}) {
+            die 'Tried to pick a CQL version the server does not understand.';
+        }
+    }
+
+    $self->{compression}= $compression;
+
+    {
+        my ($opcode, $body)= $self->request(
+            OPCODE_STARTUP,
+            pack_string_map({
+                CQL_VERSION => $cql_version,
+                ($compression ? ( COMPRESSION => $compression ) : ()),
+            })
+        );
+
+        if ($opcode != OPCODE_READY) {
+            die "Server sent an unsupported opcode";
+        }
     }
 
     return $self;

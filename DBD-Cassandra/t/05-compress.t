@@ -6,11 +6,11 @@ unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }
 
-plan tests => 2;
+plan tests => 3;
 
 my $keyspace= "dbd_cassandra_tests";
 
-for my $compression (qw/lz4 snappy/) {
+for my $compression (qw/lz4 snappy none/) {
     my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};compression=$compression", undef, undef, {RaiseError => 1});
     ok($dbh);
 
