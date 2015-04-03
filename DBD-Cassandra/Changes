@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.06    unreleased
+0.06    2015/04/02
         Automatically utf8::decode VARCHAR/TEXT columns
         Automatically pick the best compression and CQL version settings
         Allow setting consistency levels on queries
