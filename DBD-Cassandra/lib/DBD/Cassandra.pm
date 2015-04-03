@@ -141,6 +141,12 @@ Thread support is untested. Use at your own risk.
 
 =item *
 
+There is currently no support for asynchronous queries, and there are
+no plans to implement it. If you need to run a lot of queries in
+parallel, consider using C<fork> to manage the parallel work.
+
+=item *
+
 Not all Cassandra data types are supported. These are currently
 supported:
 
