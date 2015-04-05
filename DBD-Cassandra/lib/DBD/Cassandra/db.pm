@@ -23,11 +23,7 @@ sub prepare {
         return $dbh->set_err($DBI::stderr, "prepare failed: $error");
     };
 
-    if ($opcode == OPCODE_ERROR) {
-        my ($code, $message)= unpack('Nn/a', $body);
-        return $dbh->set_err($DBI::stderr, "$code: $message");
-
-    } elsif ($opcode != OPCODE_RESULT) {
+    if ($opcode != OPCODE_RESULT) {
         return $dbh->set_err($DBI::stderr, "Unknown response from server");
     }
 

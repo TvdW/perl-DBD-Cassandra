@@ -61,10 +61,7 @@ sub _cass_execute {
         $request_body
     );
 
-    if ($opcode == OPCODE_ERROR) {
-        my ($code, $message)= unpack('Nn/a', $body);
-        die "Code $code: $message";
-    } elsif ($opcode != OPCODE_RESULT) {
+    if ($opcode != OPCODE_RESULT) {
         die "Strange answer from server during execute";
     }
 

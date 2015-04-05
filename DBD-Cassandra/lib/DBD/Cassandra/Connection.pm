@@ -156,6 +156,11 @@ sub request {
         $self->decompress($r_body);
     }
 
+    if ($r_opcode == OPCODE_ERROR) {
+        my ($code, $message)= unpack('Nn/a', $r_body);
+        die "$code: $message";
+    }
+
     return ($r_opcode, $r_body);
 }
 
@@ -213,9 +218,6 @@ sub authenticate {
 
     if ($opcode == OPCODE_AUTH_SUCCESS) {
         # Done!
-    } elsif ($opcode == OPCODE_ERROR) {
-        my ($code, $message)= unpack('Nn/a', $body);
-        die "$code: $message";
     } else {
         die "Unexpected reply from server";
     }
