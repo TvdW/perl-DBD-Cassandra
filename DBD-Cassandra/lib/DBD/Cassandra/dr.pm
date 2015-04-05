@@ -28,6 +28,7 @@ sub connect {
     my $port= delete $attr->{cass_port} || 9042;
     my $compression= delete $attr->{cass_compression};
     my $cql_version= delete $attr->{cass_cql_version};
+    my $global_consistency= delete $attr->{cass_consistency};
 
     my $connection;
     eval {
@@ -42,6 +43,7 @@ sub connect {
 
     $dbh->STORE('Active', 1);
     $dbh->{cass_connection}= $connection;
+    $dbh->{cass_consistency}= $global_consistency;
 
     $outer->do("use $keyspace") or return
         if $keyspace;
