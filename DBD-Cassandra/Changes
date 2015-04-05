@@ -1,7 +1,8 @@
 Revision history for DBD-Cassandra
 
-0.07    Unreleased
+0.07    2015/04/05
         Authentication support through Authen::SASL
+        Allow setting a default consistency level for all queries
 
 0.06    2015/04/02
         Automatically utf8::decode VARCHAR/TEXT columns
