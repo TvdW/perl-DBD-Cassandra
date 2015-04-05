@@ -71,6 +71,7 @@ using the CQL3 query language.
 
     $dsn = "dbi:Cassandra:database=$database";
     $dsn = "dbi:Cassandra:keyspace=$keyspace;host=$hostname;port=$port";
+    $dsn = "dbi:Cassandra:keyspace=$keyspace;consistency=local_quorum";
 
 =over
 
@@ -107,6 +108,8 @@ There are several versions of the CQL language and this option lets you
 pick one. Defaults to the highest available version. Consult your
 Cassandra manual to see which versions your database supports.
 
+=item consistency
+
 =back
 
 =back
@@ -125,6 +128,8 @@ C<local_serial> and C<local_one>.
 
 This attribute is ignored on statements that do not support it, such
 as C<CREATE>.
+
+A global consistency level can be defined as part of the DSN.
 
 =head1 CAVEATS, BUGS, TODO
 
