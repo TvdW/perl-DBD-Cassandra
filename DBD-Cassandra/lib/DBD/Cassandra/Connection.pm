@@ -7,6 +7,7 @@ use DBD::Cassandra::Protocol qw/:all/;
 
 require Compress::Snappy; # Don't import compress() / decompress() into our scope please.
 require Compress::LZ4; # Don't auto-import your subs.
+use Authen::SASL;
 
 sub connect {
     my ($class, $host, $port, $user, $auth, $compression, $cql_version)= @_;
@@ -65,7 +66,13 @@ sub connect {
             })
         );
 
-        if ($opcode != OPCODE_READY) {
+        if ($opcode == OPCODE_AUTHENTICATE) {
+            $self->authenticate($body, $user, $auth);
+
+        } elsif ($opcode == OPCODE_READY) {
+            # all good, nothing to do
+
+        } else {
             die "Server sent an unsupported opcode";
         }
     }
@@ -173,6 +180,45 @@ sub recv_frame2 {
     }
 
     return ($flags, $streamID, $opcode, $body);
+}
+
+sub authenticate {
+    my ($self, $authenticate_body, $user, $auth)= @_;
+
+    die "Server requires authentication but we have no credentials defined"
+        unless $user && $auth;
+
+    #my $cls= unpack_string($authenticate_body);
+    my $sasl= Authen::SASL->new(
+        mechanism => 'PLAIN', # Cassandra doesn't seem to like it if we specify a space-separated list
+        callback => {
+            pass => sub { $auth },
+            user => sub { $user },
+        },
+    );
+    my $client= $sasl->client_new();
+
+    my ($opcode, $body)= $self->request(
+        OPCODE_AUTH_RESPONSE,
+        pack_bytes($client->client_start())
+    );
+
+    while ($opcode == OPCODE_AUTH_CHALLENGE && $client->need_step) {
+        my $last_response= unpack_bytes($body);
+        ($opcode, $body)= $self->request(
+            OPCODE_AUTH_RESPONSE,
+            pack_bytes($client->client_step($last_response))
+        );
+    }
+
+    if ($opcode == OPCODE_AUTH_SUCCESS) {
+        # Done!
+    } elsif ($opcode == OPCODE_ERROR) {
+        my ($code, $message)= unpack('Nn/a', $body);
+        die "$code: $message";
+    } else {
+        die "Unexpected reply from server";
+    }
 }
 
 1;
