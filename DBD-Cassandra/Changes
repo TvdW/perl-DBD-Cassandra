@@ -1,5 +1,8 @@
 Revision history for DBD-Cassandra
 
+0.08    unreleased
+        Avoid causing trouble when disconnecting an inactive handle
+
 0.07    2015/04/05
         Authentication support through Authen::SASL
         Allow setting a default consistency level for all queries

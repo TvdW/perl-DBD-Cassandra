@@ -82,7 +82,7 @@ sub connect {
 
 sub close {
     my ($self)= @_;
-    $self->{socket}->close;
+    $self->{socket}->close if $self->{socket};
     $self->{socket}= undef;
     1;
 }
