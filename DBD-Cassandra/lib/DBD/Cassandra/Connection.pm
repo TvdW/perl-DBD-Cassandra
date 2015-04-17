@@ -19,6 +19,7 @@ sub connect {
 
     my $self= bless {
         socket => $socket,
+        Active => 1,
     }, $class;
 
     {
@@ -84,6 +85,7 @@ sub close {
     my ($self)= @_;
     $self->{socket}->close if $self->{socket};
     $self->{socket}= undef;
+    $self->{Active}= 0;
     1;
 }
 

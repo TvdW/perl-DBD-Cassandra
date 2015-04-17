@@ -98,6 +98,9 @@ sub FETCH {
     my ($dbh, $attr)= @_;
     return 1 if $attr eq 'AutoCommit';
     return $dbh->{$attr} if $attr =~ m/^cass_/;
+    if ($attr eq 'Active') {
+        return $dbh->SUPER::FETCH($attr) && $dbh->{cass_connection} && $dbh->{cass_connection}{Active};
+    }
     return $dbh->SUPER::FETCH($attr);
 }
 
