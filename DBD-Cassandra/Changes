@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.08    unreleased
+0.08    2015/04/17
         Avoid causing trouble when disconnecting an inactive handle
         Cache any prepare()'d statement for 60 seconds
         Don't consider a disconnected handle as active
