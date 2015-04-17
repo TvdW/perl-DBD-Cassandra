@@ -3,6 +3,7 @@ Revision history for DBD-Cassandra
 0.08    unreleased
         Avoid causing trouble when disconnecting an inactive handle
         Cache any prepare()'d statement for 60 seconds
+        Don't consider a disconnected handle as active
 
 0.07    2015/04/05
         Authentication support through Authen::SASL
