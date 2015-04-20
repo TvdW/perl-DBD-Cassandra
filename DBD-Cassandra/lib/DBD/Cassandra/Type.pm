@@ -17,7 +17,7 @@ my %lookup= (
     8  => [\&p2c_float,  \&c2p_float,       'TYPE_FLOAT'],
     9  => [\&p2c_int,    \&c2p_int,         'TYPE_INT'],
     10 => [\&p2c_string, \&c2p_utf8string,  'TYPE_TEXT'],
-    11 => [\&not_impl,   \&not_impl,        'TYPE_TIMESTAMP'],
+    11 => [\&p2c_time,   \&c2p_time,        'TYPE_TIMESTAMP'],
     12 => [\&not_impl,   \&not_impl,        'TYPE_UUID'],
     13 => [\&p2c_string, \&c2p_utf8string,  'TYPE_VARCHAR'],
     14 => [\&not_impl,   \&not_impl,        'TYPE_VARINT'],
@@ -27,12 +27,14 @@ my %lookup= (
 
 sub not_impl { ... }
 sub _pack {
-    my ($p, $l, $i)= @_;
-    return "pack('l> $p', $l, \$_[$i])";
+    my ($p, $l, $m, $i)= @_;
+    $m //= '';
+    return "pack('l> $p', $l, (\$_[$i] $m))";
 }
 sub _unpack {
-    my ($p, $l, $v)= @_;
-    return "unpack('$p', $v)";
+    my ($p, $l, $m, $v)= @_;
+    $m //= '';
+    return "(unpack('$p', $v) $m)";
 }
 
 sub p2c_string {
@@ -41,18 +43,20 @@ sub p2c_string {
 }
 sub c2p_string { return shift }
 sub c2p_utf8string { my $var= shift; return ($var, "utf8::decode $var") }
-sub p2c_bigint { return   _pack('q>', 8, @_) }
-sub c2p_bigint { return _unpack('q>', 8, @_) }
-sub p2c_int { return   _pack('l>', 4, @_) }
-sub c2p_int { return _unpack('l>', 4, @_) }
-sub p2c_bool { return   _pack('C', 1, @_) }
-sub c2p_bool { return _unpack('C', 1, @_) }
-sub p2c_float { return   _pack('f', 4, @_) }
-sub c2p_float { return _unpack('f', 4, @_) }
-sub p2c_double { return   _pack('d', 8, @_) }
-sub c2p_double { return _unpack('d', 8, @_) }
-#sub p2c_ { return   _pack('', , @_) }
-#sub c2p_ { return _unpack('', , @_) }
+sub p2c_bigint { return   _pack('q>', 8, undef, @_) }
+sub c2p_bigint { return _unpack('q>', 8, undef, @_) }
+sub p2c_time { return   _pack('q>', 8, ' * 1000', @_) }
+sub c2p_time { return _unpack('q>', 8, ' / 1000', @_) }
+sub p2c_int { return   _pack('l>', 4, undef, @_) }
+sub c2p_int { return _unpack('l>', 4, undef, @_) }
+sub p2c_bool { return   _pack('C', 1, ' ? 1 : 0', @_) }
+sub c2p_bool { return _unpack('C', 1, undef, @_) }
+sub p2c_float { return   _pack('f', 4, undef, @_) }
+sub c2p_float { return _unpack('f', 4, undef, @_) }
+sub p2c_double { return   _pack('d', 8, undef, @_) }
+sub c2p_double { return _unpack('d', 8, undef, @_) }
+#sub p2c_ { return   _pack('', , undef, @_) }
+#sub c2p_ { return _unpack('', , undef, @_) }
 
 our @EXPORT_OK= qw( build_row_encoder build_row_decoder );
 

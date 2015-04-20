@@ -175,6 +175,8 @@ supported:
 
 =item * text
 
+=item * timestamp
+
 =item * varchar
 
 =back
