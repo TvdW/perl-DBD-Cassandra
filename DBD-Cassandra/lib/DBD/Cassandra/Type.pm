@@ -37,7 +37,7 @@ sub _unpack {
 
 sub p2c_string {
     my ($i)= @_;
-    return ("pack('l>/a', \$_[$i])", "utf8::encode \$_[$i]");
+    return ("pack('l>/a', \$_[$i])", "utf8::is_utf8(\$_[$i]) && utf8::encode(\$_[$i])");
 }
 sub c2p_string { return shift }
 sub c2p_utf8string { my $var= shift; return ($var, "utf8::decode $var") }

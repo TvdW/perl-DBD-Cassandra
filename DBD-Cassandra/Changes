@@ -1,5 +1,8 @@
 Revision history for DBD-Cassandra
 
+0.09    2015/04/20
+        Avoid double-encoding UTF-8 strings when passed in without the right flags
+
 0.08    2015/04/17
         Avoid causing trouble when disconnecting an inactive handle
         Cache any prepare()'d statement for 60 seconds
