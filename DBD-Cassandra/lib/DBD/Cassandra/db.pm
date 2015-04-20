@@ -11,9 +11,9 @@ $DBD::Cassandra::db::imp_data_size = 0;
 sub prepare {
     my ($dbh, $statement, $attribs)= @_;
 
-    my $prepared= $dbh->{cass_prepare_cache}{$statement};
-    undef $prepared if $prepared && $prepared->[0] < time() - 60;
-    $prepared //= (do {
+    prune_prepare_cache($dbh->{cass_prepare_cache});
+
+    my $prepared= ($dbh->{cass_prepare_cache}{$statement} //= do {
         my ($opcode, $body);
         eval {
             ($opcode, $body)= $dbh->{cass_connection}->request(
@@ -41,7 +41,7 @@ sub prepare {
         my $paramcount= 0+ @{ $metadata->{columns} };
         my @names= map { $_->{name} } @{$result_metadata->{columns}};
 
-        [undef, {
+        [time(), {
             cass_prepared_metadata => $metadata,
             cass_prepared_result_metadata => $result_metadata,
             cass_prepared_id => $prepared_id,
@@ -63,6 +63,13 @@ sub prepare {
     $sth->{cass_params}= [];
     $sth->{cass_consistency}= $attribs->{consistency} // $attribs->{Consistency} // $dbh->{cass_consistency} // 'one';
     return $outer;
+}
+
+sub prune_prepare_cache {
+    my ($cache)= @_;
+    my $expiration= time() - 60;
+
+    %$cache = map { $_ => $cache->{$_} } grep { $cache->{$_} && $cache->{$_}[0] >= $expiration } keys %$cache;
 }
 
 sub commit {
