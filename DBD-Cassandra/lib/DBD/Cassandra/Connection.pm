@@ -3,6 +3,7 @@ use v5.14;
 use warnings;
 
 use IO::Socket::INET;
+use Socket qw/TCP_NODELAY IPPROTO_TCP/;
 use DBD::Cassandra::Protocol qw/:all/;
 
 require Compress::Snappy; # Don't import compress() / decompress() into our scope please.
@@ -16,6 +17,8 @@ sub connect {
         PeerPort => $port,
         Proto    => 'tcp',
     ) or die "Can't connect: $@";
+
+    $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1);
 
     my $self= bless {
         socket => $socket,
