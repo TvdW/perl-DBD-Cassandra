@@ -118,4 +118,18 @@ sub disconnect {
     $dbh->{cass_connection}->close;
 }
 
+sub ping {
+    my ($dbh)= @_;
+    return 0 unless $dbh->FETCH('Active');
+
+    eval {
+        my $conn= $dbh->{cass_connection};
+        my ($opcode)= $conn->request(OPCODE_OPTIONS, '');
+        die unless $opcode == OPCODE_SUPPORTED;
+        1;
+    } or do {
+        0
+    };
+}
+
 1;

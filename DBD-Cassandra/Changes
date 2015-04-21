@@ -2,6 +2,7 @@ Revision history for DBD-Cassandra
 
 0.10    unreleased
         Disable Nagle's algorithm, for a nice performance boost
+        Implement ping() to check whether we're still connected
 
 0.09    2015/04/20
         Avoid double-encoding UTF-8 strings when passed in without the right flags
