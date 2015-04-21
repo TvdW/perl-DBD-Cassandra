@@ -1,48 +1,58 @@
 Revision history for DBD-Cassandra
 
 0.10    unreleased
-        Disable Nagle's algorithm, for a nice performance boost
-        Implement ping() to check whether we're still connected
+
+      * Disable Nagle's algorithm, for a nice performance boost
+      * Implement ping() to check whether we're still connected
 
 0.09    2015/04/20
-        Avoid double-encoding UTF-8 strings when passed in without the right flags
-        Automatically prune the prepare() cache to avoid memory leaks
-        Add support for the 'TIMESTAMP' type
-        Boolean types are now actually inserted as booleans
+
+      * Avoid double-encoding UTF-8 strings when passed in without the right flags
+      * Automatically prune the prepare() cache to avoid memory leaks
+      * Add support for the 'TIMESTAMP' type
+      * Boolean types are now actually inserted as booleans
 
 0.08    2015/04/17
-        Avoid causing trouble when disconnecting an inactive handle
-        Cache any prepare()'d statement for 60 seconds
-        Don't consider a disconnected handle as active
+
+      * Avoid causing trouble when disconnecting an inactive handle
+      * Cache any prepare()'d statement for 60 seconds
+      * Don't consider a disconnected handle as active
 
 0.07    2015/04/05
-        Authentication support through Authen::SASL
-        Allow setting a default consistency level for all queries
+
+      * Authentication support through Authen::SASL
+      * Allow setting a default consistency level for all queries
 
 0.06    2015/04/02
-        Automatically utf8::decode VARCHAR/TEXT columns
-        Automatically pick the best compression and CQL version settings
-        Allow setting consistency levels on queries
+
+      * Automatically utf8::decode VARCHAR/TEXT columns
+      * Automatically pick the best compression and CQL version settings
+      * Allow setting consistency levels on queries
 
 0.05    2015/04/02
-        Fix Makefile.PL to properly list the dependencies added in 0.04
+
+      * Fix Makefile.PL to properly list the dependencies added in 0.04
 
 0.04    2015/04/02
-        Bugfix: refuse to connect if the keyspace doesn't exist
-        Refactor some network code
-        Compression support through Compress:LZ4 and Compress::Snappy
-        Allow selecting a CQL version for the connection
+
+      * Bugfix: refuse to connect if the keyspace doesn't exist
+      * Refactor some network code
+      * Compression support through Compress:LZ4 and Compress::Snappy
+      * Allow selecting a CQL version for the connection
 
 0.03    2015/04/01
-        Add some documentation to the main module. Mostly for CPAN
-        Make keyspace an optional part of the connection's dsn
-        Add some new test cases for better coverage
-        Better error handling when the server misbehaves
-        Some performance improvements
-        Remove dependency on Protocol::CassandraCQL
+
+      * Add some documentation to the main module. Mostly for CPAN
+      * Make keyspace an optional part of the connection's dsn
+      * Add some new test cases for better coverage
+      * Better error handling when the server misbehaves
+      * Some performance improvements
+      * Remove dependency on Protocol::CassandraCQL
 
 0.02    2015/04/01
-        Better utf8 support for queries (not result sets)
+
+      * Better utf8 support for queries (not result sets)
 
 0.01    2015/03/31
-        Needed something to reach Cassandra from Perl. Wrote something for it.
+
+      * Needed something to reach Cassandra from Perl. Wrote something for it.
