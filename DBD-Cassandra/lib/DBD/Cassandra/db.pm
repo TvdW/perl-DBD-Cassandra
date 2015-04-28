@@ -105,8 +105,17 @@ sub FETCH {
     my ($dbh, $attr)= @_;
     return 1 if $attr eq 'AutoCommit';
     return $dbh->{$attr} if $attr =~ m/^cass_/;
+
+    # Sort of a workaround for unrecoverable errors in st.pm
     if ($attr eq 'Active') {
-        return $dbh->SUPER::FETCH($attr) && $dbh->{cass_connection} && $dbh->{cass_connection}{Active};
+        if ($dbh->SUPER::FETCH($attr)) {
+            if (!$dbh->{cass_connection} || !$dbh->{cass_connection}{Active}) {
+                $dbh->disconnect;
+                return 0;
+            } else {
+                return 1;
+            }
+        }
     }
     return $dbh->SUPER::FETCH($attr);
 }
