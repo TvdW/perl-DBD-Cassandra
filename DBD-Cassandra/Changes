@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.11    unreleased
+
+      * Patch a DBI warning that occurs when we drop an implicitly disconnected handle
+
 0.10    2015/04/22
 
       * Disable Nagle's algorithm, for a nice performance boost
