@@ -5,7 +5,7 @@ use warnings;
 require Exporter;
 use Data::Dumper;
 
-our (@EXPORT_OK, %EXPORT_TAGS);
+our (@EXPORT_OK, %EXPORT_TAGS, %retryable);
 my (%consistency_lookup);
 BEGIN {
     my %constants= (
@@ -43,6 +43,8 @@ BEGIN {
         CONSISTENCY_SERIAL => 8,
         CONSISTENCY_LOCAL_SERIAL => 9,
         CONSISTENCY_ONE => 10,
+
+        NO_RETRY => 0,
     );
 
     @EXPORT_OK= (
@@ -76,6 +78,11 @@ BEGIN {
     } keys %constants;
 
     constant->import( { %constants } );
+
+    %retryable= map { $_ => 1 } (
+        0x1100, # Write timeout
+        0x1200, # Read timeout
+    );
 }
 
 our @ISA= qw(Exporter);

@@ -28,7 +28,8 @@ sub connect {
     {
         my ($opcode, $body)= $self->request(
             OPCODE_OPTIONS,
-            ''
+            '',
+            NO_RETRY
         );
 
         my $supported= unpack_string_multimap($body);
@@ -67,7 +68,8 @@ sub connect {
             pack_string_map({
                 CQL_VERSION => $cql_version,
                 ($compression ? ( COMPRESSION => $compression ) : ()),
-            })
+            }),
+            NO_RETRY
         );
 
         if ($opcode == OPCODE_AUTHENTICATE) {
@@ -137,7 +139,7 @@ sub decompress {
 }
 
 sub request {
-    my ($self, $opcode, $body)= @_;
+    my ($self, $opcode, $body, $retry)= @_;
 
     my $flags= 0;
     if ($body && length($body) > 512 && $opcode != OPCODE_STARTUP && $self->{compression}) {
@@ -163,6 +165,9 @@ sub request {
 
     if ($r_opcode == OPCODE_ERROR) {
         my ($code, $message)= unpack('Nn/a', $r_body);
+        if ($retry && $retry > 0 && $DBD::Cassandra::Protocol::retryable{$code}) {
+            return $self->request($opcode, $body, $retry-1);
+        }
         die "$code: $message";
     }
 
@@ -210,14 +215,16 @@ sub authenticate {
 
     my ($opcode, $body)= $self->request(
         OPCODE_AUTH_RESPONSE,
-        pack_bytes($client->client_start())
+        pack_bytes($client->client_start()),
+        NO_RETRY
     );
 
     while ($opcode == OPCODE_AUTH_CHALLENGE && $client->need_step) {
         my $last_response= unpack_bytes($body);
         ($opcode, $body)= $self->request(
             OPCODE_AUTH_RESPONSE,
-            pack_bytes($client->client_step($last_response))
+            pack_bytes($client->client_step($last_response)),
+            NO_RETRY
         );
     }
 

@@ -18,7 +18,8 @@ sub prepare {
         eval {
             ($opcode, $body)= $dbh->{cass_connection}->request(
                 OPCODE_PREPARE,
-                pack_longstring($statement)
+                pack_longstring($statement),
+                NO_RETRY,
             );
             1;
         } or do {
@@ -62,6 +63,7 @@ sub prepare {
     }
     $sth->{cass_params}= [];
     $sth->{cass_consistency}= $attribs->{consistency} // $attribs->{Consistency} // $dbh->{cass_consistency} // 'one';
+    $sth->{cass_retry_count}= $attribs->{retries} // $attribs->{Retries} // NO_RETRY;
     return $outer;
 }
 
@@ -133,7 +135,7 @@ sub ping {
 
     eval {
         my $conn= $dbh->{cass_connection};
-        my ($opcode)= $conn->request(OPCODE_OPTIONS, '');
+        my ($opcode)= $conn->request(OPCODE_OPTIONS, '', NO_RETRY);
         die unless $opcode == OPCODE_SUPPORTED;
         1;
     } or do {

@@ -58,7 +58,8 @@ sub _cass_execute {
 
     my ($opcode, $body)= $conn->request(
         OPCODE_EXECUTE,
-        $request_body
+        $request_body,
+        $sth->{cass_retry_count},
     );
 
     if ($opcode != OPCODE_RESULT) {

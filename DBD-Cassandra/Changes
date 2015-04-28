@@ -3,6 +3,7 @@ Revision history for DBD-Cassandra
 0.11    unreleased
 
       * Patch a DBI warning that occurs when we drop an implicitly disconnected handle
+      * Allow automatically retrying in case of timeouts (opt-in)
 
 0.10    2015/04/22
 
