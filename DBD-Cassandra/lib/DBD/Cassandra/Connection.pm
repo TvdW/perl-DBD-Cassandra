@@ -3,6 +3,7 @@ use v5.14;
 use warnings;
 
 use IO::Socket::INET;
+use IO::Socket::Timeout;
 use Socket qw/TCP_NODELAY IPPROTO_TCP/;
 use DBD::Cassandra::Protocol qw/:all/;
 
@@ -11,14 +12,20 @@ require Compress::LZ4; # Don't auto-import your subs.
 use Authen::SASL;
 
 sub connect {
-    my ($class, $host, $port, $user, $auth, $compression, $cql_version)= @_;
+    my ($class, $host, $port, $user, $auth, $compression, $cql_version, $timeout)= @_;
     my $socket= IO::Socket::INET->new(
         PeerAddr => $host,
         PeerPort => $port,
         Proto    => 'tcp',
+        ( $timeout ? ( Timeout => $timeout ) : () ),
     ) or die "Can't connect: $@";
 
     $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1);
+    if ($timeout) {
+        IO::Socket::Timeout->enable_timeouts_on($socket);
+        $socket->read_timeout($timeout);
+        $socket->write_timeout($timeout);
+    }
 
     my $self= bless {
         socket => $socket,
@@ -147,10 +154,10 @@ sub request {
         $flags |= 1;
     }
 
-    send_frame2($self->{socket}, $flags, 1, $opcode, $body)
-        or die "Unable to send frame with opcode $opcode: $!";
+    $self->send_frame2($flags, 1, $opcode, $body)
+        or die $self->unrecoverable_error("Unable to send frame with opcode $opcode: $!");
 
-    my ($r_flags, $r_stream, $r_opcode, $r_body)= recv_frame2($self->{socket});
+    my ($r_flags, $r_stream, $r_opcode, $r_body)= $self->recv_frame2();
     if (!defined $r_flags) {
         die $self->unrecoverable_error("Server connection went away");
     }
@@ -175,14 +182,17 @@ sub request {
 }
 
 sub send_frame2 {
-    my ($fh, $flags, $streamID, $opcode, $body)= @_;
+    my ($self, $flags, $streamID, $opcode, $body)= @_;
+    my $fh= $self->{socket};
     return print $fh pack("CCCCN/a", 2, $flags, $streamID, $opcode, $body);
 }
 
 sub recv_frame2 {
-    my ($fh)= @_;
+    my ($self)= @_;
+    my $fh= $self->{socket};
 
-    (read($fh, my $header, 8) == 8) or return; #XXX Do we need to handle this case?
+    (read($fh, my $header, 8) == 8) #XXX Do we need to handle the case where we get less than 8 bytes?
+        or die $self->unrecoverable_error("Failed to read reply header from server: $!");
 
     my ($version, $flags, $streamID, $opcode, $bodylen)=
         unpack('CCCCN', $header);
@@ -191,7 +201,8 @@ sub recv_frame2 {
 
     my $body;
     if ($bodylen) {
-        read $fh, $body, $bodylen or return; #XXX What if we read slightly less than that?
+        read $fh, $body, $bodylen #XXX What if we read slightly less than that?
+            or die $self->unrecoverable_error("Failed to read reply from server: $!");
     }
 
     return ($flags, $streamID, $opcode, $body);

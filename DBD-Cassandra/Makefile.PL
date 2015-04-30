@@ -24,6 +24,7 @@ WriteMakefile(
         'Compress::Snappy'       => '0.23',
         'Compress::LZ4'          => '0.20',
         'Authen::SASL'           => '2.16',
+        'IO::Socket::Timeout'    => '0.22',
     },
 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

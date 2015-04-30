@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.12    unreleased
+
+      * Basic support for read timeouts
+
 0.11    2015/04/28
 
       * Patch a DBI warning that occurs when we drop an implicitly disconnected handle

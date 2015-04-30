@@ -29,10 +29,11 @@ sub connect {
     my $compression= delete $attr->{cass_compression};
     my $cql_version= delete $attr->{cass_cql_version};
     my $global_consistency= delete $attr->{cass_consistency};
+    my $timeout= delete $attr->{cass_read_timeout};
 
     my $connection;
     eval {
-        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, $compression, $cql_version);
+        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, $compression, $cql_version, $timeout);
         1;
     } or do {
         my $err= $@ || "unknown error";
