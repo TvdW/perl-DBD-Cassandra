@@ -2,7 +2,7 @@ Revision history for DBD-Cassandra
 
 0.12    unreleased
 
-      * Basic support for read timeouts
+      * Support for read/write/connect timeouts
 
 0.11    2015/04/28
 

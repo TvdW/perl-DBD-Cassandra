@@ -32,7 +32,7 @@ sub connect {
     eval {
         $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, {
             map { exists $attr->{"cass_$_"} ? ($_ => $attr->{"cass_$_"}) : () }
-                qw/compression cql_version read_timeout/
+                qw/compression cql_version read_timeout write_timeout connect_timeout/
         });
         1;
     } or do {
