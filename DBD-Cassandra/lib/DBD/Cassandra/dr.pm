@@ -26,17 +26,13 @@ sub connect {
     my $keyspace= delete $attr->{cass_database} || delete $attr->{cass_db} || delete $attr->{cass_keyspace};
     my $host= delete $attr->{cass_host} || 'localhost';
     my $port= delete $attr->{cass_port} || 9042;
-    my $compression= delete $attr->{cass_compression};
-    my $cql_version= delete $attr->{cass_cql_version};
     my $global_consistency= delete $attr->{cass_consistency};
-    my $timeout= delete $attr->{cass_read_timeout};
 
     my $connection;
     eval {
         $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, {
-            compression => $compression,
-            cql_version => $cql_version,
-            read_timeout => $timeout,
+            map { exists $attr->{"cass_$_"} ? ($_ => $attr->{"cass_$_"}) : () }
+                qw/compression cql_version read_timeout/
         });
         1;
     } or do {
