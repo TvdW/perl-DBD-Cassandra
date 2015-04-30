@@ -12,19 +12,19 @@ require Compress::LZ4; # Don't auto-import your subs.
 use Authen::SASL;
 
 sub connect {
-    my ($class, $host, $port, $user, $auth, $compression, $cql_version, $timeout)= @_;
+    my ($class, $host, $port, $user, $auth, $args)= @_;
     my $socket= IO::Socket::INET->new(
         PeerAddr => $host,
         PeerPort => $port,
         Proto    => 'tcp',
-        ( $timeout ? ( Timeout => $timeout ) : () ),
+        ($args->{connect_timeout} ? ( Timeout => $args->{connect_timeout} ) : () ),
     ) or die "Can't connect: $@";
 
     $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1);
-    if ($timeout) {
+    if ($args->{read_timeout} || $args->{write_timeout}) {
         IO::Socket::Timeout->enable_timeouts_on($socket);
-        $socket->read_timeout($timeout);
-        $socket->write_timeout($timeout);
+        $socket->read_timeout($args->{read_timeout}) if $args->{read_timeout};
+        $socket->write_timeout($args->{write_timeout}) if $args->{write_timeout};
     }
 
     my $self= bless {
@@ -42,6 +42,7 @@ sub connect {
         my $supported= unpack_string_multimap($body);
 
         # Try to find a somewhat sane compression format to use as a default
+        my $compression= $args->{compression};
         my %compression_supported= map { $_ => 1 } @{$supported->{COMPRESSION}};
         if (!$compression) {
             $compression= 'lz4' if $compression_supported{lz4};
@@ -52,12 +53,15 @@ sub connect {
         if ($compression && !$compression_supported{$compression}) {
             die "Tried to select a compression format the server does not understand: $compression";
         }
+        $self->{compression}= $compression;
 
         # Use the latest CQL version supported unless we specify a version
+        my $cql_version= $args->{cql_version};
         my %cql_supported= map { $_ => 1 } @{$supported->{CQL_VERSION}};
         if (!$cql_version) {
             ($cql_version)= reverse sort keys %cql_supported;
         }
+        $self->{cql_version}= $cql_version;
 
         if (!$cql_version) {
             die 'Did not pick a CQL version. Are we talking to a Cassandra server?';
@@ -67,14 +71,12 @@ sub connect {
         }
     }
 
-    $self->{compression}= $compression;
-
     {
         my ($opcode, $body)= $self->request(
             OPCODE_STARTUP,
             pack_string_map({
-                CQL_VERSION => $cql_version,
-                ($compression ? ( COMPRESSION => $compression ) : ()),
+                CQL_VERSION => $self->{cql_version},
+                ($self->{compression} ? ( COMPRESSION => $self->{compression} ) : ()),
             }),
             NO_RETRY
         );

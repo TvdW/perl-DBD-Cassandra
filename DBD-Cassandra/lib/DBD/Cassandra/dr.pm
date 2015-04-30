@@ -33,7 +33,11 @@ sub connect {
 
     my $connection;
     eval {
-        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, $compression, $cql_version, $timeout);
+        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, {
+            compression => $compression,
+            cql_version => $cql_version,
+            read_timeout => $timeout,
+        });
         1;
     } or do {
         my $err= $@ || "unknown error";
