@@ -6,7 +6,7 @@ use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.12';
+our $VERSION= '0.13';
 our $drh= undef;
 
 sub driver {
@@ -109,6 +109,12 @@ pick one. Defaults to the highest available version. Consult your
 Cassandra manual to see which versions your database supports.
 
 =item consistency
+
+=item connect_timeout
+
+=item read_timeout
+
+=item write_timeout
 
 =back
 
