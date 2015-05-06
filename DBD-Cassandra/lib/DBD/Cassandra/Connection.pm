@@ -193,8 +193,10 @@ sub recv_frame2 {
     my ($self)= @_;
     my $fh= $self->{socket};
 
-    (read($fh, my $header, 8) == 8) #XXX Do we need to handle the case where we get less than 8 bytes?
-        or die $self->unrecoverable_error("Failed to read reply header from server: $!");
+    my $read_bytes= read($fh, my $header, 8);
+    if (!$read_bytes || $read_bytes != 8) {
+        die $self->unrecoverable_error("Failed to read reply header from server: $!");
+    }
 
     my ($version, $flags, $streamID, $opcode, $bodylen)=
         unpack('CCCCN', $header);
@@ -203,8 +205,13 @@ sub recv_frame2 {
 
     my $body;
     if ($bodylen) {
-        read $fh, $body, $bodylen #XXX What if we read slightly less than that?
-            or die $self->unrecoverable_error("Failed to read reply from server: $!");
+        my $remaining= $bodylen;
+        do {
+            my $bytes= read $fh, my $chunk, $remaining
+                or die $self->unrecoverable_error("Failed to read reply from server: $!");
+            $body .= $chunk;
+            $remaining -= $bytes;
+        } while $remaining;
     }
 
     return ($flags, $streamID, $opcode, $body);

@@ -1,5 +1,10 @@
 Revision history for DBD-Cassandra
 
+0.13    2015/05/06
+
+      * Avoid uninitialized value warnings when the connection goes away
+      * Fix an issue where data was corrupted during reading
+
 0.12    2015/04/30
 
       * Support for read/write/connect timeouts
