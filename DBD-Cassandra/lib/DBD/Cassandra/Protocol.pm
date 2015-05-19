@@ -3,7 +3,9 @@ use v5.14;
 use warnings;
 
 require Exporter;
-use Data::Dumper;
+our @ISA= qw(Exporter);
+
+use constant;
 
 our (@EXPORT_OK, %EXPORT_TAGS, %retryable);
 my (%consistency_lookup);
@@ -84,9 +86,6 @@ BEGIN {
         0x1200, # Read timeout
     );
 }
-
-our @ISA= qw(Exporter);
-
 
 sub unpack_string_multimap {
     my $result= {};
