@@ -44,7 +44,7 @@ BEGIN {
         CONSISTENCY_EACH_QUORUM => 7,
         CONSISTENCY_SERIAL => 8,
         CONSISTENCY_LOCAL_SERIAL => 9,
-        CONSISTENCY_ONE => 10,
+        CONSISTENCY_LOCAL_ONE => 10,
 
         NO_RETRY => 0,
     );
