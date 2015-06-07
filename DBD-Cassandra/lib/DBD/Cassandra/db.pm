@@ -64,6 +64,7 @@ sub prepare {
     $sth->{cass_params}= [];
     $sth->{cass_consistency}= $attribs->{consistency} // $attribs->{Consistency} // $dbh->{cass_consistency} // 'one';
     $sth->{cass_retry_count}= $attribs->{retries} // $attribs->{Retries} // NO_RETRY;
+    $sth->{cass_paging}= $attribs->{perpage} // $attribs->{PerPage} // $attribs->{per_page};
     return $outer;
 }
 

@@ -50,7 +50,7 @@ DBD::Cassandra - Database driver for Cassandra's CQL3
     }
 
     $dbh->do("INSERT INTO some_table (id, field_one, field_two) VALUES (?, ?, ?)",
-        { Consistency => "quorum", Retries => 1 },
+        { Consistency => "quorum" },
         1, "String value", 38962986
     );
 
@@ -61,17 +61,19 @@ DBD::Cassandra - Database driver for Cassandra's CQL3
 B<DBD::Cassandra> is a Perl5 Database Interface driver for Cassandra,
 using the CQL3 query language.
 
-=head2 Class Methods
+=head2 Configuration
 
 =over
 
-=item B<connect>
+=item Database handles
 
     use DBI;
 
     $dsn = "dbi:Cassandra:database=$database";
     $dsn = "dbi:Cassandra:keyspace=$keyspace;host=$hostname;port=$port";
     $dsn = "dbi:Cassandra:keyspace=$keyspace;consistency=local_quorum";
+
+    my $dbh = DBI->connect($dsn, $username, $password);
 
 =over
 
@@ -115,6 +117,37 @@ Cassandra manual to see which versions your database supports.
 =item read_timeout
 
 =item write_timeout
+
+=back
+
+=item Statement handles
+
+    my $sth= $dbh->prepare('SELECT "id", "field1", "field2" FROM table_name WHERE id=?', { Consistency => 'one' });
+
+=over
+
+=item consistency
+
+See "consistency levels".
+
+=item per_page
+
+Cassandra supports pagination through result sets, to avoid having the entire
+result set in memory.
+
+    my $sth = $dbh->prepare('SELECT id FROM tablename', { PerPage => 1000 });
+    $sth->execute;
+    while (my $row = $sth->fetchrow_arrayref()) {
+        print "$row->[0]\n";
+    }
+
+It is important to keep in mind that this mode can cause errors while fetching
+rows, as extra queries may be executed by the driver internally.
+
+=item retries
+
+Allows specifying how many times to retry queries that failed because of a
+timeout. Defaults to C<0> (no retrying).
 
 =back
 

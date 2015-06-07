@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.15    unreleased
+
+      * Support for pagination through result sets
+
 0.14    2015/05/19
 
       * Resolve an old bug where connecting to CQL3 might cause compilation errors

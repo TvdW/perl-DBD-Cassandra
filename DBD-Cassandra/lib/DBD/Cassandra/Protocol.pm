@@ -199,11 +199,23 @@ sub pack_parameters {
     if ($params->{values}) {
         $flags |= 0x01;
     }
+    if ($params->{result_page_size}) {
+        $flags |= 0x04;
+    }
+    if ($params->{paging_state}) {
+        $flags |= 0x08;
+    }
 
     my $body= pack('n C', $consistency, $flags);
 
-    if ($flags & 1) {
+    if ($flags & 0x01) {
         $body .= $params->{values};
+    }
+    if ($flags & 0x04) {
+        $body .= pack('N', $params->{result_page_size});
+    }
+    if ($flags & 0x08) {
+        $body .= pack_bytes($params->{paging_state});
     }
 
     return $body;

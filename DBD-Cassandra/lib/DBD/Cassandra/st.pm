@@ -26,6 +26,16 @@ sub execute {
     return $sth->set_err($DBI::stderr, "Wrong number of parameters")
         if @$params != $param_count;
 
+    $sth->{cass_paging_state}= undef;
+    $sth->{cass_params_real}= $params;
+
+    return cass_execute($sth);
+}
+
+sub cass_execute {
+    my ($sth)= @_;
+    my $params= $sth->{cass_params_real};
+
     my $data;
     eval {
         $data= _cass_execute($sth, $params);
@@ -39,7 +49,11 @@ sub execute {
     $sth->{cass_rows}= 0+@$data;
 
     $sth->STORE('Active', 1);
-    @$data || '0E0'; # Something true
+    if ($sth->{cass_paging}) {
+        return '0E0'; # We don't know how many rows will be returned.
+    } else {
+        return (@$data || '0E0'); # Something true
+    }
 }
 
 sub _cass_execute {
@@ -54,6 +68,8 @@ sub _cass_execute {
     my $request_body= pack_shortbytes($prepared_id).pack_parameters({
         values => $values,
         consistency => $sth->{cass_consistency},
+        result_page_size => $sth->{cass_paging},
+        paging_state => $sth->{cass_paging_state},
     });
 
     my ($opcode, $body)= $conn->request(
@@ -75,6 +91,7 @@ sub _cass_execute {
 
 
     my $metadata= unpack_metadata($body);
+    $sth->{cass_paging_state}= $metadata->{paging_state};
     my $decoder= $sth->{cass_row_decoder};
     my $rows_count= unpack('N', substr $body, 0, 4, '');
 
@@ -95,8 +112,14 @@ sub bind_param_array {
 
 sub fetchrow_arrayref {
     my ($sth)= @_;
-    my $data= $sth->{cass_data};
-    my $row= shift @$data;
+    my $row= shift @{ $sth->{cass_data} };
+    if (!$row) {
+        if ($sth->{cass_paging_state}) {
+            # Fetch some more rows
+            cass_execute($sth);
+            $row= shift @{ $sth->{cass_data} };
+        }
+    }
     if (!$row) {
         $sth->STORE('Active', 0);
         return undef;
@@ -109,7 +132,7 @@ sub fetchrow_arrayref {
 
 *fetch = \&fetchrow_arrayref; # DBI requires this. Probably historical reasons.
 
-sub rows { shift->{cass_rows} }
+sub rows { $_[0]{cass_paging} ? '0E0' : $_[0]{cass_rows} }
 
 sub DESTROY {
     my ($sth)= @_;
