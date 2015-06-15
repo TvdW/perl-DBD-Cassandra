@@ -22,6 +22,7 @@ my $type_table= [
     ['int',         5,      $input],
     ['text',        '∫∫',   $input],
     ['timestamp',   time(), $input],
+    ['timestamp',   '2015-05-12T14:51:06.306+0000', $input],
     ['varchar',     '∫∫',   $input],
 ];
 
