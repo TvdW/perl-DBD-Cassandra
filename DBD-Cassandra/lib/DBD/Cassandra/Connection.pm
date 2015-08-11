@@ -4,7 +4,7 @@ use warnings;
 
 use IO::Socket::INET;
 use IO::Socket::Timeout;
-use Socket qw/TCP_NODELAY IPPROTO_TCP/;
+use Socket qw/TCP_NODELAY IPPROTO_TCP SOL_SOCKET SO_KEEPALIVE/;
 use DBD::Cassandra::Protocol qw/:all/;
 
 require Compress::Snappy; # Don't import compress() / decompress() into our scope please.
@@ -21,6 +21,7 @@ sub connect {
     ) or die "Can't connect: $@";
 
     $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1);
+    $socket->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1);
     if ($args->{read_timeout} || $args->{write_timeout}) {
         IO::Socket::Timeout->enable_timeouts_on($socket);
         $socket->read_timeout($args->{read_timeout}) if $args->{read_timeout};
