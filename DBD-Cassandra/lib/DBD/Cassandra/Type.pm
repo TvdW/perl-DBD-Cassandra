@@ -45,8 +45,8 @@ sub c2p_string { return shift }
 sub c2p_utf8string { my $var= shift; return ($var, "utf8::decode $var") }
 sub p2c_bigint { return   _pack('q>', 8, undef, @_) }
 sub c2p_bigint { return _unpack('q>', 8, undef, @_) }
-sub p2c_time { return   _pack('q>', 8, ' * 1000', @_) }
-sub c2p_time { return _unpack('q>', 8, ' / 1000', @_) }
+sub p2c_time { return   _pack('q>', 8, undef, @_) }
+sub c2p_time { return _unpack('q>', 8, undef, @_) }
 sub p2c_int { return   _pack('l>', 4, undef, @_) }
 sub c2p_int { return _unpack('l>', 4, undef, @_) }
 sub p2c_bool { return   _pack('C', 1, ' ? 1 : 0', @_) }
