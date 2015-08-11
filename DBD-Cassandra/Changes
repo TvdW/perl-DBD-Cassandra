@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.15    unreleased
+0.15    2015/08/11
 
       * Support for pagination through result sets
       * careful: Timestamps are now in msec accuracy instead of having them as floating points
