@@ -191,6 +191,11 @@ parallel, consider using C<fork> to manage the parallel work.
 
 =item *
 
+If the table structure changes, prepared queries are not invalidated correctly.
+This is a serious issue and will be fixed in a future release.
+
+=item *
+
 Not all Cassandra data types are supported. These are currently
 supported:
 
