@@ -8,21 +8,21 @@ my $warn= "__warn";
 
 my $type_table= [
     # Type name, test input, test output (undef for error, $input for copying the input, $warn if we expect a perl warning)
-    ['ascii',       'asd',      $input],
-    ['ascii',       '∫∫',       undef],
-    ['bigint',      5,          $input],
-    ['bigint',      'asd',      $warn],
-    ['blob',        'asd',      $input],
-    ['boolean',     1,          $input],
-    ['boolean',     0,          $input],
-    ['boolean',     2,          1],
-    ['boolean',     'asd',      1],
-    ['double',      0.15,       $input],
-    ['float',       0.2,        0.200000002980232], # Yeah.
-    ['int',         5,          $input],
-    ['text',        '∫∫',       $input],
-    ['timestamp',   time()*1000,$input],
-    ['varchar',     '∫∫',       $input],
+    ['ascii',       'asd',  $input],
+    ['ascii',       '∫∫',   undef],
+    ['bigint',      5,      $input],
+    ['bigint',      'asd',  $warn],
+    ['blob',        'asd',  $input],
+    ['boolean',     1,      $input],
+    ['boolean',     0,      $input],
+    ['boolean',     2,      1],
+    ['boolean',     'asd',  1],
+    ['double',      0.15,   $input],
+    ['float',       0.2,    0.200000002980232], # Yeah.
+    ['int',         5,      $input],
+    ['text',        '∫∫',   $input],
+    ['timestamp',   time(), $input],
+    ['varchar',     '∫∫',   $input],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {
