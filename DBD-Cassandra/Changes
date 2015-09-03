@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.16    2015/09/03
+
+      * When running with "perl -l", the driver now actually works
+
 0.15    2015/08/11
 
       * Support for pagination through result sets
