@@ -7,9 +7,9 @@ use IO::Socket::Timeout;
 use Socket qw/TCP_NODELAY IPPROTO_TCP SOL_SOCKET SO_KEEPALIVE/;
 use DBD::Cassandra::Protocol qw/:all/;
 
-require Compress::Snappy; # Don't import compress() / decompress() into our scope please.
-require Compress::LZ4; # Don't auto-import your subs.
-use Authen::SASL;
+use Compress::Snappy qw();
+use Compress::LZ4 qw();
+use Authen::SASL qw();
 
 sub connect {
     my ($class, $host, $port, $user, $auth, $args)= @_;
