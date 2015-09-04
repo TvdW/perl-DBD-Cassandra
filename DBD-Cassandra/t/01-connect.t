@@ -1,6 +1,9 @@
 use v5.14;
 use Test::More;
 
+# Fake running under 'perl -l'
+$\= "\n";
+
 unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }

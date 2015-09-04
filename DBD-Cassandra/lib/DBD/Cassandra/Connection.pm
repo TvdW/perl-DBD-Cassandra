@@ -182,8 +182,7 @@ sub request {
 sub send_frame2 {
     my ($self, $flags, $streamID, $opcode, $body)= @_;
     my $fh= $self->{socket};
-    local $\;
-    return print $fh pack("CCCCN/a", 2, $flags, $streamID, $opcode, $body);
+    return $fh->write(pack("CCCCN/a", 3, $flags, $streamID, $opcode, $body));
 }
 
 sub recv_frame2 {
