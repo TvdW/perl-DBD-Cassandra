@@ -11,6 +11,8 @@ use Compress::Snappy qw();
 use Compress::LZ4 qw();
 use Authen::SASL qw();
 
+use constant STREAM_ID_LIMIT => 32768;
+
 sub connect {
     my ($class, $host, $port, $user, $auth, $args)= @_;
     my $socket= IO::Socket::INET->new(
@@ -30,6 +32,8 @@ sub connect {
 
     my $self= bless {
         socket => $socket,
+        last_stream_id => -1,
+        pending_streams => {},
         Active => 1,
     }, $class;
 
@@ -149,23 +153,62 @@ sub decompress {
 sub request {
     my ($self, $opcode, $body)= @_;
 
+    my $stream_id= $self->post_request($opcode, $body);
+    return $self->read_request($stream_id);
+}
+
+sub post_request {
+    my ($self, $opcode, $body)= @_;
+
     my $flags= 0;
     if ($body && length($body) > 512 && $opcode != OPCODE_STARTUP && $self->{compression}) {
         $self->compress($body);
         $flags |= 1;
     }
 
-    $self->send_frame2($flags, 1, $opcode, $body)
+    my $stream_id= $self->{last_stream_id} + 1;
+    my $attempts= 0;
+    while (exists $self->{pending_streams}{$stream_id}) {
+        $stream_id= (++$stream_id) % STREAM_ID_LIMIT;
+        die "Cannot find a stream ID to post query with" if ++$attempts >= STREAM_ID_LIMIT;
+    }
+    $self->{last_stream_id}= $stream_id;
+    $self->{pending_streams}{$stream_id}= undef;
+
+    $self->send_frame3($flags, $stream_id, $opcode, $body)
         or die $self->unrecoverable_error("Unable to send frame with opcode $opcode: $!");
 
-    my ($r_flags, $r_stream, $r_opcode, $r_body)= $self->recv_frame2();
-    if (!defined $r_flags) {
-        die $self->unrecoverable_error("Server connection went away");
+    return $stream_id;
+}
+
+sub read_request {
+    my ($self, $stream_id)= @_;
+
+    my ($r_flags, $r_stream, $r_opcode, $r_body);
+
+    if (my $older_response= $self->{pending_streams}{$stream_id}) {
+        ($r_flags, $r_opcode, $r_body)= @$older_response;
+        $r_stream= $stream_id;
     }
 
-    if ($r_stream != 1) {
-        die $self->unrecoverable_error("Received an unexpected reply from the server");
+    until (defined $r_stream && $r_stream == $stream_id) {
+        ($r_flags, $r_stream, $r_opcode, $r_body)= $self->recv_frame3();
+        if (!defined $r_flags) {
+            die $self->unrecoverable_error("Server connection went away");
+        }
+
+        if ($r_stream != $stream_id) {
+            if (!exists $self->{pending_streams}{$stream_id}) {
+                die $self->unrecoverable_error("Received an unexpected reply from the server");
+            }
+
+            $self->{pending_streams}{$stream_id}= [$r_flags, $r_opcode, $r_body];
+        } else {
+            last;
+        }
     }
+
+    delete $self->{pending_streams}{$stream_id};
 
     if (($r_flags & 1) && $r_body) {
         $self->decompress($r_body);
@@ -179,25 +222,25 @@ sub request {
     return ($r_opcode, $r_body);
 }
 
-sub send_frame2 {
+sub send_frame3 {
     my ($self, $flags, $streamID, $opcode, $body)= @_;
     my $fh= $self->{socket};
-    return $fh->write(pack("CCCCN/a", 3, $flags, $streamID, $opcode, $body));
+    return $fh->write(pack("CCsCN/a", 3, $flags, $streamID, $opcode, $body));
 }
 
-sub recv_frame2 {
+sub recv_frame3 {
     my ($self)= @_;
     my $fh= $self->{socket};
 
-    my $read_bytes= read($fh, my $header, 8);
-    if (!$read_bytes || $read_bytes != 8) {
+    my $read_bytes= read($fh, my $header, 9);
+    if (!$read_bytes || $read_bytes != 9) {
         die $self->unrecoverable_error("Failed to read reply header from server: $!");
     }
 
     my ($version, $flags, $streamID, $opcode, $bodylen)=
-        unpack('CCCCN', $header);
+        unpack('CCsCN', $header);
 
-    return if ($version & 0x7f) != 2;
+    return if ($version & 0x7f) != 3;
 
     my $body;
     if ($bodylen) {

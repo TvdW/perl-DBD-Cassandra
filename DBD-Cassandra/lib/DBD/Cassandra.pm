@@ -12,6 +12,8 @@ our $drh= undef;
 sub driver {
     return $drh if $drh;
 
+    DBD::Cassandra::st->install_method('x_finish_async');
+
     my ($class, $attr)= @_;
     $drh = DBI::_new_drh($class."::dr", {
             'Name' => 'Cassandra',
@@ -177,12 +179,6 @@ if you try to use it.
 =item *
 
 Thread support is untested. Use at your own risk.
-
-=item *
-
-There is currently no support for asynchronous queries, and there are
-no plans to implement it. If you need to run a lot of queries in
-parallel, consider using C<fork> to manage the parallel work.
 
 =item *
 

@@ -43,7 +43,7 @@ for my $type (@$type_table) {
         local $SIG{__WARN__}= sub { $did_warn= 1; };
 
         $dbh->do("insert into test_type_$typename (id, test) values (?, ?)", undef, $random_id, $test_val);
-        my $row= $dbh->selectrow_arrayref("select test from test_type_$typename where id=$random_id");
+        my $row= $dbh->selectrow_arrayref("select test from test_type_$typename where id=$random_id", { async => 1 });
         if (!defined $output_val) {
             ok(0);
         } elsif ($output_val eq $warn) {
