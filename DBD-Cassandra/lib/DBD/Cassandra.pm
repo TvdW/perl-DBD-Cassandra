@@ -144,11 +144,6 @@ result set in memory.
 It is important to keep in mind that this mode can cause errors while fetching
 rows, as extra queries may be executed by the driver internally.
 
-=item retries
-
-Allows specifying how many times to retry queries that failed because of a
-timeout. Defaults to C<0> (no retrying).
-
 =back
 
 =back
