@@ -4,9 +4,7 @@ This module aids developers in connecting to Cassandra via the familiar
 DBI interfaces. The current implementation is very incomplete, though
 later releases will hopefully implement the full CQL3 language.
 
-Right now this module is entirely written in Perl. Performance is not
-very good, so this might become XS some day.
-
+This module is entirely written in Perl.
 
 INSTALLATION
 

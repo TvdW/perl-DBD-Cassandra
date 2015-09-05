@@ -1,5 +1,10 @@
 Revision history for DBD-Cassandra
 
+0.17    unreleased
+
+      * Support for asynchronous queries
+      * Drop 'retries' which was a bad idea
+
 0.16    2015/09/03
 
       * When running with "perl -l", the driver now actually works
