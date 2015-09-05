@@ -186,7 +186,10 @@ sub read_request {
 
     my ($r_flags, $r_stream, $r_opcode, $r_body);
 
-    if (my $older_response= $self->{pending_streams}{$stream_id}) {
+    if (!exists $self->{pending_streams}{$stream_id}) {
+        die "Internal DBD::Cassandra bug";
+
+    } elsif (my $older_response= $self->{pending_streams}{$stream_id}) {
         ($r_flags, $r_opcode, $r_body)= @$older_response;
         $r_stream= $stream_id;
     }
@@ -202,7 +205,7 @@ sub read_request {
                 die $self->unrecoverable_error("Received an unexpected reply from the server");
             }
 
-            $self->{pending_streams}{$stream_id}= [$r_flags, $r_opcode, $r_body];
+            $self->{pending_streams}{$r_stream}= [$r_flags, $r_opcode, $r_body];
         } else {
             last;
         }
@@ -231,6 +234,7 @@ sub send_frame3 {
 sub recv_frame3 {
     my ($self)= @_;
     my $fh= $self->{socket};
+    return unless defined $fh;
 
     my $read_bytes= read($fh, my $header, 9);
     if (!$read_bytes || $read_bytes != 9) {
