@@ -14,11 +14,16 @@ ok($dbh);
 $dbh->do('create table if not exists test_async (id bigint primary key)');
 $dbh->do('truncate test_async');
 
+my $count= 100000;
 my @pending;
-for my $i (1..100) {
+for my $i (1..$count) {
     my $sth= $dbh->prepare("insert into test_async (id) values (?)", {async => 1});
     $sth->execute($i);
     push @pending, $sth;
+
+    if (@pending > 5000) {
+        (shift @pending)->x_finish_async;
+    }
 }
 
 my $ok= 1;
@@ -26,6 +31,6 @@ $ok &&= $_->x_finish_async for reverse @pending;
 ok($ok);
 
 my $rows= $dbh->selectall_arrayref('select * from test_async');
-ok(0+@$rows == 100);
+ok(0+@$rows == $count);
 
 $dbh->disconnect;

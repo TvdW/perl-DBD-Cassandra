@@ -168,7 +168,7 @@ sub post_request {
 
     my $stream_id= $self->{last_stream_id} + 1;
     my $attempts= 0;
-    while (exists $self->{pending_streams}{$stream_id}) {
+    while (exists($self->{pending_streams}{$stream_id}) || $stream_id >= STREAM_ID_LIMIT) {
         $stream_id= (++$stream_id) % STREAM_ID_LIMIT;
         die "Cannot find a stream ID to post query with" if ++$attempts >= STREAM_ID_LIMIT;
     }
