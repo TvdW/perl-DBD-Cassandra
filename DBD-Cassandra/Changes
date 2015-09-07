@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.17    unreleased
+0.17    2015/09/07
 
       * Support for asynchronous queries
       * Drop 'retries' which was a bad idea
