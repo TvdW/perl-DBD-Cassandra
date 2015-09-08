@@ -97,6 +97,7 @@ sub cass_read {
         my $kind= unpack 'N', substr $body, 0, 4, '';
         if ($kind == RESULT_VOID || $kind == RESULT_SET_KEYSPACE || $kind == RESULT_SCHEMA_CHANGE) {
             $data= [];
+            $sth->STORE('Active', 0);
             return 1;
         } elsif ($kind != RESULT_ROWS) {
             die 'Unsupported response from server';
