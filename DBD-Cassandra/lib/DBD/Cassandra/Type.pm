@@ -1,7 +1,7 @@
 package DBD::Cassandra::Type;
 use v5.14;
 use warnings;
-use vars qw/@INPUT/;
+use vars qw/@INPUT @OUTPUT/;
 
 require Exporter;
 our @ISA= 'Exporter';
@@ -89,7 +89,8 @@ sub build_row_decoder {
     my ($types)= @_;
     my $count= 0+@$types;
 
-    my $code= "sub {\n    my (\@row, \$a, \$b);\n";
+    # $_ = [count, body, dest_rows]
+    my $code= "sub {\n    local *OUTPUT= \$_[2];\n    my (\$a, \$b);\n    for my \$row_id (1..\$_[0]) {\n        my \@row;\n";
 
     my $i= 0;
     for my $type (@$types) {
@@ -97,16 +98,16 @@ sub build_row_decoder {
         my $t= $lookup{$type} or die "Unknown type $type";
         my ($c, $prep)= $t->[1]('$b');
 
-        $code .= '    $a= unpack("l>", substr $_[0], 0, 4, "");'."\n";
-        $code .= '    if ($a >= 0) {'."\n";
-        $code .= '        $b= substr $_[0], 0, $a, "";'."\n";
-        $code .= '        '.$prep.';'."\n" if $prep;
-        $code .= '        push @row, ('.$c.');'."\n";
-        $code .= '    } else { push @row, undef; }'."\n";
+        $code .= '        $a= unpack("l>", substr $_[1], 0, 4, "");'."\n";
+        $code .= '        if ($a >= 0) {'."\n";
+        $code .= '            $b= substr $_[1], 0, $a, "";'."\n";
+        $code .= '            '.$prep.';'."\n" if $prep;
+        $code .= '            push @row, ('.$c.');'."\n";
+        $code .= '        } else { push @row, undef; }'."\n";
         $i++;
     }
 
-    $code .= "    return \\\@row;\n}";
+    $code .= "        push \@OUTPUT, \\\@row;\n    }\n}";
     return eval($code);
 }
 

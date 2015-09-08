@@ -107,11 +107,7 @@ sub cass_read {
         my $decoder= $sth->{cass_row_decoder};
         my $rows_count= unpack('N', substr $body, 0, 4, '');
 
-        my @rows;
-        for my $row (1..$rows_count) {
-            push @rows, $decoder->($body);
-        }
-        $data= \@rows;
+        $sth->{cass_row_decoder}->($rows_count, $body, ($data = []));
         1;
 
     } or do {
