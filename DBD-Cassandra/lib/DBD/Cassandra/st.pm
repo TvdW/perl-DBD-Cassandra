@@ -55,7 +55,8 @@ sub cass_post {
         my $conn= $dbh->{cass_connection};
 
         my $values= $sth->{cass_row_encoder}->($params);
-        my $request_body= pack_shortbytes($prepared_id).pack_parameters({
+        my $request_body= pack_parameters({
+            prepare_id => $prepared_id,
             values => $values,
             consistency => $sth->{cass_consistency},
             result_page_size => $sth->{cass_paging},

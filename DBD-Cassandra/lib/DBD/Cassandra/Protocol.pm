@@ -186,12 +186,12 @@ sub pack_parameters {
         die "Unknown consistency argument: $consistency";
     }
 
-    my ($values, $result_page_size, $paging_state)=
-        @$params{'values', 'result_page_size', 'paging_state'};
+    my ($prepare_id, $values, $result_page_size, $paging_state)=
+        @$params{'prepare_id', 'values', 'result_page_size', 'paging_state'};
 
     my $flags= ($values ? 0x01 : 0) | ($result_page_size ? 0x04 : 0) | ($paging_state ? 0x08 : 0);
 
-    my $body= pack('n C', $consistency, $flags);
+    my $body= pack('n/a n C', $prepare_id, $consistency, $flags);
 
     $body .= $values if $values;
     $body .= pack('N', $result_page_size) if $result_page_size;
