@@ -228,7 +228,8 @@ sub send_frame3 {
     #my ($self, $flags, $streamID, $opcode, $body)= @_;
     my $self= shift;
     my $fh= $self->{socket};
-    return $fh->write(pack("CCsCN/a", 3, @_));
+    local $\;
+    return print $fh pack("CCsCN/a", 3, @_);
 }
 
 sub recv_frame3 {
