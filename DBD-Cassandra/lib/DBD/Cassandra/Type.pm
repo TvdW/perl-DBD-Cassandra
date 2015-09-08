@@ -90,17 +90,17 @@ sub build_row_decoder {
     my $count= 0+@$types;
 
     # $_ = [count, body, dest_rows]
-    my $code= "sub {\n    local *OUTPUT= \$_[2];\n    my (\$a, \$b);\n    for my \$row_id (1..\$_[0]) {\n        my \@row;\n";
+    my $code= "sub {\n    local *OUTPUT= \$_[2];\n    my (\$byte_count, \$tmp_val);\n    for my \$row_id (1..\$_[0]) {\n        my \@row;\n";
 
     my $i= 0;
     for my $type (@$types) {
         if (ref $type) { $type= $type->{type}; }
         my $t= $lookup{$type} or die "Unknown type $type";
-        my ($c, $prep)= $t->[1]('$b');
+        my ($c, $prep)= $t->[1]('$tmp_val');
 
-        $code .= '        $a= unpack("l>", substr $_[1], 0, 4, "");'."\n";
-        $code .= '        if ($a >= 0) {'."\n";
-        $code .= '            $b= substr $_[1], 0, $a, "";'."\n";
+        $code .= '        $byte_count= unpack("l>", substr $_[1], 0, 4, "");'."\n";
+        $code .= '        if ($byte_count >= 0) {'."\n";
+        $code .= '            $tmp_val= substr $_[1], 0, $byte_count, "";'."\n";
         $code .= '            '.$prep.';'."\n" if $prep;
         $code .= '            push @row, ('.$c.');'."\n";
         $code .= '        } else { push @row, undef; }'."\n";
