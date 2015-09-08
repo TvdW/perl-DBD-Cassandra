@@ -11,9 +11,16 @@ $DBD::Cassandra::db::imp_data_size = 0;
 sub prepare {
     my ($dbh, $statement, $attribs)= @_;
 
-    prune_prepare_cache($dbh->{cass_prepare_cache});
+    my $now= time();
+    my $cache= ($dbh->{cass_prepare_cache} //= {});
+    my $prepared= $cache->{$statement};
+    undef $prepared if $prepared && $prepared->[0] < $now - 60;
 
-    my $prepared= ($dbh->{cass_prepare_cache}{$statement} //= do {
+    $prepared //= ($cache->{$statement}= do {
+        # Might as well clean the prepare cache now, by expiring the old things
+        delete $cache->{$_} for grep { $cache->{$_}[0] < $now - 60 } keys %$cache;
+
+        # Actually prepare the query
         my ($opcode, $body);
         eval {
             ($opcode, $body)= $dbh->{cass_connection}->request(
@@ -41,7 +48,7 @@ sub prepare {
         my $paramcount= 0+ @{ $metadata->{columns} };
         my @names= map { $_->{name} } @{$result_metadata->{columns}};
 
-        [time(), {
+        [$now, {
             cass_prepared_metadata => $metadata,
             cass_prepared_result_metadata => $result_metadata,
             cass_prepared_id => $prepared_id,
@@ -52,26 +59,22 @@ sub prepare {
             NUM_OF_PARAMS => $paramcount,
         }]
     });
-    $prepared->[0]= time();
+    $prepared->[0]= $now;
 
     my ($outer, $sth)= DBI::_new_sth($dbh, { Statement => $statement });
-    for my $key (keys %{$prepared->[1]}) {
-        $key =~ /^NUM_/
-            ? $sth->STORE($key, $prepared->[1]{$key})
-            : ($sth->{$key}= $prepared->[1]{$key});
-    }
+
+    # Copy our prepared statement
+    my $tmp_attr= $prepared->[1];
+    @$sth{qw/cass_prepared_metadata cass_prepared_result_metadata cass_prepared_id cass_row_encoder cass_row_decoder NAME/}=
+        @$tmp_attr{qw/cass_prepared_metadata cass_prepared_result_metadata cass_prepared_id cass_row_encoder cass_row_decoder NAME/};
+    $sth->STORE("NUM_OF_FIELDS", $tmp_attr->{NUM_OF_FIELDS});
+    $sth->STORE("NUM_OF_PARAMS", $tmp_attr->{NUM_OF_PARAMS});
+
     $sth->{cass_params}= [];
     $sth->{cass_consistency}= $attribs->{consistency} // $attribs->{Consistency} // $dbh->{cass_consistency} // 'one';
     $sth->{cass_async}= $attribs->{async};
     $sth->{cass_paging}= $attribs->{perpage} // $attribs->{PerPage} // $attribs->{per_page};
     return $outer;
-}
-
-sub prune_prepare_cache {
-    my ($cache)= @_;
-    my $expiration= time() - 60;
-
-    %$cache = map { $_ => $cache->{$_} } grep { $cache->{$_} && $cache->{$_}[0] >= $expiration } keys %$cache;
 }
 
 sub commit {
@@ -96,7 +99,7 @@ sub STORE {
         if (!$val) { die "DBD::Cassandra does not yet support transactions"; }
         return 1;
     }
-    if ($attr =~ m/^cass_/) {
+    if ($attr =~ m/\Acass_/) {
         $dbh->{$attr}= $val;
         return 1;
     }
@@ -106,7 +109,7 @@ sub STORE {
 sub FETCH {
     my ($dbh, $attr)= @_;
     return 1 if $attr eq 'AutoCommit';
-    return $dbh->{$attr} if $attr =~ m/^cass_/;
+    return $dbh->{$attr} if $attr =~ m/\Acass_/;
 
     # Sort of a workaround for unrecoverable errors in st.pm
     if ($attr eq 'Active') {

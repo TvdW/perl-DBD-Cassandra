@@ -18,7 +18,7 @@ sub connect {
         return $drh->set_err($DBI::stderr, "Can't parse DSN part '$var'")
             unless defined $attr_val;
 
-        $attr_name= "cass_$attr_name" unless $attr_name =~ /^$driver_prefix/o;
+        $attr_name= "cass_$attr_name" unless $attr_name =~ /\A$driver_prefix/o;
 
         $attr->{$attr_name}= $attr_val;
     }
