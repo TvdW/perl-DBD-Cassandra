@@ -179,13 +179,11 @@ sub unpack_metadata {
 sub pack_parameters {
     my ($params)= @_;
 
-    my $consistency= delete $params->{consistency};
-    if ($consistency !~ /\A[0-9]+\z/) {
-        if (defined(my $c= $consistency_lookup{lc $consistency})) {
-            $consistency= $c;
-        } else {
-            die "Unknown consistency argument: $consistency";
-        }
+    my $consistency= $params->{consistency};
+    if (defined(my $c= $consistency_lookup{lc $consistency})) {
+        $consistency= $c;
+    } elsif ($consistency !~ m/\A[0-9]+\z/) {
+        die "Unknown consistency argument: $consistency";
     }
 
     my $flags= 0;
