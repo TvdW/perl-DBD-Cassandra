@@ -184,6 +184,30 @@ if needed.
 
     $sth->x_finish_async;
 
+=head2 Performance considerations
+
+When using asynchronous queries, some previously premature optimizations
+become relevant. For example, it is very helpful to re-use statement
+handles in large volumes of inserts :
+
+    my @dataset_to_insert= ([1, 2, 3, 4], [5, 6, 7, 8]);
+    my (@pending, @reusable);
+
+    while (my $row= shift @dataset_to_insert) {
+        my $sth= (shift @reusable) // $dbh->prepare(
+            "INSERT INTO some_table (a, b, c, d) VALUES (?, ?, ?, ?)"
+        );
+        $sth->execute(@$row);
+        push @pending, $sth;
+
+        if (@pending > 500) { # Tune this number!
+            my $pending_sth= shift @pending;
+            $pending_sth->x_finish_async;
+            push @reusable, $pending_sth;
+        }
+    }
+
+    $_->x_finish_async for @pending;
 
 =head1 CONSISTENCY LEVELS
 
