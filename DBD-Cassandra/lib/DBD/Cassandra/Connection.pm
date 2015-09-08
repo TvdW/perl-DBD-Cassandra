@@ -22,7 +22,6 @@ sub connect {
         ($args->{connect_timeout} ? ( Timeout => $args->{connect_timeout} ) : () ),
     ) or die "Can't connect: $@";
 
-    $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1);
     $socket->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1);
     if ($args->{read_timeout} || $args->{write_timeout}) {
         IO::Socket::Timeout->enable_timeouts_on($socket);
