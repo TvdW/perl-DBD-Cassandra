@@ -15,14 +15,16 @@ $dbh->do('create table if not exists test_async (id bigint primary key)');
 $dbh->do('truncate test_async');
 
 my $count= 100000;
-my @pending;
+my (@pending, @reusable);
 for my $i (1..$count) {
-    my $sth= $dbh->prepare("insert into test_async (id) values (?)", {async => 1});
+    my $sth= (shift @reusable) // $dbh->prepare("insert into test_async (id) values (?)", {async => 1});
     $sth->execute($i);
     push @pending, $sth;
 
     if (@pending > 5000) {
-        (shift @pending)->x_finish_async;
+        my $pending_sth= shift @pending;
+        $pending_sth->x_finish_async;
+        push @reusable, $pending_sth;
     }
 }
 
