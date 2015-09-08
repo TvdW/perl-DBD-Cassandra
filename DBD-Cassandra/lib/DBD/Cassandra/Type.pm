@@ -63,11 +63,11 @@ our @EXPORT_OK= qw( build_row_encoder build_row_decoder );
 sub build_row_encoder {
     my ($types)= @_;
 
-    return sub{''} unless @$types;
+    return sub{"\0\0"} unless @$types;
 
     my $count= 0+@$types;
 
-    my $code= "my \$null= pack('l>', -1);\nsub {\n";
+    my $code= "my \$null= pack('l>', -1);\nmy \$length_bits= pack('n', $count);\nsub {\n";
     my $i= 0;
 
     my $result;
@@ -80,7 +80,7 @@ sub build_row_encoder {
         $result .= "        (defined \$_[$i] ? ($c) : \$null) .\n";
         $i++;
     }
-    $code = $code  . "    return\n" . substr($result, 0, -3). "\n    ;\n}";
+    $code = $code  . "    return\n        \$length_bits .\n" . substr($result, 0, -3). "\n    ;\n}";
     return eval($code);
 }
 

@@ -54,7 +54,7 @@ sub cass_post {
         my $dbh= $sth->{Database};
         my $conn= $dbh->{cass_connection};
 
-        my $values= pack('n', 0+@$params). ($sth->{cass_row_encoder}->(@$params));
+        my $values= $sth->{cass_row_encoder}->(@$params);
         my $request_body= pack_shortbytes($prepared_id).pack_parameters({
             values => $values,
             consistency => $sth->{cass_consistency},
