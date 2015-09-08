@@ -1,6 +1,7 @@
 package DBD::Cassandra::Type;
 use v5.14;
 use warnings;
+use vars qw/@INPUT/;
 
 require Exporter;
 our @ISA= 'Exporter';
@@ -29,7 +30,7 @@ sub not_impl { ... }
 sub _pack {
     my ($p, $l, $m, $i)= @_;
     $m //= '';
-    return "pack('l> $p', $l, (\$_[$i] $m))";
+    return "pack('l> $p', $l, (\$INPUT[$i] $m))";
 }
 sub _unpack {
     my ($p, $l, $m, $v)= @_;
@@ -39,7 +40,7 @@ sub _unpack {
 
 sub p2c_string {
     my ($i)= @_;
-    return ("pack('l>/a', \$_[$i])", "utf8::is_utf8(\$_[$i]) && utf8::encode(\$_[$i])");
+    return ("pack('l>/a', \$INPUT[$i])", "utf8::is_utf8(\$INPUT[$i]) && utf8::encode(\$INPUT[$i])");
 }
 sub c2p_string { return shift }
 sub c2p_utf8string { my $var= shift; return ($var, "utf8::decode $var") }
@@ -67,7 +68,7 @@ sub build_row_encoder {
 
     my $count= 0+@$types;
 
-    my $code= "my \$null= pack('l>', -1);\nmy \$length_bits= pack('n', $count);\nsub {\n";
+    my $code= "my \$null= pack('l>', -1);\nmy \$length_bits= pack('n', $count);\nsub {\n    local *INPUT= \$_[0];\n";
     my $i= 0;
 
     my $result;
@@ -76,8 +77,8 @@ sub build_row_encoder {
         my $t= $lookup{$type} or die "Unknown type $type";
         my ($c, $prep)= $t->[0]($i);
 
-        $code .= "    $prep if defined \$_[$i];\n" if $prep;
-        $result .= "        (defined \$_[$i] ? ($c) : \$null) .\n";
+        $code .= "    $prep if defined \$INPUT[$i];\n" if $prep;
+        $result .= "        (defined \$INPUT[$i] ? ($c) : \$null) .\n";
         $i++;
     }
     $code = $code  . "    return\n        \$length_bits .\n" . substr($result, 0, -3). "\n    ;\n}";
