@@ -46,21 +46,19 @@ sub cass_post {
     # Make sure we don't have an existing open request
     finish_async($sth);
 
-    my $params= $sth->{cass_params_real};
-
     eval {
+        my $params= $sth->{cass_params_real};
         my $prepared_id= $sth->{cass_prepared_id};
 
         my $dbh= $sth->{Database};
         my $conn= $dbh->{cass_connection};
 
-        my $values= $sth->{cass_row_encoder}->($params);
         my $request_body= pack_parameters({
-            prepare_id => $prepared_id,
-            values => $values,
-            consistency => $sth->{cass_consistency},
+            prepare_id       => $sth->{cass_prepared_id},
+            values           => $sth->{cass_row_encoder}->($params),
+            consistency      => $sth->{cass_consistency},
             result_page_size => $sth->{cass_paging},
-            paging_state => $sth->{cass_paging_state},
+            paging_state     => $sth->{cass_paging_state},
         });
 
         my ($stream_id)= $conn->post_request(
