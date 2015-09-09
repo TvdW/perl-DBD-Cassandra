@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.19    2015/09/09
+
+      * Performance improvements
+
 0.18    2015/09/07
 
       * Fix an issue where executing more than 32767 queries may break the driver
