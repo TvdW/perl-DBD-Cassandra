@@ -186,7 +186,6 @@ sub rows {
 
 sub DESTROY {
     my ($sth)= @_;
-    $sth->finish if $sth->FETCH('Active');
     finish_async($sth);
 }
 
