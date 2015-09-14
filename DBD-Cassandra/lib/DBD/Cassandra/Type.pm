@@ -19,10 +19,10 @@ my %lookup= (
     9  => [\&p2c_int,    \&c2p_int,         'TYPE_INT'],
     10 => [\&p2c_string, \&c2p_utf8string,  'TYPE_TEXT'],
     11 => [\&p2c_time,   \&c2p_time,        'TYPE_TIMESTAMP'],
-    12 => [\&not_impl,   \&not_impl,        'TYPE_UUID'],
+    12 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_UUID'],
     13 => [\&p2c_string, \&c2p_utf8string,  'TYPE_VARCHAR'],
     14 => [\&not_impl,   \&not_impl,        'TYPE_VARINT'],
-    15 => [\&not_impl,   \&not_impl,        'TYPE_TIMEUUID'],
+    15 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_TIMEUUID'],
     16 => [\&not_impl,   \&not_impl,        'TYPE_INET'],
 );
 
@@ -56,6 +56,8 @@ sub p2c_float { return   _pack('f', 4, undef, @_) }
 sub c2p_float { return _unpack('f', 4, undef, @_) }
 sub p2c_double { return   _pack('d', 8, undef, @_) }
 sub c2p_double { return _unpack('d', 8, undef, @_) }
+sub p2c_uuid { return   _pack('H[32]', 16, ' =~ s/\W//rg', @_) }
+sub c2p_uuid { return _unpack('H[32]', 16, ' =~ s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/r', @_) }
 #sub p2c_ { return   _pack('', , undef, @_) }
 #sub c2p_ { return _unpack('', , undef, @_) }
 

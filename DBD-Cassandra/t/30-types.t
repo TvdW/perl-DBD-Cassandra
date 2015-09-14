@@ -23,6 +23,11 @@ my $type_table= [
     ['text',        '∫∫',   $input],
     ['timestamp',   time(), $input],
     ['varchar',     '∫∫',   $input],
+    ['uuid',        '34945442-c1d4-47db-bddd-5d2138b42cbc', $input],
+    ['uuid',        'bad16', 'bad16000-0000-0000-0000-000000000000'],
+    ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
+    ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
+    ['timeuuid',    'bad16', undef],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {

@@ -278,6 +278,10 @@ supported:
 
 =item * timestamp
 
+=item * timeuuid
+
+=item * uuid
+
 =item * varchar
 
 =back
