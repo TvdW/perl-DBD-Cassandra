@@ -5,6 +5,7 @@ README
 lib/DBD/Cassandra.pm
 lib/DBD/Cassandra/Connection.pm
 lib/DBD/Cassandra/Protocol.pm
+lib/DBD/Cassandra/Shell.pm
 lib/DBD/Cassandra/Type.pm
 lib/DBD/Cassandra/db.pm
 lib/DBD/Cassandra/dr.pm

@@ -3,6 +3,7 @@ Revision history for DBD-Cassandra
 0.21    unreleased
 
       * Finish the st handle slightly earlier: when we actually read the last row
+      * Add a very basic readline-based plcqlsh implementation for machines without Java
 
 0.20    2015/09/14
 
