@@ -153,18 +153,23 @@ sub fetchrow_arrayref {
     my ($sth)= @_;
     finish_async($sth) or return undef;
 
-    my $row= shift @{ $sth->{cass_data} };
+    my $cass_data= $sth->{cass_data};
+    my $row= shift @$cass_data;
     if (!$row) {
         if ($sth->{cass_paging_state}) {
             # Fetch some more rows
             cass_post($sth) or return undef;
             cass_read($sth) or return undef;
-            $row= shift @{ $sth->{cass_data} };
+            $cass_data= $sth->{cass_data};
+            $row= shift @$cass_data;
         }
     }
     if (!$row) {
         $sth->STORE('Active', 0);
         return undef;
+    }
+    if (!@$cass_data && !$sth->{cass_paging_state}) { # This is our last row
+        $sth->STORE('Active', 0);
     }
     if ($sth->FETCH('ChopBlanks')) {
         map { $_ =~ s/\s+$//; } @$row;

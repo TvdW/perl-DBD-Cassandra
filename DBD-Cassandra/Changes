@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.21    unreleased
+
+      * Finish the st handle slightly earlier: when we actually read the last row
+
 0.20    2015/09/14
 
       * Timeuuid/uuid support
