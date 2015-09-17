@@ -34,7 +34,7 @@ unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }
 
-plan tests => 1+@$type_table;
+plan tests => 2+@$type_table;
 
 my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests", undef, undef, {RaiseError => 1});
 ok($dbh);
@@ -63,4 +63,19 @@ for my $type (@$type_table) {
         ok(!defined $output_val, "$typename raise error");
     };
 }
+
+# Counter needs special testing
+COUNTER: {
+    $dbh->do("create table if not exists test_type_counter (id bigint primary key, test counter)");
+    my $random_id= sprintf '%.f', rand(10000);
+    eval {
+        $dbh->do("update test_type_counter set test=test+5 where id=?", undef, $random_id);
+        my $row= $dbh->selectrow_arrayref("select test from test_type_counter where id=$random_id");
+        ok($row->[0] == 5);
+        1;
+    } or do {
+        ok(0);
+    };
+}
+
 $dbh->disconnect;
