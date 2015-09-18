@@ -192,6 +192,10 @@ sub rows {
 sub DESTROY {
     my ($sth)= @_;
     finish_async($sth);
+
+    # This fixes an issue where DBI throws a warning for an 'insert into .. if not exists update ..',
+    # which (interestingly) returns rows
+    $sth->finish if $sth->FETCH('Active') && !$sth->FETCH('NUM_OF_FIELDS');
 }
 
 1;

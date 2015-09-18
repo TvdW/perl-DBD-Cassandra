@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.22    unreleased
+
+      * Fix an issue where an "insert into .. if not exists update .." would cause warnings
+
 0.21    2015/09/17
 
       * Finish the st handle slightly earlier: when we actually read the last row
