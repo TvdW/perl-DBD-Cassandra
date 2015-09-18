@@ -107,6 +107,11 @@ sub cass_read {
         my $decoder= $sth->{cass_row_decoder};
         my $rows_count= unpack('N', substr $body, 0, 4, '');
 
+        # No rows, no paging, that means we're done
+        if (!$rows_count && !$sth->{cass_paging_state}) {
+            $sth->STORE('Active', 0);
+        }
+
         $sth->{cass_row_decoder}->($rows_count, $body, ($data = []));
         1;
 
