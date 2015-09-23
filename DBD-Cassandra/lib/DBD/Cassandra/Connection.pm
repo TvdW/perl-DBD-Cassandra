@@ -183,12 +183,13 @@ sub post_request {
 sub read_request {
     my ($self, $stream_id)= @_;
 
-    my ($r_flags, $r_stream, $r_opcode, $r_body);
-
     if (!exists $self->{pending_streams}{$stream_id}) {
         die "Internal DBD::Cassandra bug";
+    }
 
-    } elsif (my $older_response= $self->{pending_streams}{$stream_id}) {
+    my ($r_flags, $r_stream, $r_opcode, $r_body);
+
+    if (my $older_response= $self->{pending_streams}{$stream_id}) {
         ($r_flags, $r_opcode, $r_body)= @$older_response;
         $r_stream= $stream_id;
     }
@@ -228,7 +229,7 @@ sub send_frame3 {
     #my ($self, $flags, $streamID, $opcode, $body)= @_;
     my $self= shift;
     my $fh= $self->{socket};
-    local $\;
+    local $\ if defined $\;
     return print $fh pack("CCsCN/a", 3, @_);
 }
 
@@ -248,14 +249,13 @@ sub recv_frame3 {
     return if ($version & 0x7f) != 3;
 
     my $body;
-    if ($bodylen) {
-        my $remaining= $bodylen;
-        do {
-            my $bytes= read $fh, my $chunk, $remaining
-                or die $self->unrecoverable_error("Failed to read reply from server: $!");
-            $body .= $chunk;
-            $remaining -= $bytes;
-        } while $remaining;
+
+    my $remaining= $bodylen;
+    while ($remaining > 0) {
+        my $bytes= read $fh, my $chunk, $remaining
+            or die $self->unrecoverable_error("Failed to read reply from server: $!");
+        $body .= $chunk;
+        $remaining -= $bytes;
     }
 
     return ($flags, $streamID, $opcode, $body);
