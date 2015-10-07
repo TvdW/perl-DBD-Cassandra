@@ -28,6 +28,7 @@ my $type_table= [
     ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
     ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
     ['timeuuid',    'bad16', undef],
+    ['list<int>',   [1, 2], [1, 2]],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {
@@ -41,26 +42,32 @@ ok($dbh);
 
 for my $type (@$type_table) {
     my ($typename, $test_val, $output_val)= @$type;
-    $dbh->do("create table if not exists test_type_$typename (id bigint primary key, test $typename)");
+    my $tablename= $typename =~ s/\W/_/rg;
+    $dbh->do("create table if not exists test_type_$tablename (id bigint primary key, test $typename)");
     my $random_id= sprintf '%.f', rand(10000);
     eval {
         my $did_warn;
         local $SIG{__WARN__}= sub { $did_warn= 1; };
 
-        $dbh->do("insert into test_type_$typename (id, test) values (?, ?)", undef, $random_id, $test_val);
-        my $row= $dbh->selectrow_arrayref("select test from test_type_$typename where id=$random_id", { async => 1 });
+        $dbh->do("insert into test_type_$tablename (id, test) values (?, ?)", undef, $random_id, $test_val);
+        my $row= $dbh->selectrow_arrayref("select test from test_type_$tablename where id=$random_id", { async => 1 });
         if (!defined $output_val) {
             ok(0);
-        } elsif ($output_val eq $warn) {
+        } elsif (!ref $output_val && $output_val eq $warn) {
             ok($did_warn);
-        } elsif ($output_val eq $input) {
+        } elsif (!ref $output_val && $output_val eq $input) {
             is($row->[0], $test_val, "input match $typename");
         } else {
             is($row->[0], $output_val, "perfect match $typename");
         }
         1;
     } or do {
-        ok(!defined $output_val, "$typename raise error");
+        if (!defined $output_val) {
+            ok(1, "$typename raise error");
+        } else {
+            warn $@;
+            ok(0, "$typename raised error");
+        }
     };
 }
 

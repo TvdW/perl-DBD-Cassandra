@@ -24,6 +24,7 @@ my %lookup= (
     14 => [\&not_impl,   \&not_impl,        'TYPE_VARINT'],
     15 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_TIMEUUID'],
     16 => [\&not_impl,   \&not_impl,        'TYPE_INET'],
+    32 => [\&p2c_list,   \&c2p_list,        'TYPE_LIST'],
 );
 
 sub not_impl { ... }
@@ -60,6 +61,23 @@ sub p2c_uuid { return   _pack('H[32]', 16, ' =~ s/\W//rg', @_) }
 sub c2p_uuid { return _unpack('H[32]', 16, ' =~ s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/r', @_) }
 #sub p2c_ { return   _pack('', , undef, @_) }
 #sub c2p_ { return _unpack('', , undef, @_) }
+
+sub p2c_list {
+    my ($i, $type)= @_;
+
+    my $t= $lookup{$type->[0]} or die "Unknown type $type->[0]";
+    my ($c, $prep)= $t->[0]('$_', $type->[1]);
+
+    return (
+        "pack('l>/a', (join '', pack('l>', 0+\@{$i}), map { defined \$_ ? ($c) : \$null } \@{$i}))",
+        !$prep ? undef :
+            "do { $prep for grep defined, \@{$i} }"
+    );
+}
+
+sub c2p_list {
+    ...
+}
 
 our @EXPORT_OK= qw( build_row_encoder build_row_decoder );
 
