@@ -48,6 +48,10 @@ sub prepare {
         my $paramcount= 0+ @{ $metadata->{columns} };
         my @names= map { $_->{name} } @{$result_metadata->{columns}};
 
+        if ($body) {
+            die "Failed to parse Cassandra's prepare() output";
+        }
+
         [$now, {
             cass_prepared_metadata => $metadata,
             cass_prepared_result_metadata => $result_metadata,
