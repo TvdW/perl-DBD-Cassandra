@@ -131,12 +131,15 @@ sub unpack_string {
 
 sub unpack_type {
     my ($id)= unpack('n', substr $_[0], 0, 2, '');
-    if ($id >= 0x20 && $id <= 0x22) { die "Unsupported type"; }
-    my $custom;
+    my $detailed_type;
     if ($id == 0) {
-        $custom= unpack_string($_[0]);
+        $detailed_type= unpack_string($_[0]);
+    } elsif ($id == 0x20) {
+        $detailed_type= unpack_type($_[0]);
+    } elsif ($id > 0x20) {
+        die 'Not supported';
     }
-    return ($id, $custom);
+    return [$id, $detailed_type];
 }
 
 sub unpack_metadata {
@@ -158,14 +161,13 @@ sub unpack_metadata {
                 ($keyspace, $table)= (unpack_string($_[0]), unpack_string($_[0]));
             }
             my $name= unpack_string($_[0]);
-            my ($type, $custom)= unpack_type($_[0]);
+            my $type= unpack_type($_[0]);
 
             push @columns, {
                 keyspace => $keyspace // $global_keyspace,
                 table => $table // $global_table,
                 name => $name,
                 type => $type,
-                custom_type => $custom
             };
         }
     }

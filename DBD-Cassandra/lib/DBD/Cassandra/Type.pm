@@ -30,7 +30,7 @@ sub not_impl { ... }
 sub _pack {
     my ($p, $l, $m, $i)= @_;
     $m //= '';
-    return "pack('l> $p', $l, (\$INPUT[$i] $m))";
+    return "pack('l> $p', $l, ($i $m))";
 }
 sub _unpack {
     my ($p, $l, $m, $v)= @_;
@@ -40,7 +40,7 @@ sub _unpack {
 
 sub p2c_string {
     my ($i)= @_;
-    return ("pack('l>/a', \$INPUT[$i])", "utf8::is_utf8(\$INPUT[$i]) && utf8::encode(\$INPUT[$i])");
+    return ("pack('l>/a', $i)", "utf8::is_utf8($i) && utf8::encode($i)");
 }
 sub c2p_string { return shift }
 sub c2p_utf8string { my $var= shift; return ($var, "utf8::decode $var") }
@@ -75,16 +75,16 @@ sub build_row_encoder {
 
     my $result;
     for my $type (@$types) {
-        if (ref $type) { $type= $type->{type}; }
-        my $t= $lookup{$type} or die "Unknown type $type";
-        my ($c, $prep)= $t->[0]($i);
+        if (ref $type eq 'HASH') { $type= $type->{type}; }
+        my $t= $lookup{$type->[0]} or die "Unknown type $type->[0]";
+        my ($c, $prep)= $t->[0]("\$INPUT[$i]", $type->[1]);
 
         $code .= "    $prep if defined \$INPUT[$i];\n" if $prep;
         $result .= "        (defined \$INPUT[$i] ? ($c) : \$null) .\n";
         $i++;
     }
     $code = $code  . "    return\n        \$length_bits .\n" . substr($result, 0, -3). "\n    ;\n}";
-    return eval($code);
+    return(eval($code) or die $@);
 }
 
 sub build_row_decoder {
@@ -96,9 +96,9 @@ sub build_row_decoder {
 
     my $i= 0;
     for my $type (@$types) {
-        if (ref $type) { $type= $type->{type}; }
-        my $t= $lookup{$type} or die "Unknown type $type";
-        my ($c, $prep)= $t->[1]('$tmp_val');
+        if (ref $type eq 'HASH') { $type= $type->{type}; }
+        my $t= $lookup{$type->[0]} or die "Unknown type $type->[0]";
+        my ($c, $prep)= $t->[1]('$tmp_val', $type->[1]);
 
         $code .= '        $byte_count= unpack("l>", substr $_[1], 0, 4, "");'."\n";
         $code .= '        if ($byte_count >= 0) {'."\n";
@@ -110,7 +110,7 @@ sub build_row_decoder {
     }
 
     $code .= "        push \@OUTPUT, \\\@row;\n    }\n}";
-    return eval($code);
+    return(eval($code) or die $@);
 }
 
 1;

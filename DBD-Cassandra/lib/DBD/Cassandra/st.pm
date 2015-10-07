@@ -23,7 +23,8 @@ sub execute {
 
     my $params= @bind_values ? \@bind_values : $sth->{cass_params};
     my $param_count = $sth->FETCH('NUM_OF_PARAMS');
-    return $sth->set_err($DBI::stderr, "Wrong number of parameters")
+
+    return $sth->set_err($DBI::stderr, sprintf "Wrong number of parameters. Expected %d, got %d", $param_count, 0+@$params)
         if @$params != $param_count;
 
     $sth->{cass_paging_state}= undef;
