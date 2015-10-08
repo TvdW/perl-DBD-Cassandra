@@ -76,7 +76,27 @@ sub p2c_list {
 }
 
 sub c2p_list {
-    ...
+    my ($i, $type)= @_;
+
+    my $t= $lookup{$type->[0]} or die "Unknown type $type->[0]";
+    my ($c, $prep)= $t->[1]('$temp_val', $type->[1]);
+    $prep //= '';
+
+    return "do {
+                my \$rowcount= unpack('l>', substr(($i), 0, 4, ''));
+                my \@list;
+                for (1..\$rowcount) {
+                    my \$byte_count= unpack('l>', substr(($i), 0, 4, ''));
+                    if (\$byte_count > 0) {
+                        my \$temp_val= substr(($i), 0, \$byte_count, '');
+                        $prep;
+                        push \@list, ($c);
+                    } else {
+                        push \@list, undef;
+                    }
+                }
+                \\\@list;
+            }";
 }
 
 our @EXPORT_OK= qw( build_row_encoder build_row_decoder );
@@ -107,7 +127,6 @@ sub build_row_encoder {
 
 sub build_row_decoder {
     my ($types)= @_;
-    my $count= 0+@$types;
 
     # $_ = [count, body, dest_rows]
     my $code= "sub {\n    local *OUTPUT= \$_[2];\n    my (\$byte_count, \$tmp_val);\n    for my \$row_id (1..\$_[0]) {\n        my \@row;\n";

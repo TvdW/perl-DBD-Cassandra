@@ -28,7 +28,7 @@ my $type_table= [
     ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
     ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
     ['timeuuid',    'bad16', undef],
-    ['list<int>',   [1, 2], [1, 2]],
+    ['list<int>',   [1, 2], $input],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {
@@ -55,10 +55,10 @@ for my $type (@$type_table) {
             ok(0);
         } elsif (!ref $output_val && $output_val eq $warn) {
             ok($did_warn);
-        } elsif (!ref $output_val && $output_val eq $input) {
-            is($row->[0], $test_val, "input match $typename");
+        } elsif ($output_val eq $input) {
+            is_deeply([$row->[0]], [$test_val], "input match $typename");
         } else {
-            is($row->[0], $output_val, "perfect match $typename");
+            is_deeply([$row->[0]], [$output_val], "perfect match $typename");
         }
         1;
     } or do {
