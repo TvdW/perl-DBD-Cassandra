@@ -25,6 +25,7 @@ my %lookup= (
     15 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_TIMEUUID'],
     16 => [\&not_impl,   \&not_impl,        'TYPE_INET'],
     32 => [\&p2c_list,   \&c2p_list,        'TYPE_LIST'],
+    34 => [\&p2c_list,   \&c2p_list,        'TYPE_SET'],
 );
 
 sub not_impl { ... }

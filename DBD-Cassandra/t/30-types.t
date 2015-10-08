@@ -32,6 +32,7 @@ my $type_table= [
     # List types...
     ['list<int>', [1, 2], $input],
     ['list<text>', ['∫∫', 'test string'], $input],
+    ['set<text>', ['test string', '∫∫'], $input],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {

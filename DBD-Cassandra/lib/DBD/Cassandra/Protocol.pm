@@ -134,7 +134,7 @@ sub unpack_type {
     my $detailed_type;
     if ($id == 0) {
         $detailed_type= unpack_string($_[0]);
-    } elsif ($id == 0x20) {
+    } elsif ($id >= 0x20 && $id <= 0x22) {
         $detailed_type= unpack_type($_[0]);
     } elsif ($id > 0x20) {
         die 'Not supported';
