@@ -1,8 +1,9 @@
 Revision history for DBD-Cassandra
 
-0.22    unreleased
+0.22    2015/10/08
 
       * Fix an issue where an "insert into .. if not exists update .." would cause warnings
+      * Add support for list<..> and set<..> data types
 
 0.21    2015/09/17
 

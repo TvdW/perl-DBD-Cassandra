@@ -6,7 +6,7 @@ use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.21';
+our $VERSION= '0.22';
 our $drh= undef;
 
 sub driver {
@@ -273,6 +273,10 @@ supported:
 =item * float
 
 =item * int
+
+=item * list
+
+=item * set
 
 =item * text
 
