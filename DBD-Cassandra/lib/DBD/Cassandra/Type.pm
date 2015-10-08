@@ -66,13 +66,12 @@ sub p2c_list {
     my ($i, $type)= @_;
 
     my $t= $lookup{$type->[0]} or die "Unknown type $type->[0]";
-    my ($c, $prep)= $t->[0]('$_', $type->[1]);
+    my ($c, $prep)= $t->[0]('$copied_value', $type->[1]);
+    $prep //= '';
 
-    return (
-        "pack('l>/a', (join '', pack('l>', 0+\@{$i}), map { defined \$_ ? ($c) : \$null } \@{$i}))",
-        !$prep ? undef :
-            "do { $prep for grep defined, \@{$i} }"
-    );
+    return
+        "pack('l>/a', (join '', pack('l>', 0+\@{$i}), map { my \$copied_value= \$_; $prep; defined \$copied_value ? ($c) : \$null } \@{$i}))",
+    ;
 }
 
 sub c2p_list {
@@ -87,7 +86,7 @@ sub c2p_list {
                 my \@list;
                 for (1..\$rowcount) {
                     my \$byte_count= unpack('l>', substr(($i), 0, 4, ''));
-                    if (\$byte_count > 0) {
+                    if (\$byte_count >= 0) {
                         my \$temp_val= substr(($i), 0, \$byte_count, '');
                         $prep;
                         push \@list, ($c);
