@@ -25,6 +25,7 @@ my %lookup= (
     15 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_TIMEUUID'],
     16 => [\&not_impl,   \&not_impl,        'TYPE_INET'],
     32 => [\&p2c_list,   \&c2p_list,        'TYPE_LIST'],
+    33 => [\&p2c_map,    \&c2p_map,         'TYPE_MAP'],
     34 => [\&p2c_list,   \&c2p_list,        'TYPE_SET'],
 );
 
@@ -96,6 +97,58 @@ sub c2p_list {
                     }
                 }
                 \\\@list;
+            }";
+}
+
+sub p2c_map {
+    my ($i, $types)= @_;
+    my ($kt, $vt)= ($lookup{$types->[0][0]}, $lookup{$types->[1][0]});
+    ($kt && $vt) or die "Unknown type in map<>";
+
+    my ($c1, $prep1)= $kt->[0]('$copied_key', $types->[0][1]);
+    my ($c2, $prep2)= $vt->[0]('$copied_value', $types->[1][1]);
+    $prep1 //= '';
+    $prep2 //= '';
+
+    return
+        "pack('l>/a', (join '', pack('l>', 0+keys \%{$i}), map { my \$copied_key= \$_; my \$copied_value= ($i)->{\$_}; $prep1; $prep2; (($c1),(defined \$copied_value ? ($c2) : \$null)) } keys \%{$i}))",
+    ;
+
+    return "";
+}
+
+sub c2p_map {
+    my ($i, $types)= @_;
+
+    my ($kt, $vt)= ($lookup{$types->[0][0]}, $lookup{$types->[1][0]});
+    ($kt && $vt) or die "Unknown type in map<>";
+
+    my ($c1, $prep1)= $kt->[1]('$key_bytes', $types->[0][1]);
+    my ($c2, $prep2)= $vt->[1]('$value_bytes', $types->[1][1]);
+    $prep1 //= '';
+    $prep2 //= '';
+
+    return "do {
+                my \$entrycount= unpack('l>', substr(($i), 0, 4, ''));
+                my \%hash;
+                for (1..\$entrycount) {
+                    my (\$key, \$value);
+
+                    my \$key_byte_count= unpack('l>', substr(($i), 0, 4, ''));
+                    if (\$key_byte_count >= 0) {
+                        my \$key_bytes= substr(($i), 0, \$key_byte_count, '');
+                        $prep1;
+                        \$key= ($c1);
+                    }
+                    my \$value_byte_count= unpack('l>', substr(($i), 0, 4, ''));
+                    if (\$value_byte_count >= 0) {
+                        my \$value_bytes= substr(($i), 0, \$value_byte_count, '');
+                        $prep2;
+                        \$value= ($c2);
+                    }
+                    \$hash{\$key}= \$value;
+                }
+                \\\%hash;
             }";
 }
 

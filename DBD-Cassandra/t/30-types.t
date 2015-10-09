@@ -33,6 +33,7 @@ my $type_table= [
     ['list<int>', [1, 2], $input],
     ['list<text>', ['∫∫', 'test string'], $input],
     ['set<text>', ['test string', '∫∫'], $input],
+    ['map<varchar,int>', {test => 5, asd => 1}, $input],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {

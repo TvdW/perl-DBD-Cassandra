@@ -276,6 +276,8 @@ supported:
 
 =item * list
 
+=item * map
+
 =item * set
 
 =item * text
