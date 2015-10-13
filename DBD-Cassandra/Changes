@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.23    unreleased
+0.23    2015/10/13
 
       * Revert a change from 0.21 (finishing handles earlier) which caused compat issues with DBD::mysql
       * Support for the map<..,..> data type
