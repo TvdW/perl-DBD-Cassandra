@@ -19,7 +19,7 @@ ok($dbh->do("create table test_batch (
 )"));
 
 SCOPED: {
-    local $SIG{__WARN__}= sub { ok(0); };
+    local $SIG{__WARN__}= sub { ok(0); print STDERR @_; };
 
     my $sth= $dbh->prepare("BEGIN BATCH
         INSERT INTO test_batch (pk, value)

@@ -108,11 +108,6 @@ sub cass_read {
         my $decoder= $sth->{cass_row_decoder};
         my $rows_count= unpack('N', substr $body, 0, 4, '');
 
-        # No rows, no paging, that means we're done
-        if (!$rows_count && !$sth->{cass_paging_state}) {
-            $sth->STORE('Active', 0);
-        }
-
         $sth->{cass_row_decoder}->($rows_count, $body, ($data = []));
         1;
 
@@ -159,23 +154,18 @@ sub fetchrow_arrayref {
     my ($sth)= @_;
     finish_async($sth) or return undef;
 
-    my $cass_data= $sth->{cass_data};
-    my $row= shift @$cass_data;
+    my $row= shift @{$sth->{cass_data}};
     if (!$row) {
         if ($sth->{cass_paging_state}) {
             # Fetch some more rows
             cass_post($sth) or return undef;
             cass_read($sth) or return undef;
-            $cass_data= $sth->{cass_data};
-            $row= shift @$cass_data;
+            $row= shift @{$sth->{cass_data}};
         }
     }
     if (!$row) {
         $sth->STORE('Active', 0);
         return undef;
-    }
-    if (!@$cass_data && !$sth->{cass_paging_state}) { # This is our last row
-        $sth->STORE('Active', 0);
     }
     if ($sth->FETCH('ChopBlanks')) {
         map { $_ =~ s/\s+$//; } @$row;
@@ -200,8 +190,8 @@ sub DESTROY {
     finish_async($sth);
 
     # This fixes an issue where DBI throws a warning for an 'insert into .. if not exists update ..',
-    # which (interestingly) returns rows
-    $sth->finish if $sth->FETCH('Active') && !$sth->FETCH('NUM_OF_FIELDS');
+    # which (interestingly) returns rows. We'll also suppress them for empty result sets
+    $sth->finish if $sth->FETCH('Active') && (!@{$sth->{cass_data} // []} || !$sth->FETCH('NUM_OF_FIELDS'));
 }
 
 1;
