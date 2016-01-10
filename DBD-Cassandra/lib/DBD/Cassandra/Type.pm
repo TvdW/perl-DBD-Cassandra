@@ -64,8 +64,8 @@ sub c2p_uuid { return _unpack('H[32]', 16, ' =~ s/\A(\w{8})(\w{4})(\w{4})(\w{4})
 #sub p2c_ { return   _pack('', , undef, @_) }
 #sub c2p_ { return _unpack('', , undef, @_) }
 
-sub c2p_inet { return "join '.', unpack('c4', $_[0])" }
-sub p2c_inet { return "pack('l> c[4]', 4, split /\\./, $_[0])" }
+sub c2p_inet { return "join '.', unpack('C4', $_[0])" }
+sub p2c_inet { return "pack('l> C[4]', 4, split /\\./, $_[0])" }
 
 sub p2c_list {
     my ($i, $type)= @_;
