@@ -23,7 +23,7 @@ my %lookup= (
     13 => [\&p2c_string, \&c2p_utf8string,  'TYPE_VARCHAR'],
     14 => [\&not_impl,   \&not_impl,        'TYPE_VARINT'],
     15 => [\&p2c_uuid,   \&c2p_uuid,        'TYPE_TIMEUUID'],
-    16 => [\&not_impl,   \&not_impl,        'TYPE_INET'],
+    16 => [\&p2c_inet,   \&c2p_inet,        'TYPE_INET'],
     32 => [\&p2c_list,   \&c2p_list,        'TYPE_LIST'],
     33 => [\&p2c_map,    \&c2p_map,         'TYPE_MAP'],
     34 => [\&p2c_list,   \&c2p_list,        'TYPE_SET'],
@@ -63,6 +63,9 @@ sub p2c_uuid { return   _pack('H[32]', 16, ' =~ s/\W//rg', @_) }
 sub c2p_uuid { return _unpack('H[32]', 16, ' =~ s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/r', @_) }
 #sub p2c_ { return   _pack('', , undef, @_) }
 #sub c2p_ { return _unpack('', , undef, @_) }
+
+sub c2p_inet { return "join '.', unpack('C4', $_[0])" }
+sub p2c_inet { return "pack('l> C[4]', 4, split /\\./, $_[0])" }
 
 sub p2c_list {
     my ($i, $type)= @_;
