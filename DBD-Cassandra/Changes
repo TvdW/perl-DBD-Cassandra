@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.24    unreleased
+0.24    2016/01/25
 
       * Drop the Authen::SASL dependency, which was (sort of) incompatible with Cassandra's SASL
 
