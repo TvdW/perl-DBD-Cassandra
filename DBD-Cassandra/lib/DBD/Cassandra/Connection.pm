@@ -9,7 +9,6 @@ use DBD::Cassandra::Protocol qw/:all/;
 
 use Compress::Snappy qw();
 use Compress::LZ4 qw();
-use Authen::SASL qw();
 
 use constant STREAM_ID_LIMIT => 32768;
 
@@ -267,28 +266,10 @@ sub authenticate {
     die "Server requires authentication but we have no credentials defined"
         unless $user && $auth;
 
-    #my $cls= unpack_string($authenticate_body);
-    my $sasl= Authen::SASL->new(
-        mechanism => 'PLAIN', # Cassandra doesn't seem to like it if we specify a space-separated list
-        callback => {
-            pass => sub { $auth },
-            user => sub { $user },
-        },
-    );
-    my $client= $sasl->client_new();
-
     my ($opcode, $body)= $self->request(
         OPCODE_AUTH_RESPONSE,
-        pack_bytes($client->client_start()),
+        pack_bytes("\0$user\0$auth"),
     );
-
-    while ($opcode == OPCODE_AUTH_CHALLENGE && $client->need_step) {
-        my $last_response= unpack_bytes($body);
-        ($opcode, $body)= $self->request(
-            OPCODE_AUTH_RESPONSE,
-            pack_bytes($client->client_step($last_response)),
-        );
-    }
 
     if ($opcode == OPCODE_AUTH_SUCCESS) {
         # Done!
