@@ -55,10 +55,10 @@ sub p2c_int { return   _pack('l>', 4, undef, @_) }
 sub c2p_int { return _unpack('l>', 4, undef, @_) }
 sub p2c_bool { return   _pack('C', 1, ' ? 1 : 0', @_) }
 sub c2p_bool { return _unpack('C', 1, undef, @_) }
-sub p2c_float { return   _pack('f', 4, undef, @_) }
-sub c2p_float { return _unpack('f', 4, undef, @_) }
-sub p2c_double { return   _pack('d', 8, undef, @_) }
-sub c2p_double { return _unpack('d', 8, undef, @_) }
+sub p2c_float { return   _pack('f>', 4, undef, @_) }
+sub c2p_float { return _unpack('f>', 4, undef, @_) }
+sub p2c_double { return   _pack('d>', 8, undef, @_) }
+sub c2p_double { return _unpack('d>', 8, undef, @_) }
 sub p2c_uuid { return   _pack('H[32]', 16, ' =~ s/\W//rg', @_) }
 sub c2p_uuid { return _unpack('H[32]', 16, ' =~ s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/r', @_) }
 #sub p2c_ { return   _pack('', , undef, @_) }

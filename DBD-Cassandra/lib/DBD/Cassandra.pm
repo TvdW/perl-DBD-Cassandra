@@ -6,7 +6,7 @@ use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.24';
+our $VERSION= '0.25';
 our $drh= undef;
 
 sub driver {
@@ -300,6 +300,23 @@ module supports C<quote(..)>, but try to use prepared statements
 instead. They will save you a lot of trouble.
 
 =back
+
+=head1 UPGRADE WARNING FOR VERSIONS 0.24 AND LOWER
+
+Prior to version 0.25 there was a bug corrupting float and double values as
+they were stored in the database. The endianness on these values was wrong,
+which only shows when reading stored data back in an application written using
+a different driver.
+
+If you were writing float or double values using a DBD::Cassandra prior to
+0.25, please be careful with this upgrade. A way to rewrite your values between
+the two formats is :
+
+    my $good_float = unpack('f>', pack('f', $bad_float));
+    my $good_double= unpack('d>', pack('d', $bad_double));
+
+If you never used a DBD::Cassandra version prior to 0.25, or do not use floats
+or doubles, this bug does not affect you and upgrading to 0.25 is safe.
 
 =head1 LICENSE
 

@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.25    2016/03/17
+
+      * Fix encoding and decoding of floats and doubles. If you were using these prior to 0.25, please read the upgrade notice in the DBD::Cassandra pod.
+
 0.24    2016/01/25
 
       * Drop the Authen::SASL dependency, which was (sort of) incompatible with Cassandra's SASL
