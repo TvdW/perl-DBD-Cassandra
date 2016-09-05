@@ -1,5 +1,10 @@
 Revision history for DBD-Cassandra
 
+0.51    2016/08/23
+
+      * Splits Cassandra-specific code into Cassandra::Client.
+        DBD::Cassandra is now a wrapper providing a DBI interface
+
 0.25    2016/03/17
 
       * Fix encoding and decoding of floats and doubles. If you were using these prior to 0.25, please read the upgrade notice in the DBD::Cassandra pod.

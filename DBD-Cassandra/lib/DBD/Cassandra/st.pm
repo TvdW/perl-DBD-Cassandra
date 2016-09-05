@@ -1,8 +1,7 @@
 package DBD::Cassandra::st;
-use v5.14;
+use 5.008;
+use strict;
 use warnings;
-
-use DBD::Cassandra::Protocol qw/:all/;
 
 # Documentation-driven cargocult
 $DBD::Cassandra::st::imp_data_size = 0;
@@ -17,130 +16,51 @@ sub bind_param {
 sub execute {
     my ($sth, @bind_values)= @_;
 
-    my $dbh= $sth->{Database};
-
-    $sth->finish if $sth->FETCH('Active');
-
-    my $params= @bind_values ? \@bind_values : $sth->{cass_params};
-    my $param_count = $sth->FETCH('NUM_OF_PARAMS');
-
-    return $sth->set_err($DBI::stderr, sprintf "Wrong number of parameters. Expected %d, got %d", $param_count, 0+@$params)
-        if @$params != $param_count;
-
-    $sth->{cass_paging_state}= undef;
-    $sth->{cass_params_real}= $params;
-
-    unless (my $success= cass_post($sth)) {
-        return $success;
-    }
-
-    if ($sth->{cass_async}) {
-        return '0E0'; # We don't really know whether it worked or not...
-    } else {
-        return cass_read($sth);
-    }
-}
-
-sub cass_post {
-    my ($sth)= @_;
-
-    # Make sure we don't have an existing open request
-    finish_async($sth);
-
-    eval {
-        my $params= $sth->{cass_params_real};
-        my $prepared_id= $sth->{cass_prepared_id};
-
-        my $dbh= $sth->{Database};
-        my $conn= $dbh->{cass_connection};
-
-        my $request_body= pack_parameters({
-            prepare_id       => $sth->{cass_prepared_id},
-            values           => $sth->{cass_row_encoder}->($params),
-            consistency      => $sth->{cass_consistency},
-            result_page_size => $sth->{cass_paging},
-            paging_state     => $sth->{cass_paging_state},
-        });
-
-        my ($stream_id)= $conn->post_request(
-            OPCODE_EXECUTE,
-            $request_body,
-        );
-
-        $sth->{cass_pending_stream_id}= $stream_id;
-        1;
-    } or do {
-        my $err= $@ || "unknown error";
-        return $sth->set_err($DBI::stderr, "post error in execute: $err");
-    };
-
-    $sth->{cass_data}= undef;
-    $sth->{cass_rows}= undef;
-
+    $sth->{cass_bind}= (@bind_values ? \@bind_values : $sth->{cass_params});
+    &start_async;
     $sth->STORE('Active', 1);
-    1;
+    if (!$sth->{cass_async}) {
+        return &x_finish_async;
+    }
+
+    return '0E0';
 }
 
-sub cass_read {
+sub start_async {
     my ($sth)= @_;
 
-    my $data;
-    eval {
-        my $dbh= $sth->{Database};
-        my $conn= $dbh->{cass_connection};
-        my ($opcode, $body)= $conn->read_request(delete $sth->{cass_pending_stream_id});
+    $sth->{cass_future}= $sth->{Database}{cass_client}->future_call_execute($sth->{Statement}, $sth->{cass_bind}, {
+        consistency => $sth->{cass_consistency},
+        page_size => $sth->{cass_page_size},
+        page => $sth->{cass_next_page},
+    });
+}
 
-        if ($opcode != OPCODE_RESULT) {
-            die "Strange answer from server during execute";
-        }
+sub x_finish_async {
+    my ($sth)= @_;
 
-        my $kind= unpack 'N', substr $body, 0, 4, '';
-        if ($kind == RESULT_VOID || $kind == RESULT_SET_KEYSPACE || $kind == RESULT_SCHEMA_CHANGE) {
-            $data= [];
-            $sth->STORE('Active', 0);
-            return 1;
-        } elsif ($kind != RESULT_ROWS) {
-            die 'Unsupported response from server';
-        }
+    my $future= delete $sth->{cass_future};
+    if (!$future) { return '0E0'; }
 
-        my $metadata= unpack_metadata($body);
-        $sth->{cass_paging_state}= $metadata->{paging_state};
-        my $decoder= $sth->{cass_row_decoder};
-        my $rows_count= unpack('N', substr $body, 0, 4, '');
-
-        $sth->{cass_row_decoder}->($rows_count, $body, ($data = []));
-        1;
-
-    } or do {
-        my $err= $@ || "unknown error";
+    my ($error, $result)= $future->();
+    if ($error) {
         $sth->STORE('Active', 0);
-        return $sth->set_err($DBI::stderr, "read error in execute: $err");
-    };
-
-    $sth->{cass_data}= $data;
-    $sth->{cass_rows}= 0+@$data;
-
-    if ($sth->{cass_paging} || $sth->{cass_async}) {
-        return '0E0'; # We don't know how many rows will be returned.
-    } else {
-        return (@$data || '0E0'); # Something true
-    }
-}
-
-sub finish_async {
-    my ($sth)= @_;
-
-    if ($sth->{cass_pending_stream_id}) {
-        if ($sth->{cass_async}) {
-            return cass_read($sth);
-        } else {
-            return $sth->set_err($DBI::stderr, "DBD::Cassandra BUG: pending stream, but no async?")
-        }
+        return $sth->set_err($DBI::stderr, $error);
     }
 
-    '0E0';
+    my $rows= ($result && $result->rows) || [];
+    my $names= ($result && $result->column_names) || [];
+    my $page= ($result && $result->next_page);
+
+    $sth->{rows}= $rows;
+    $sth->{row_count}= 0+@$rows;
+
+    $sth->STORE('NUM_OF_FIELDS', 0+@$names);
+    $sth->{NAME}= $names;
+    $sth->{cass_next_page}= $page;
+
+    return ((0+@$rows) || '0E0');
 }
-*x_finish_async= \&finish_async;
 
 sub execute_for_fetch {
     ... #TODO
@@ -152,46 +72,47 @@ sub bind_param_array {
 
 sub fetchrow_arrayref {
     my ($sth)= @_;
-    finish_async($sth) or return undef;
+    if ($sth->{cass_future}) {
+        return undef unless &x_finish_async;
+    }
 
-    my $row= shift @{$sth->{cass_data}};
-    if (!$row) {
-        if ($sth->{cass_paging_state}) {
-            # Fetch some more rows
-            cass_post($sth) or return undef;
-            cass_read($sth) or return undef;
-            $row= shift @{$sth->{cass_data}};
+    my $row= shift @{$sth->{rows}};
+    if (!$row && $sth->{cass_next_page}) {
+        &start_async;
+        if (!&x_finish_async) {
+            return undef;
         }
+        $row= shift @{$sth->{rows}};
     }
-    if (!$row) {
-        $sth->STORE('Active', 0);
-        return undef;
+    if ($row) {
+        if ($sth->FETCH('ChopBlanks')) {
+            map { $_ =~ s/\s+$//; } @$row;
+        }
+
+        return $sth->_set_fbav($row);
     }
-    if ($sth->FETCH('ChopBlanks')) {
-        map { $_ =~ s/\s+$//; } @$row;
-    }
-    return $sth->_set_fbav($row);
+
+    $sth->STORE('Active', 0);
+    return undef;
 }
 
-*fetch = \&fetchrow_arrayref; # DBI requires this. Probably historical reasons.
+*fetch = \&fetchrow_arrayref;
 
 sub rows {
     my $sth= shift;
-    if ($sth->{cass_paging}) {
-        return '0E0';
-    } else {
-        return undef unless finish_async($sth);
-        return $sth->{cass_rows};
+    if ($sth->{cass_future}) {
+        return undef unless &x_finish_async;
     }
+    return $sth->{row_count};
 }
 
-sub DESTROY {
-    my ($sth)= @_;
-    finish_async($sth);
-
-    # This fixes an issue where DBI throws a warning for an 'insert into .. if not exists update ..',
-    # which (interestingly) returns rows. We'll also suppress them for empty result sets
-    $sth->finish if $sth->FETCH('Active') && (!@{$sth->{cass_data} // []} || !$sth->FETCH('NUM_OF_FIELDS'));
+sub FETCH {
+    my ($sth, $attr)= @_;
+    if ($attr =~ /\A(?:NAME|NUM_OF_FIELDS)\z/ && $sth->{cass_future}) {
+        return undef unless &x_finish_async;
+        return $sth->{$attr} if $attr eq 'NAME';
+    }
+    return $sth->SUPER::FETCH($attr);
 }
 
 1;

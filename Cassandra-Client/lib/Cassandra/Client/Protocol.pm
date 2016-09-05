@@ -1,0 +1,408 @@
+package Cassandra::Client::Protocol;
+use 5.008;
+use strict;
+use warnings;
+
+require Exporter;
+our @ISA= qw(Exporter);
+
+use constant;
+
+our (@EXPORT_OK, %EXPORT_TAGS);
+our (%consistency_lookup, %batch_type_lookup);
+BEGIN {
+    my %constants= (
+        OPCODE_ERROR => 0,
+        OPCODE_STARTUP => 1,
+        OPCODE_READY => 2,
+        OPCODE_AUTHENTICATE => 3,
+        OPCODE_OPTIONS => 5,
+        OPCODE_SUPPORTED => 6,
+        OPCODE_QUERY => 7,
+        OPCODE_RESULT => 8,
+        OPCODE_PREPARE => 9,
+        OPCODE_EXECUTE => 10,
+        OPCODE_REGISTER => 11,
+        OPCODE_EVENT => 12,
+        OPCODE_BATCH => 13,
+        OPCODE_AUTH_CHALLENGE => 14,
+        OPCODE_AUTH_RESPONSE => 15,
+        OPCODE_AUTH_SUCCESS => 16,
+
+        RESULT_VOID => 1,
+        RESULT_ROWS => 2,
+        RESULT_SET_KEYSPACE => 3,
+        RESULT_PREPARED => 4,
+        RESULT_SCHEMA_CHANGE => 5,
+
+        CONSISTENCY_ANY => 0,
+        CONSISTENCY_ONE => 1,
+        CONSISTENCY_TWO => 2,
+        CONSISTENCY_THREE => 3,
+        CONSISTENCY_QUORUM => 4,
+        CONSISTENCY_ALL => 5,
+        CONSISTENCY_LOCAL_QUORUM => 6,
+        CONSISTENCY_EACH_QUORUM => 7,
+        CONSISTENCY_SERIAL => 8,
+        CONSISTENCY_LOCAL_SERIAL => 9,
+        CONSISTENCY_LOCAL_ONE => 10,
+
+        TYPE_CUSTOM => 0x00,
+        TYPE_ASCII => 0x01,
+        TYPE_BIGINT => 0x02,
+        TYPE_BLOB => 0x03,
+        TYPE_BOOLEAN => 0x04,
+        TYPE_COUNTER => 0x05,
+        TYPE_DECIMAL => 0x06,
+        TYPE_DOUBLE => 0x07,
+        TYPE_FLOAT => 0x08,
+        TYPE_INT => 0x09,
+        TYPE_TEXT => 0x0A, # deprecated/removed
+        TYPE_TIMESTAMP => 0x0B,
+        TYPE_UUID => 0x0C,
+        TYPE_VARCHAR => 0x0D,
+        TYPE_VARINT => 0x0E,
+        TYPE_TIMEUUID => 0x0F,
+        TYPE_INET => 0x10,
+        TYPE_LIST => 0x20,
+        TYPE_MAP => 0x21,
+        TYPE_SET => 0x22,
+        TYPE_UDT => 0x30,
+        TYPE_TUPLE => 0x31,
+    );
+
+    @EXPORT_OK= (
+        keys %constants,
+        qw/
+            pack_int                unpack_int
+            pack_long               unpack_long
+            pack_short              unpack_short
+            pack_string             unpack_string
+            pack_longstring         unpack_longstring
+            pack_stringlist         unpack_stringlist
+            pack_bytes              unpack_bytes
+            pack_shortbytes         unpack_shortbytes
+            pack_option_type        unpack_option_type
+            pack_optionlist_type    unpack_optionlist_type
+            pack_stringmap          unpack_stringmap
+            pack_stringmultimap     unpack_stringmultimap
+            pack_inet               unpack_inet
+
+                                    unpack_metadata
+            pack_queryparameters
+
+            %consistency_lookup
+            %batch_type_lookup
+        /
+    );
+
+    %EXPORT_TAGS= (
+        constants => [ keys %constants ],
+        all => [ @EXPORT_OK ]
+    );
+
+    %consistency_lookup= map {
+        my $key= $_;
+        $key =~ s/CONSISTENCY_//;
+        (lc $key) => $constants{$_}
+    } grep { /CONSISTENCY/ } keys %constants;
+
+    %batch_type_lookup= (
+        logged   => 0,
+        unlogged => 1,
+        counter  => 2,
+    );
+
+    constant->import( { %constants } );
+}
+
+# TYPE: int
+sub pack_int {
+    pack('l>', $_[0])
+}
+
+sub unpack_int {
+    unpack('l>', substr $_[0], 0, 4, '')
+}
+
+# TYPE: long
+sub pack_long {
+    pack('q>', $_[0])
+}
+
+sub unpack_long {
+    unpack('q>', substr $_[0], 0, 8, '')
+}
+
+# TYPE: short
+sub pack_short {
+    pack('n', $_[0])
+}
+
+sub unpack_short {
+    unpack('n', substr $_[0], 0, 2, '')
+}
+
+# TYPE: string
+sub pack_string {
+    if (utf8::is_utf8($_[0])) {
+        my $str= $_[0]; # copy
+        utf8::encode $str;
+        return pack('n/a', $str);
+    }
+
+    return pack('n/a', $_[0]);
+}
+
+sub unpack_string {
+    my $length= &unpack_short;
+    if ($length > 0) {
+        my $string= substr($_[0], 0, $length, '');
+        utf8::decode $string;
+        return $string;
+    } else {
+        return '';
+    }
+}
+
+# TYPE: longstring
+sub pack_longstring {
+    if (utf8::is_utf8($_[0])) {
+        my $str= $_[0]; # copy
+        utf8::encode $str;
+        return pack('l>/a', $str);
+    }
+
+    return pack('l>/a', $_[0]);
+}
+
+sub unpack_longstring {
+    my $length= &unpack_int;
+    if ($length > 0) {
+        my $string= substr($_[0], 0, $length, '');
+        utf8::decode $string;
+        return $string;
+    } else {
+        return '';
+    }
+}
+
+# TYPE: stringlist
+sub pack_stringlist {
+    pack_short(0+@{$_[0]}).join('', map { pack_string($_) } @{$_[0]})
+}
+
+sub unpack_stringlist {
+    my $count= &unpack_short;
+    [ map &unpack_string, 1..$count ]
+}
+
+# TYPE: bytes
+sub pack_bytes {
+    defined $_[0] ? (pack_int(length($_[0])).$_[0]) : pack_int(-1)
+}
+
+sub unpack_bytes {
+    my $len= &unpack_int;
+    if ($len > 0) {
+        return substr($_[0], 0, $len, '');
+
+    } elsif ($len < 0) {
+        return undef;
+
+    } else {
+        return '';
+    }
+}
+
+# TYPE: shortbytes
+sub pack_shortbytes {
+    defined $_[0] ? (pack_short(length($_[0])).$_[0]) : pack_short(-1)
+}
+
+sub unpack_shortbytes {
+    my $len= &unpack_short;
+    if ($len > 0) {
+        return substr($_[0], 0, $len, '');
+
+    } elsif ($len < 0) {
+        return undef;
+
+    } else {
+        return '';
+    }
+}
+
+# TYPE: inet
+sub pack_inet {
+    die 'Not implemented';
+}
+
+sub unpack_inet {
+    my $length= unpack('C', substr($_[0], 0, 1, ''));
+    my $tmp_val= substr($_[0], 0, $length, '');
+
+    my $addr;
+    if ($length == 4) {
+        $addr= join('.', unpack('CCCC', $tmp_val));
+    } else {
+        $addr= join(':', unpack('(H4)[8]', $tmp_val));
+        # Simplify the V6 address
+        $addr =~ s/\b0+(\d+)\b/$1/g;
+        $addr =~ s/\b0(:0)+\b/:/;
+        $addr =~ s/:::/::/;
+    }
+    return $addr;
+}
+
+# TYPE: option_type
+sub pack_option_type {
+    die 'Not implemented';
+}
+
+sub unpack_option_type {
+    my $id= &unpack_short;
+    my @value;
+    if ($id == TYPE_CUSTOM) {
+        @value= (&unpack_string);
+    } elsif ($id <= 0x10) {
+        # Nothing
+    } elsif ($id == TYPE_LIST || $id == TYPE_SET) { # List<?> / Set<?>
+        @value= (&unpack_option_type);
+    } elsif ($id == TYPE_MAP) { # Map<?,?>
+        @value= (&unpack_option_type, &unpack_option_type);
+    } elsif ($id == TYPE_UDT) {
+        my $keyspace= &unpack_string;
+        my $udt_name= &unpack_string;
+        my $field_n=  &unpack_short;
+        my @fields;
+        for (1..$field_n) {
+            my $name= &unpack_string;
+            my $type= &unpack_option_type;
+            push @fields, [ $name, $type ];
+        }
+        @value= ($keyspace, $udt_name, \@fields);
+    } elsif ($id == TYPE_TUPLE) { # Tuple
+        my $field_n= &unpack_short;
+        my @fields;
+        for (1..$field_n) {
+            push @fields, &unpack_option_type;
+        }
+        @value= (\@fields);
+    } else {
+        die 'Unable to decode protocol: no idea what type '.$id.' is...';
+    }
+
+    return [ $id, @value ];
+}
+
+# TYPE: optionlist_type
+sub pack_optionlist_type {
+    pack_short(0+@$_[0]).join('', map pack_option_type($_), @$_[0])
+}
+
+sub unpack_optionlist_type {
+    my $count= &unpack_short;
+    [ map &unpack_option_type, 1..$count ]
+}
+
+# TYPE: stringmap
+sub pack_stringmap {
+    my $pairs= '';
+    my $count= 0;
+    for my $key (sort keys %{$_[0]}) {
+        $pairs .= pack_string($key).pack_string($_[0]{$key});
+        $count++;
+    }
+    return pack_short($count).$pairs;
+}
+
+sub unpack_stringmap {
+    my $count= &unpack_short;
+    my $result= {};
+    for (1..$count) {
+        my $key= &unpack_string;
+        $result->{$key}= &unpack_string;
+    }
+    return $result;
+}
+
+# TYPE: stringmultimap
+sub pack_stringmultimap {
+    my $pairs= '';
+    my $count= 0;
+    for my $key (sort keys %{$_[0]}) {
+        $pairs .= pack_string($key).pack_stringlist($_[0]{$key});
+        $count++;
+    }
+    return pack_short($count).$pairs;
+}
+
+sub unpack_stringmultimap {
+    my $count= &unpack_short;
+    my $result= {};
+    for (1..$count) {
+        my $key= &unpack_string;
+        $result->{$key}= &unpack_stringlist;
+    }
+    return $result;
+}
+
+# Metadata
+sub unpack_metadata {
+    my ($flags, $columns_count, $paging_state, $keyspace_name, $table_name, @columns);
+
+    ($flags, $columns_count)= unpack('l>l>', substr($_[0], 0, 8, '')); # Short-circuited for perf
+    if ($flags & 2) {
+        $paging_state= &unpack_bytes;
+    }
+    unless ($flags & 4) { # "No metadata"
+        my $global_tables_spec= ($flags & 1);
+        if ($global_tables_spec) {
+            $keyspace_name= &unpack_string;
+            $table_name= &unpack_string;
+        }
+
+        for (1..$columns_count) {
+            my ($keyspace, $table);
+            if ($global_tables_spec) {
+                ($keyspace, $table)= ($keyspace_name, $table_name);
+            } else {
+                ($keyspace, $table)= (&unpack_string, &unpack_string);
+            }
+            my $column_name= &unpack_string;
+            my $type= &unpack_option_type;
+
+            push @columns, [ $keyspace, $table, $column_name, $type ];
+        }
+    }
+
+    return {
+        columns => ($flags & 4) ? undef : \@columns,
+        paging_state => $paging_state,
+    };
+}
+
+# Query parameters
+sub pack_queryparameters {
+    my ($consistency, $skip_metadata, $page_size, $paging_state, $timestamp, $row)= @_;
+
+    my $flags= (
+        0
+        | ((length($row)     && 0x01) || 0)
+        | (($skip_metadata   && 0x02) || 0)
+        | (($page_size       && 0x04) || 0)
+        | (($paging_state    && 0x08) || 0)
+        | (($timestamp       && 0x20) || 0)
+    );
+
+    return (
+          pack('nC', $consistency, $flags)
+        . ($row || '')
+        . ($page_size ? pack('l>', $page_size) : '')
+        . ($paging_state ? pack('l>/a', $paging_state) : '')
+        . ($timestamp ? pack('q>', $timestamp) : '')
+    );
+}
+
+1;

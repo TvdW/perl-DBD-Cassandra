@@ -1,18 +1,20 @@
 package DBD::Cassandra;
-use v5.14;
+use 5.008;
+use strict;
 use warnings;
 
 use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.25';
+our $VERSION= '0.51';
 our $drh= undef;
 
 sub driver {
     return $drh if $drh;
 
     DBD::Cassandra::st->install_method('x_finish_async');
+    DBD::Cassandra::db->install_method('x_wait_for_schema_agreement');
 
     my ($class, $attr)= @_;
     $drh = DBI::_new_drh($class."::dr", {
@@ -90,7 +92,10 @@ all queries must include the keyspace name.
 
 =item hostname
 
-Hostname to connect to. Defaults to C<localhost>
+=item hosts
+
+Hostname to initially connect to. Defaults to C<localhost>. Can be
+comma-separated to specify multiple hosts.
 
 =item port
 
@@ -114,11 +119,17 @@ Cassandra manual to see which versions your database supports.
 
 =item consistency
 
-=item connect_timeout
+See the chapter on consistency levels
+
+=item request_timeout
+
+Maximum amount of time (in seconds) to wait for a Cassandra network operation to finish.
 
 =item read_timeout
 
 =item write_timeout
+
+B<Deprecated>. These two are summed and used as C<request_timeout>.
 
 =back
 
@@ -253,47 +264,6 @@ check its return value before reading any data from the handle.
 
 =item *
 
-Not all Cassandra data types are supported. These are currently
-supported:
-
-=over
-
-=item * ascii
-
-=item * bigint
-
-=item * blob
-
-=item * boolean
-
-=item * custom
-
-=item * double
-
-=item * float
-
-=item * int
-
-=item * list
-
-=item * map
-
-=item * set
-
-=item * text
-
-=item * timestamp
-
-=item * timeuuid
-
-=item * uuid
-
-=item * varchar
-
-=back
-
-=item *
-
 Cassandra/CQL3 is strict about the queries you write. When switching
 from other databases, such as MySQL, this may come as a surprise. This
 module supports C<quote(..)>, but try to use prepared statements
@@ -301,7 +271,27 @@ instead. They will save you a lot of trouble.
 
 =back
 
-=head1 UPGRADE WARNING FOR VERSIONS 0.24 AND LOWER
+=head1 UPGRADING
+
+=head2 From versions 0.25 and lower
+
+As of C<DBD::Cassandra> 0.51, this module uses C<Cassandra::Client> internally.
+The unit tests from the previous release all still pass, but there are subtle
+changes :
+
+=over
+
+=item read_timeout/write_timeout are deprecated, use request_timeout instead
+
+=item the driver now manages a pool of connections internally
+
+Instead of only connecting to the one specified host, multiple hosts can be
+passed as seed-hosts. These are then used to bootstrap the actual internal pool
+of connections.
+
+=back
+
+=head2 From versions 0.24 and lower
 
 Prior to version 0.25 there was a bug corrupting float and double values as
 they were stored in the database. The endianness on these values was wrong,

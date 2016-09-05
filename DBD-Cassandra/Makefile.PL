@@ -21,10 +21,7 @@ WriteMakefile(
     },
     PREREQ_PM => {
         'DBI'                    => '1.621',
-        'Compress::Snappy'       => '0.23',
-        'Compress::LZ4'          => '0.20',
-        'IO::Socket::Timeout'    => '0.22',
-        'Term::ReadLine'         => '1.04',
+        'Cassandra::Client'      => '0.04',
     },
 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

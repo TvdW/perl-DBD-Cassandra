@@ -1,8 +1,9 @@
 package DBD::Cassandra::dr;
-use v5.14;
+use 5.008;
+use strict;
 use warnings;
 
-use DBD::Cassandra::Connection;
+use Cassandra::Client 0.04;
 
 # "*FIX ME* Explain what the imp_data_size is, so that implementors aren't
 #  practicing cargo-cult programming" - DBI::DBD docs
@@ -24,30 +25,42 @@ sub connect {
     }
 
     my $keyspace= delete $attr->{cass_database} || delete $attr->{cass_db} || delete $attr->{cass_keyspace};
-    my $host= delete $attr->{cass_host} || 'localhost';
+    my $host= delete $attr->{cass_host} || delete $attr->{cass_hostname} || delete $attr->{cass_hosts} || delete $attr->{cass_hostnames} || 'localhost';
+    my $hosts= [ grep $_, split /,/, $host ];
     my $port= delete $attr->{cass_port} || 9042;
     my $global_consistency= delete $attr->{cass_consistency};
+    my $compression= delete $attr->{cass_compression};
+    my $cql_version= delete $attr->{cass_cql_version};
+    my $read_timeout= delete $attr->{cass_read_timeout};
+    my $write_timeout= delete $attr->{cass_write_timeout};
+    my $connect_timeout= delete $attr->{cass_connect_timeout}; #XXX
+    my $request_timeout= delete $attr->{cass_request_timeout};
+    if ($read_timeout || $write_timeout) {
+        if ($request_timeout) {
+            warn 'Ignoring read_timeout and write_timeout settings, as request_timeout is passed';
+        } else {
+            $request_timeout= ($read_timeout || 6) + ($write_timeout || 6);
+        }
+    }
 
-    my $connection;
-    eval {
-        $connection= DBD::Cassandra::Connection->connect($host, $port, $user, $auth, {
-            map { exists $attr->{"cass_$_"} ? ($_ => $attr->{"cass_$_"}) : () }
-                qw/compression cql_version read_timeout write_timeout connect_timeout/
-        });
-        1;
-    } or do {
-        my $err= $@ || "unknown error";
-        return $drh->set_err($DBI::stderr, "Can't connect to $dr_dsn: $err");
-    };
+    my $client= Cassandra::Client->new(
+        contact_points => $hosts,
+        port => $port,
+        username => $user,
+        password => $auth,
+        keyspace => $keyspace,
+        compression => $compression,
+        default_consistency => $global_consistency,
+        cql_version => $cql_version,
+        request_timeout => $request_timeout,
+    );
+    my ($error)= $client->call_connect;
+    return $drh->set_err($DBI::stderr, "Can't connect to $dr_dsn: $error") if $error;
 
     my ($outer, $dbh)= DBI::_new_dbh($drh, { Name => $dr_dsn });
 
     $dbh->STORE('Active', 1);
-    $dbh->{cass_connection}= $connection;
-    $dbh->{cass_consistency}= $global_consistency;
-
-    $outer->do("use $keyspace") or return
-        if $keyspace;
+    $dbh->{cass_client}= $client;
 
     return $outer;
 }
