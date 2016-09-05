@@ -8,7 +8,7 @@ unless ($ENV{CASSANDRA_HOST}) {
 
 plan tests => 3;
 
-my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests;read_timeout=5;connect_timeout=5;write_timeout=5", undef, undef, {RaiseError => 1});
+my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests;read_timeout=5;connect_timeout=5;write_timeout=5", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
 ok($dbh);
 
 $dbh->do('create table if not exists test_async (id bigint primary key)');
@@ -33,6 +33,6 @@ $ok &&= $_->x_finish_async for reverse @pending;
 ok($ok);
 
 my $rows= $dbh->selectall_arrayref('select * from test_async');
-ok(0+@$rows == $count);
+ok(0+@$rows == $count) or diag("Expected $count rows, got ".(0+@$rows));
 
 $dbh->disconnect;

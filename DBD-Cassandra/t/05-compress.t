@@ -11,7 +11,7 @@ plan tests => 6;
 my $keyspace= "dbd_cassandra_tests";
 
 for my $compression (qw/lz4 snappy none/) {
-    my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};compression=$compression", undef, undef, {RaiseError => 1});
+    my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};compression=$compression", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
     ok($dbh);
 
     $dbh->do("drop keyspace if exists $keyspace");

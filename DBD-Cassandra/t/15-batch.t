@@ -8,7 +8,7 @@ unless ($ENV{CASSANDRA_HOST}) {
 
 plan tests => 2;
 
-my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests;read_timeout=5;connect_timeout=5;write_timeout=5", undef, undef, {RaiseError => 1});
+my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests;read_timeout=5;connect_timeout=5;write_timeout=5", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
 ok($dbh);
 
 $dbh->do('drop table if exists test_batch');

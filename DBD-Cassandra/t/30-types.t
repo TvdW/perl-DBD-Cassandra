@@ -13,10 +13,10 @@ my $type_table= [
     ['bigint',      5,      $input],
     ['bigint',      'asd',  $warn],
     ['blob',        'asd',  $input],
-    ['boolean',     1,      $input],
-    ['boolean',     0,      $input],
-    ['boolean',     2,      1],
-    ['boolean',     'asd',  1],
+    ['boolean',     1,      !!1],
+    ['boolean',     0,      !1],
+    ['boolean',     2,      !!1],
+    ['boolean',     'asd',  !!1],
     ['double',      0.15,   $input],
     ['float',       0.2,    0.200000002980232], # Yeah.
     ['int',         5,      $input],
@@ -24,6 +24,7 @@ my $type_table= [
     ['timestamp',   time(), $input],
     ['varchar',     '∫∫',   $input],
     ['uuid',        '34945442-c1d4-47db-bddd-5d2138b42cbc', $input],
+    ['uuid',        '34945442-c1d4-47db-bddd-5d2138b42cbc-abcdef', '34945442-c1d4-47db-bddd-5d2138b42cbc'],
     ['uuid',        'bad16', 'bad16000-0000-0000-0000-000000000000'],
     ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
     ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
@@ -42,7 +43,7 @@ unless ($ENV{CASSANDRA_HOST}) {
 
 plan tests => 2+@$type_table;
 
-my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests", undef, undef, {RaiseError => 1});
+my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
 ok($dbh);
 
 for my $type (@$type_table) {
@@ -61,9 +62,9 @@ for my $type (@$type_table) {
         } elsif (!ref $output_val && $output_val eq $warn) {
             ok($did_warn);
         } elsif (!ref $output_val && $output_val eq $input) {
-            is_deeply([$test_val], [$row->[0]], "input match $typename");
+            is_deeply([$row->[0]], [$test_val], "input match $typename ($test_val -> $output_val)");
         } else {
-            is_deeply([$output_val], [$row->[0]], "perfect match $typename");
+            is_deeply([$row->[0]], [$output_val], "perfect match $typename ($test_val -> $output_val)");
         }
         1;
     } or do {
