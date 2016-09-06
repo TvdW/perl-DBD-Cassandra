@@ -15,14 +15,16 @@ WriteMakefile(
         'ExtUtils::MakeMaker' => 0,
     },
     BUILD_REQUIRES => {
+        'AnyEvent' => 0,
+        'Compress::LZ4' => '0.20',
+        'Compress::Snappy' => '0.23',
         'Test::More' => 0,
     },
     PREREQ_PM => {
-        #'ABC'              => 1.6,
-        #'Foo::Bar::Module' => 5.0401,
+        # Optional: AnyEvent, Compress::LZ4, Compress::Snappy
+        'Clone' => '0.36',
+        'Promises' => '0.94',
         'Ref::Util' => '0.008',
-        'Clone' => '0.38',
-        # Optional: AnyEvent, Promises, Compress::LZ4, Compress::Snappy
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Cassandra-Client-*' },
