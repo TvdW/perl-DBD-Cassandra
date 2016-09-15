@@ -252,11 +252,6 @@ Thread support is untested. Use at your own risk.
 
 =item *
 
-If the table structure changes, prepared queries are not invalidated correctly.
-This is a serious issue and will be fixed in a future release.
-
-=item *
-
 When using asynchronous queries, more functions than just execute() may
 throw errors. It is recommended that you enable RaiseError. If this is
 not possible, it should also suffice to call C<$sth->x_finish_async> and
