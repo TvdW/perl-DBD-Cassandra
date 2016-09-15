@@ -173,7 +173,7 @@ sub d_passthru {
 
 sub d_uuid {
     my ($type, $tmp_val, $dest, $input_length)= @_;
-    return "$dest= (unpack('H[32]', $tmp_val) =~ ".'s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/r'.");";
+    return "$dest= unpack('H[32]', $tmp_val); $dest =~ ".'s/\A(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})\z/$1-$2-$3-$4-$5/'.";";
 }
 
 sub d_inet {
