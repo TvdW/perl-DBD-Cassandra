@@ -1,5 +1,15 @@
 Revision history for Cassandra-Client
 
-0.04    2016-08-22
-        First version, released on an unsuspecting world.
+0.06    unreleased
+
+      * Hopefully fixes support for Perl 5.8
+      * Addresses a documentation hole about the 'timestamp' type
+
+0.05    2016/09/06
+
+      * Updates Makefile.PL to list the correct requirements
+
+0.04    2016/09/05
+
+      * First version, released on an unsuspecting world.
 
