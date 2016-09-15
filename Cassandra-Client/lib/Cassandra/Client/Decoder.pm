@@ -19,7 +19,7 @@ my %type_lookup= (
     TYPE_BLOB       ,=> [ \&d_passthru ],
     TYPE_BOOLEAN    ,=> [ \&d_bool     ],
     TYPE_COUNTER    ,=> [ $bigint_dec  ],
-    #TYPE_DECIMAL    ,=> decimal
+    TYPE_DECIMAL    ,=> [ \&d_decimal  ],
     TYPE_DOUBLE     ,=> [ 'd>'         ],
     TYPE_FLOAT      ,=> [ 'f>'         ],
     TYPE_INT        ,=> [ 'l>'         ],
@@ -241,6 +241,20 @@ if ($input_length > $supported_size) {
         $dest= unpack('q>', substr(\$pad.\$pad\.\$pad.$tmp_val, -8));
     }
 }
+EOC
+}
+
+sub d_decimal {
+    my ($type, $tmp_val, $dest, $input_length)= @_;
+    my $varint_dec= d_varint($type, $tmp_val, '$unscaled', "($input_length-4)");
+    return <<EOC;
+my \$scale= unpack('l>', substr($tmp_val, 0, 4, ''));
+\$scale *= -1;
+my \$unscaled;
+VARINT: {
+$varint_dec
+}
+$dest= \$unscaled . (\$scale > 0 ? "e+\$scale" : \$scale < 0 ? "e\$scale" : "");
 EOC
 }
 

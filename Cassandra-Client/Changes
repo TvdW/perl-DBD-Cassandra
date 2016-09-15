@@ -5,6 +5,7 @@ Revision history for Cassandra-Client
       * Hopefully fixes support for Perl 5.8
       * Addresses a documentation hole about the 'timestamp' type
       * Support for the 'varint' type
+      * Support for the 'decimal' type
 
 0.05    2016/09/06
 

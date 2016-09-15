@@ -97,7 +97,11 @@ check_enc([TYPE_COUNTER], "1000000000000", "\0\0\0\xe8\xd4\xa5\x10\0");
 check_enc([TYPE_COUNTER], -1, "\xff\xff\xff\xff\xff\xff\xff\xff");
 
 # Decimal
-## Not implemented.
+check_simple([TYPE_DECIMAL], [ undef, 0, 1, 100, '1e+100', 1E100 ]);
+check_simple([TYPE_DECIMAL], [ "10000000000000001.123456789123456789E-1000" ], [ "10000000000000001123456789123456789e-1018" ]);
+check_enc([TYPE_DECIMAL], 0, "\0\0\0\0\0");
+check_enc([TYPE_DECIMAL], 1, "\0\0\0\0\1");
+check_enc([TYPE_DECIMAL], 0.1, "\0\0\0\1\1");
 
 # Double
 check_simple([TYPE_DOUBLE], [ 0.5, 2, -3, undef, 0 ]);

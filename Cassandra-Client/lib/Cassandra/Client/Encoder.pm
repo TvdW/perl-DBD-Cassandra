@@ -22,7 +22,7 @@ my %types= (
     TYPE_BLOB       ,=> [ \&e_passthru ],
     TYPE_BOOLEAN    ,=> [ \&e_bool ],
     TYPE_COUNTER    ,=> [ @bigint_enc  ],
-    ##TYPE_DECIMAL    ,=>
+    TYPE_DECIMAL    ,=> [ \&e_decimal  ],
     TYPE_DOUBLE     ,=> [ 'd>', 8 ],
     TYPE_FLOAT      ,=> [ 'f>', 4 ],
     TYPE_INT        ,=> [ 'l>', 4 ],
@@ -210,6 +210,31 @@ sub e_varint {
     \$binary= ~\$binary if \$negative;
     $output .= pack('l>/a', \$binary);
 }
+EOC
+}
+
+sub e_decimal {
+    my ($type, $input, $output)= @_;
+    my $varint_enc= e_varint($type, '$unscaled', '$output_with_length_bytes');
+    return <<EOC;
+my \$input_copy= "".$input;
+my \$scale= 0;
+if (\$input_copy =~ /E([+-]?\\d+)\$/i) {
+    \$scale -= \$1;
+    \$input_copy =~ s/E([+-]?\\d+)\$//i;
+}
+if (\$input_copy =~ /[.](\\d+)\$/) {
+    \$scale += length \$1;
+    \$input_copy =~ s/[.]//;
+}
+\$input_copy =~ s/^0+//;
+\$input_copy= "0" unless length \$input_copy;
+my \$unscaled= \$input_copy;
+my \$output_with_length_bytes;
+VARINT: {
+$varint_enc
+}
+$output .= pack('l>/a', pack('l>', \$scale). substr(\$output_with_length_bytes, 4));
 EOC
 }
 
