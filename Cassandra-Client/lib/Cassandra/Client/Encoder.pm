@@ -3,7 +3,7 @@ use 5.008;
 use strict;
 use warnings;
 
-use Cassandra::Client::Protocol ':constants';
+use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -12,20 +12,22 @@ our @EXPORT_OK= qw/
 
 use vars qw/@INPUT/;
 
+my @bigint_enc= BIGINT_SUPPORTED ? ( 'q>', 8 ) : ( \&e_bigint );
+
 my %types= (
     TYPE_CUSTOM     ,=> [ \&e_passthru ],
     TYPE_ASCII      ,=> [ \&e_passthru ],
-    TYPE_BIGINT     ,=> [ 'q>', 8 ],
+    TYPE_BIGINT     ,=> [ @bigint_enc  ],
     TYPE_BLOB       ,=> [ \&e_passthru ],
     TYPE_BOOLEAN    ,=> [ \&e_bool ],
-    TYPE_COUNTER    ,=> [ 'q>', 8 ],
+    TYPE_COUNTER    ,=> [ @bigint_enc  ],
     ##TYPE_DECIMAL    ,=>
     TYPE_DOUBLE     ,=> [ 'd>', 8 ],
     TYPE_FLOAT      ,=> [ 'f>', 4 ],
     TYPE_INT        ,=> [ 'l>', 4 ],
     TYPE_TEXT       ,=> [ \&e_string ],
     ##TYPE_VARINT     ,=>
-    TYPE_TIMESTAMP  ,=> [ 'q>', 8 ],
+    TYPE_TIMESTAMP  ,=> [ @bigint_enc  ],
     TYPE_UUID       ,=> [ \&e_uuid ],
     TYPE_VARCHAR    ,=> [ \&e_string ],
     TYPE_TIMEUUID   ,=> [ \&e_uuid ],
@@ -182,6 +184,11 @@ $output .= pack('l>', length(\$tmp_output)).\$tmp_output;
 EOC
 
     return $code;
+}
+
+sub e_bigint {
+    my ($type, $input, $output)= @_;
+    return "$output .= pack('l>', 8).pack_long($input);";
 }
 
 1;

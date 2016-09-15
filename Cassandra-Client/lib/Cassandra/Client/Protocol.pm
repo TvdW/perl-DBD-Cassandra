@@ -6,7 +6,8 @@ use warnings;
 require Exporter;
 our @ISA= qw(Exporter);
 
-use constant;
+use constant BIGINT_SUPPORTED => eval { unpack('q>', "\0\0\0\0\0\0\0\1") };
+use if !BIGINT_SUPPORTED, 'Math::BigInt';
 
 our (@EXPORT_OK, %EXPORT_TAGS);
 our (%consistency_lookup, %batch_type_lookup);
@@ -93,6 +94,8 @@ BEGIN {
 
             %consistency_lookup
             %batch_type_lookup
+
+            BIGINT_SUPPORTED
         /
     );
 
@@ -127,11 +130,19 @@ sub unpack_int {
 
 # TYPE: long
 sub pack_long {
-    pack('q>', $_[0])
+    if (BIGINT_SUPPORTED) {
+        return pack('q>', $_[0]);
+    } else {
+        return bigint_to_bytes($_[0]);
+    }
 }
 
 sub unpack_long {
-    unpack('q>', substr $_[0], 0, 8, '')
+    if (BIGINT_SUPPORTED) {
+        return unpack('q>', substr $_[0], 0, 8, '');
+    } else {
+        return bytes_to_bigint(substr($_[0], 0, 8, ''));
+    }
 }
 
 # TYPE: short
@@ -401,8 +412,45 @@ sub pack_queryparameters {
         . ($row || '')
         . ($page_size ? pack('l>', $page_size) : '')
         . ($paging_state ? pack('l>/a', $paging_state) : '')
-        . ($timestamp ? pack('q>', $timestamp) : '')
+        . ($timestamp ? (BIGINT_SUPPORTED ? pack('q>', $timestamp) : bigint_to_bytes($timestamp)) : '')
     );
+}
+
+# Support for 32bit perl
+sub bigint_to_bytes {
+    my $mb= Math::BigInt->new($_[0]);
+    if ($_[0] !~ /^-?[0-9\.E]+$/i) { # Idk, approximate it
+        warn "Argument $_[0] isn't numeric";
+    }
+    my $negative= $mb->is_neg && $mb != 0;
+    if ($negative) {
+        $mb *= -1; # Flips the bits, adds one
+        $mb -= 1; # Removes that one
+    }
+
+    my $hex= $mb->as_hex;
+    $hex =~ s/^0x//;
+    my $bytes= pack('H*', substr(("0"x16).$hex, -16));
+    if ($negative) {
+        $bytes= ~$bytes; # Flip those bits back
+    }
+
+    return $bytes;
+}
+
+sub bytes_to_bigint {
+    my $bytes= substr("\0\0\0\0\0\0\0\0".$_[0], -8);
+    my $negative= 0;
+    if ((substr($bytes, 0, 1) & "\x80") ne "\0") { # Negative
+        $negative= 1;
+        $bytes= ~$bytes;
+    }
+    my $mb= Math::BigInt->new('0x'.substr(("0"x16).unpack('H*', $bytes), -16));
+    if ($negative) {
+        $mb += 1; # Because two's complement
+        $mb *= -1;
+    }
+    return $mb->bstr;
 }
 
 1;

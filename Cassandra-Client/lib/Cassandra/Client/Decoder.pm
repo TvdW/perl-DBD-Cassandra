@@ -6,23 +6,25 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK= qw/make_decoder/;
 
-use Cassandra::Client::Protocol ':constants';
+use Cassandra::Client::Protocol qw/:constants unpack_long BIGINT_SUPPORTED/;
 use vars qw/@ROW/;
+
+my $bigint_dec= BIGINT_SUPPORTED ? 'q>' : \&d_bigint_slow;
 
 my %type_lookup= (
     TYPE_CUSTOM     ,=> [ \&d_passthru ],
     TYPE_ASCII      ,=> [ \&d_passthru ],
-    TYPE_BIGINT     ,=> [ 'q>'         ],
+    TYPE_BIGINT     ,=> [ $bigint_dec  ],
     TYPE_BLOB       ,=> [ \&d_passthru ],
     TYPE_BOOLEAN    ,=> [ \&d_bool     ],
-    TYPE_COUNTER    ,=> [ 'q>'         ],
+    TYPE_COUNTER    ,=> [ $bigint_dec  ],
     #TYPE_DECIMAL    ,=> decimal
     TYPE_DOUBLE     ,=> [ 'd>'         ],
     TYPE_FLOAT      ,=> [ 'f>'         ],
     TYPE_INT        ,=> [ 'l>'         ],
     TYPE_TEXT       ,=> [ \&d_string   ],
     #TYPE_VARINT     ,=> varint
-    TYPE_TIMESTAMP  ,=> [ 'q>'         ],
+    TYPE_TIMESTAMP  ,=> [ $bigint_dec  ],
     TYPE_UUID       ,=> [ \&d_uuid     ],
     TYPE_VARCHAR    ,=> [ \&d_string   ],
     TYPE_TIMEUUID   ,=> [ \&d_uuid     ],
@@ -193,6 +195,13 @@ sub d_bool {
     my ($type, $tmp_val, $dest, $input_length)= @_;
     return <<EOC;
 $dest= unpack('c', $tmp_val) ? \$true : \$false;
+EOC
+}
+
+sub d_bigint_slow {
+    my ($type, $tmp_val, $dest, $input_length)= @_;
+    return <<EOC;
+$dest= unpack_long($tmp_val);
 EOC
 }
 
