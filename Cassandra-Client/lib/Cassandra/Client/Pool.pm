@@ -160,7 +160,7 @@ sub warmup {
 
 sub connect_if_needed {
     my ($self, $callback)= @_;
-    $callback //= sub{};
+    $callback ||= sub{};
 
     return $callback->("Shutting down") if $self->{shutdown};
 
