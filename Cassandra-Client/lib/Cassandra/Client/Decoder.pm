@@ -8,6 +8,7 @@ our @EXPORT_OK= qw/make_decoder/;
 
 use Cassandra::Client::Protocol qw/:constants unpack_long BIGINT_SUPPORTED/;
 use vars qw/@ROW/;
+use Math::BigInt;
 
 my $bigint_dec= BIGINT_SUPPORTED ? 'q>' : \&d_bigint_slow;
 
@@ -23,7 +24,7 @@ my %type_lookup= (
     TYPE_FLOAT      ,=> [ 'f>'         ],
     TYPE_INT        ,=> [ 'l>'         ],
     TYPE_TEXT       ,=> [ \&d_string   ],
-    #TYPE_VARINT     ,=> varint
+    TYPE_VARINT     ,=> [ \&d_varint   ],
     TYPE_TIMESTAMP  ,=> [ $bigint_dec  ],
     TYPE_UUID       ,=> [ \&d_uuid     ],
     TYPE_VARCHAR    ,=> [ \&d_string   ],
@@ -202,6 +203,44 @@ sub d_bigint_slow {
     my ($type, $tmp_val, $dest, $input_length)= @_;
     return <<EOC;
 $dest= unpack_long($tmp_val);
+EOC
+}
+
+sub d_varint {
+    my ($type, $tmp_val, $dest, $input_length)= @_;
+    my $supported_size= BIGINT_SUPPORTED ? 8 : 4;
+    my $supported_bits= $supported_size * 8;
+    return <<EOC;
+if ($input_length > $supported_size) {
+    my \$negative= ord(substr($tmp_val, 0, 1)) & 0x80;
+    $tmp_val= ~($tmp_val) if \$negative;
+
+    my \$hex= unpack('H*', $tmp_val);
+    my \$number= Math::BigInt->new("0x\$hex");
+
+    if (\$negative) {
+        \$number += 1;
+        \$number *= -1;
+    }
+
+    $dest= \$number->bstr;
+
+} elsif ($input_length == 1) {
+    $dest= unpack('c', $tmp_val);
+} elsif ($input_length == 2) {
+    $dest= unpack('s>', $tmp_val);
+} elsif ($input_length == 4) {
+    $dest= unpack('l>', $tmp_val);
+} elsif ($input_length == 0) {
+    $dest= 0;
+} else {
+    my \$pad= ((substr($tmp_val, 0, 1) & "\\x80") eq "\\x80") ? "\\xff" : "\\0";
+    if ($input_length == 3) {
+        $dest= unpack('l>', \$pad.$tmp_val);
+    } else {
+        $dest= unpack('q>', substr(\$pad.\$pad\.\$pad.$tmp_val, -8));
+    }
+}
 EOC
 }
 

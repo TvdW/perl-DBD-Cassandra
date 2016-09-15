@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
+use Math::BigInt;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -26,7 +27,7 @@ my %types= (
     TYPE_FLOAT      ,=> [ 'f>', 4 ],
     TYPE_INT        ,=> [ 'l>', 4 ],
     TYPE_TEXT       ,=> [ \&e_string ],
-    ##TYPE_VARINT     ,=>
+    TYPE_VARINT     ,=> [ \&e_varint   ],
     TYPE_TIMESTAMP  ,=> [ @bigint_enc  ],
     TYPE_UUID       ,=> [ \&e_uuid ],
     TYPE_VARCHAR    ,=> [ \&e_string ],
@@ -189,6 +190,27 @@ EOC
 sub e_bigint {
     my ($type, $input, $output)= @_;
     return "$output .= pack('l>', 8).pack_long($input);";
+}
+
+sub e_varint {
+    my ($type, $input, $output)= @_;
+    return <<EOC;
+{
+    my \$number= Math::BigInt->new($input);
+    my \$negative= \$number->is_neg;
+    if (\$negative) {
+        \$number *= -1; # This means invert the bits and add one
+        \$number -= 1; # So remove that one
+    }
+    my \$hex= \$number->as_hex;
+    \$hex =~ s/^0x//;
+    \$hex= "0\$hex" if length(\$hex) % 2;
+    \$hex= "00\$hex" if substr(\$hex, 0, 1) =~ /[89abcdef]/;
+    my \$binary= pack('H*', \$hex);
+    \$binary= ~\$binary if \$negative;
+    $output .= pack('l>/a', \$binary);
+}
+EOC
 }
 
 1;
