@@ -620,6 +620,24 @@ Upon errors, the coderef will die, just like the synchronous methods would. Beca
 
 When used properly, coderefs can give a modest performance boost, but their real value is in the ease of use compared to promises.
 
+=head1 CAVEATS, BUGS, TODO
+
+=over
+
+=item *
+
+Thread support is untested. Use at your own risk.
+
+=item *
+
+The C<timestamp> format is implemented naively by returning
+milliseconds since the UNIX epoch. In Perl you get this number through
+C<time() * 1000>. Trying to save times as C<DateTime> objects or
+strings will not work, and will likely result in warnings and
+unexpected behavior.
+
+=back
+
 =head1 LICENSE
 
 Copyright (C) 2016 L<Tom van der Woerdt|mailto:tvdw@cpan.org>

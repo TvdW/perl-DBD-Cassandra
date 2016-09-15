@@ -252,6 +252,14 @@ Thread support is untested. Use at your own risk.
 
 =item *
 
+The C<timestamp> format is implemented naively by returning
+milliseconds since the UNIX epoch. In Perl you get this number through
+C<time() * 1000>. Trying to save times as C<DateTime> objects or
+strings will not work, and will likely result in warnings and
+unexpected behavior.
+
+=item *
+
 When using asynchronous queries, more functions than just execute() may
 throw errors. It is recommended that you enable RaiseError. If this is
 not possible, it should also suffice to call C<$sth->x_finish_async> and
