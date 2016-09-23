@@ -398,9 +398,10 @@ sub unpack_metadata {
 sub pack_queryparameters {
     my ($consistency, $skip_metadata, $page_size, $paging_state, $timestamp, $row)= @_;
 
+    my $has_row= defined($row) && length($row);
     my $flags= (
         0
-        | ((length($row)     && 0x01) || 0)
+        | (($has_row         && 0x01) || 0)
         | (($skip_metadata   && 0x02) || 0)
         | (($page_size       && 0x04) || 0)
         | (($paging_state    && 0x08) || 0)

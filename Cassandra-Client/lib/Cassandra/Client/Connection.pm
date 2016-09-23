@@ -660,7 +660,7 @@ sub request {
 
         my $data= pack('CCsCN/a', 3, $flags, $stream_id, $opcode, $_[3]);
 
-        if (length $self->{pending_write}) {
+        if (defined $self->{pending_write}) {
             # XXX Now that we have timeouts, we should consider not sending anything if we already timed out
             $self->{pending_write} .= $data;
             last WRITE;
@@ -768,7 +768,7 @@ sub can_write {
         }
 
         my $error= "$!";
-        undef $self->{pending_write};
+        undef $self->{pending_write}; #XXX remind me, why do we do that?
         return $self->shutdown(undef, $error);
     }
     if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
@@ -776,6 +776,7 @@ sub can_write {
 
     if (!length $self->{pending_write}) {
         $self->{async_io}->unregister_write($self->{fileno});
+        delete $self->{pending_write};
     }
 
     return;
@@ -805,7 +806,7 @@ sub shutdown {
 
     $self->{socket}->close;
     $self->{async_io}->unregister_read($self->{fileno});
-    if (length(delete $self->{pending_write})) {
+    if (defined(delete $self->{pending_write})) {
         $self->{async_io}->unregister_write($self->{fileno});
     }
     $self->{async_io}->unregister($self->{fileno}, $self);

@@ -1,4 +1,6 @@
-use v5.14;
+use 5.008;
+use warnings;
+use strict;
 use DBI;
 use Test::More;
 use utf8;
@@ -48,7 +50,7 @@ ok($dbh);
 
 for my $type (@$type_table) {
     my ($typename, $test_val, $output_val)= @$type;
-    my $tablename= $typename =~ s/\W/_/rg;
+    my $tablename= $typename; $tablename =~ s/\W/_/g;
     $dbh->do("create table if not exists test_type_$tablename (id bigint primary key, test $typename)");
     my $random_id= sprintf '%.f', rand(10000);
     eval {

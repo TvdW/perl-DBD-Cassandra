@@ -205,7 +205,7 @@ handles in large volumes of inserts :
     my (@pending, @reusable);
 
     while (my $row= shift @dataset_to_insert) {
-        my $sth= (shift @reusable) // $dbh->prepare(
+        my $sth= (shift @reusable) || $dbh->prepare(
             "INSERT INTO some_table (a, b, c, d) VALUES (?, ?, ?, ?)"
         );
         $sth->execute(@$row);

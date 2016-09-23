@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.52    unreleased
+
+      * Attempt to support older Perl versions, from 5.08 and up
+
 0.51    2016/08/23
 
       * Splits Cassandra-specific code into Cassandra::Client.

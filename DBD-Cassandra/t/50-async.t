@@ -1,4 +1,6 @@
-use v5.14;
+use 5.008;
+use warnings;
+use strict;
 use DBI;
 use Test::More;
 
@@ -17,7 +19,7 @@ $dbh->do('truncate test_async');
 my $count= 100000;
 my (@pending, @reusable);
 for my $i (1..$count) {
-    my $sth= (shift @reusable) // $dbh->prepare("insert into test_async (id) values (?)", {async => 1});
+    my $sth= (shift @reusable) || $dbh->prepare("insert into test_async (id) values (?)", {async => 1});
     $sth->execute($i);
     push @pending, $sth;
 

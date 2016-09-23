@@ -63,11 +63,11 @@ sub x_finish_async {
 }
 
 sub execute_for_fetch {
-    ... #TODO
+    die 'Not implemented'; #TODO
 }
 
 sub bind_param_array {
-    ... #TODO
+    die 'Not implemented'; #TODO
 }
 
 sub fetchrow_arrayref {

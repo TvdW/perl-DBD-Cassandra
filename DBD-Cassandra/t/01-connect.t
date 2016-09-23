@@ -1,4 +1,6 @@
-use v5.14;
+use 5.008;
+use warnings;
+use strict;
 use Test::More;
 
 # Fake running under 'perl -l'
