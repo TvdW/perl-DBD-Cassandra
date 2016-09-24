@@ -772,7 +772,6 @@ sub can_write {
         }
 
         my $error= "$!";
-        undef $self->{pending_write}; #XXX remind me, why do we do that?
         return $self->shutdown(undef, $error);
     }
     if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
