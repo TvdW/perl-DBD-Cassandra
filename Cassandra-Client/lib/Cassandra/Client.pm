@@ -10,6 +10,7 @@ use Cassandra::Client::Config;
 use Cassandra::Client::Connection;
 use Cassandra::Client::Util qw/series/;
 use Cassandra::Client::AsyncIO;
+use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
 use List::Util qw/shuffle/;
@@ -29,8 +30,14 @@ sub new {
     my $options= Cassandra::Client::Config->new(
         \%args
     );
-    my $async_io= Cassandra::Client::AsyncIO->new(
-        options => $options,
+    my $async_io= $options->{anyevent} ? (
+        Cassandra::Client::AsyncAnyEvent->new(
+            options => $options,
+        )
+    ) : (
+        Cassandra::Client::AsyncIO->new(
+            options => $options,
+        )
     );
     my $metadata= Cassandra::Client::Metadata->new(
         options => $options,
