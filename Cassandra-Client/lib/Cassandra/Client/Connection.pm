@@ -805,12 +805,6 @@ sub shutdown {
 
     my $pending= $self->{pending_streams};
     $self->{pending_streams}= {};
-    for (values %$pending) {
-        $_->[0]->(Cassandra::Client::Error->new(
-            message   => "Disconnected: $shutdown_reason",
-            our_fault => 0,
-        ));
-    }
 
     $self->{socket}->close;
     $self->{async_io}->unregister_read($self->{fileno});
@@ -818,7 +812,14 @@ sub shutdown {
         $self->{async_io}->unregister_write($self->{fileno});
     }
     $self->{async_io}->unregister($self->{fileno}, $self);
-    $self->{client}->_disconnected($self->get_pool_id); # XXX Should we move that up? So we don't accidentally fire new queries?
+    $self->{client}->_disconnected($self->get_pool_id);
+
+    for (values %$pending) {
+        $_->[0]->(Cassandra::Client::Error->new(
+            message   => "Disconnected: $shutdown_reason",
+            our_fault => 0,
+        ));
+    }
 
     $cb->() if $cb;
 
