@@ -733,7 +733,11 @@ READ_NEXT:
                 my ($code, $message)= unpack('Nn/a', $body);
                 my ($cb, $dl)= @$stream_cb;
                 $$dl= 1;
-                $cb->(Cassandra::Client::Error->new($code, $message));
+                $cb->(Cassandra::Client::Error->new(
+                    code => $code,
+                    message => $message,
+                    our_fault => ( $code != 0x1000 && $code != 0x1001 && $code != 0x1002 && $code != 0x1003 && $code != 0x1100 && $code != 0x1200 ),
+                ));
 
             } else {
                 my ($cb, $dl)= @$stream_cb;
@@ -802,7 +806,12 @@ sub shutdown {
 
     my $pending= $self->{pending_streams};
     $self->{pending_streams}= {};
-    $_->[0]->("Disconnected: $shutdown_reason") for values %$pending;
+    for (values %$pending) {
+        $_->[0]->(Cassandra::Client::Error->new(
+            message   => "Disconnected: $shutdown_reason",
+            our_fault => 0,
+        ));
+    }
 
     $self->{socket}->close;
     $self->{async_io}->unregister_read($self->{fileno});
@@ -810,7 +819,7 @@ sub shutdown {
         $self->{async_io}->unregister_write($self->{fileno});
     }
     $self->{async_io}->unregister($self->{fileno}, $self);
-    $self->{client}->_disconnected($self->get_pool_id);
+    $self->{client}->_disconnected($self->get_pool_id); # XXX Should we move that up? So we don't accidentally fire new queries?
 
     $cb->() if $cb;
 
