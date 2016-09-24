@@ -11,7 +11,14 @@ my $client= Cassandra::Client->new( contact_points => [split /,/, $ENV{CASSANDRA
 $client->connect();
 
 {
-    my ($result)= $client->execute("list users");
+    my $result;
+    eval {
+        ($result)= $client->execute("list users");
+        1;
+    } or do {
+        plan skip_all => "Need a cluster with authentication configured for this test to work" if $@ =~ /onymous to perform this reques/;
+        die $@;
+    };
     my $headers= $result->column_names;
     ok(0+@$headers > 1);
     ok($_) for @$headers;
