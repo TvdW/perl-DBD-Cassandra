@@ -661,7 +661,6 @@ sub request {
         my $data= pack('CCsCN/a', 3, $flags, $stream_id, $opcode, $_[3]);
 
         if (defined $self->{pending_write}) {
-            # XXX Now that we have timeouts, we should consider not sending anything if we already timed out
             $self->{pending_write} .= $data;
             last WRITE;
         }
