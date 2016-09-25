@@ -30,14 +30,9 @@ sub new {
     my $options= Cassandra::Client::Config->new(
         \%args
     );
-    my $async_io= $options->{anyevent} ? (
-        Cassandra::Client::AsyncAnyEvent->new(
-            options => $options,
-        )
-    ) : (
-        Cassandra::Client::AsyncIO->new(
-            options => $options,
-        )
+    my $async_class= $options->{anyevent} ? "Cassandra::Client::AsyncAnyEvent" : "Cassandra::Client::AsyncIO";
+    my $async_io= $async_class->new(
+        options => $options,
     );
     my $metadata= Cassandra::Client::Metadata->new(
         options => $options,
