@@ -6,6 +6,7 @@ Revision history for Cassandra-Client
       * Addresses a documentation hole about the 'timestamp' type
       * Support for the 'varint' type
       * Support for the 'decimal' type
+      * Addresses an issue that occurred when both the AnyEvent and synchronous options were used
 
 0.05    2016/09/06
 
