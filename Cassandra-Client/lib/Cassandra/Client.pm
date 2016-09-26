@@ -224,35 +224,49 @@ sub _prepare_slowpath {
 sub _execute {
     my ($self, $callback, $query, $params, $attribs)= @_;
 
-    return _cb($callback, "Cannot execute: not connected") if !$self->{connected};
-
     my $params_copy= $params ? clone($params) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
-    # XXX We don't retry yet.
+    goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
-    if (!$connection) {
-        $self->{pool}->get_one_cb(sub {
-            my ($error, $connection)= @_;
-            return _cb($callback, $error) if $error;
-
-            # Copy/paste from below
-            $connection->execute_prepared(sub {
-                my ($error, $result)= @_;
-                _cb($callback, $error, $result);
-                return;
-            }, \$query, $params_copy, $attribs_copy);
-        });
-        return;
-    }
+    goto SLOWPATH if !$connection;
 
     $connection->execute_prepared(sub {
         my ($error, $result)= @_;
-        _cb($callback, $error, $result);
+        if ($error && ref($error) && $error->retryable) {
+            return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
+        } else {
+            _cb($callback, $error, $result);
+        }
         return;
     }, \$query, $params_copy, $attribs_copy);
 
+    return;
+
+SLOWPATH:
+    return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
+}
+
+sub _execute_slowpath {
+    my ($self, $callback, $query, $params_copy, $attribs_copy)= @_;
+
+    series([
+        sub {
+            my ($next)= @_;
+            $self->_connect($next);
+        }, sub {
+            my ($next)= @_;
+            $self->{pool}->get_one_cb($next);
+        }, sub {
+            my ($next, $connection)= @_;
+            $connection->execute_prepared($next, \$query, $params_copy, $attribs_copy);
+        }
+    ], sub {
+        my ($error, $result)= @_;
+        _cb($callback, $error, $result);
+        return;
+    });
     return;
 }
 
