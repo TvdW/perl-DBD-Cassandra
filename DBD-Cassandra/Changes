@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.52    unreleased
+0.52    2016/09/26
 
       * Attempt to support older Perl versions, from 5.08 and up
 
