@@ -256,35 +256,6 @@ sub _execute {
     return;
 }
 
-sub _each_page {
-    my ($self, $callback, $query, $params, $attribs, $page_callback)= @_;
-
-    my $params_copy= $params ? clone($params) : undef;
-    my $attribs_copy= $attribs ? clone($attribs) : undef;
-
-    my $next_page; $next_page= sub {
-        $self->_execute(sub {
-            # Completion handler, with page data (or an error)
-            my ($error, $result)= @_;
-            return _cb($callback, $error) if $error;
-
-            my $next_page_id= $result->next_page;
-            _cb($page_callback, $result); # Note that page_callback doesn't get an error argument, that's intentional
-            if ($next_page_id) {
-                $attribs_copy->{page}= $next_page_id;
-                $next_page->();
-                return;
-            } else {
-                # Done!
-                return _cb($callback);
-            }
-        }, $query, $params_copy, $attribs_copy);
-    };
-    $next_page->();
-
-    return;
-}
-
 sub _batch {
     my ($self, $callback, $queries, $attribs)= @_;
     return _cb($callback, "Cannot batch: not connected") if !$self->{connected};
@@ -315,6 +286,36 @@ sub _batch {
         _cb($callback, $error, $result);
         return;
     }, $queries_copy, $attribs_copy);
+
+    return;
+}
+
+# Utility functions that wrap query functions
+sub _each_page {
+    my ($self, $callback, $query, $params, $attribs, $page_callback)= @_;
+
+    my $params_copy= $params ? clone($params) : undef;
+    my $attribs_copy= $attribs ? clone($attribs) : undef;
+
+    my $next_page; $next_page= sub {
+        $self->_execute(sub {
+            # Completion handler, with page data (or an error)
+            my ($error, $result)= @_;
+            return _cb($callback, $error) if $error;
+
+            my $next_page_id= $result->next_page;
+            _cb($page_callback, $result); # Note that page_callback doesn't get an error argument, that's intentional
+            if ($next_page_id) {
+                $attribs_copy->{page}= $next_page_id;
+                $next_page->();
+                return;
+            } else {
+                # Done!
+                return _cb($callback);
+            }
+        }, $query, $params_copy, $attribs_copy);
+    };
+    $next_page->();
 
     return;
 }
