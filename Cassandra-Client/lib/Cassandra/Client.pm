@@ -171,34 +171,53 @@ sub _handle_status_change {
 sub _prepare {
     my ($self, $callback, $query)= @_;
 
-    return _cb($callback, "Cannot prepare: not connected") if !$self->{connected};
-
-    # XXX Do we need to retry prepares on other hosts if they fail for reasons other than bad CQL?
-
+    # Fast path: we're already done
     if ($self->{metadata}->is_prepared(\$query)) {
         return _cb($callback);
     }
 
+    # XXX: Do we really need the duplication of having a second fast path for prepare()?
+    if (!$self->{connected}) {
+        return $self->_prepare_slowpath($callback, $query);
+    }
+
     my $connection= $self->{pool}->get_one;
     if (!$connection) {
-        $self->{pool}->get_one_cb(sub {
-            my ($error, $connection)= @_;
-            return _cb($callback, $error) if $error;
-
-            # Copy/paste from below
-            $connection->prepare(sub {
-                my ($error)= @_;
-                return _cb($callback, $error);
-            }, $query);
-        });
-        return;
+        return $self->_prepare_slowpath($callback, $query);
     }
 
     $connection->prepare(sub {
         my ($error)= @_;
-        return _cb($callback, $error);
+        if ($error && ref($error) && $error->retryable) {
+            return $self->_prepare_slowpath($callback, $query);
+        } else {
+            return _cb($callback, $error);
+        }
     }, $query);
 
+    return;
+}
+
+sub _prepare_slowpath {
+    my ($self, $callback, $query)= @_;
+
+    # XXX Do we need to retry prepares on other hosts if they fail for reasons other than bad CQL?
+
+    series([
+        sub {
+            my ($next)= @_;
+            $self->_connect($next);
+        }, sub {
+            my ($next)= @_;
+            $self->{pool}->get_one_cb($next);
+        }, sub {
+            my ($next, $connection)= @_;
+            $connection->prepare($next);
+        }
+    ], sub {
+        my ($error)= @_;
+        return _cb($callback, $error);
+    });
     return;
 }
 

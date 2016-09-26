@@ -7,6 +7,6 @@ sub new { my $class= shift; bless { code => -1, message => "An unknown error occ
 use overload '""' => sub { "Error $_[0]{code}: $_[0]{message}" };
 sub code { $_[0]{code} }
 sub message { $_[0]{message} }
-sub retryabe { !$_[0]{our_fault} }
+sub retryable { !$_[0]{our_fault} }
 
 1;
