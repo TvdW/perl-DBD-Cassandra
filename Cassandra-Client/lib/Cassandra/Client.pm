@@ -177,14 +177,10 @@ sub _prepare {
     }
 
     # XXX: Do we really need the duplication of having a second fast path for prepare()?
-    if (!$self->{connected}) {
-        return $self->_prepare_slowpath($callback, $query);
-    }
+    goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
-    if (!$connection) {
-        return $self->_prepare_slowpath($callback, $query);
-    }
+    goto SLOWPATH if !$connection;
 
     $connection->prepare(sub {
         my ($error)= @_;
@@ -196,6 +192,9 @@ sub _prepare {
     }, $query);
 
     return;
+
+SLOWPATH:
+    return $self->_prepare_slowpath($callback, $query);
 }
 
 sub _prepare_slowpath {
