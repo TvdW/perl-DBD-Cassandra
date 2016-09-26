@@ -271,35 +271,50 @@ sub _execute_slowpath {
 
 sub _batch {
     my ($self, $callback, $queries, $attribs)= @_;
-    return _cb($callback, "Cannot batch: not connected") if !$self->{connected};
 
     my $queries_copy= $queries ? clone($queries) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
-    # XXX We don't retry yet.
+    goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
-    if (!$connection) {
-        $self->{pool}->get_one_cb(sub {
-            my ($error, $connection)= @_;
-            return _cb($callback, $error) if $error;
-
-            # Copy/paste from below
-            $connection->execute_batch(sub {
-                my ($error, $result)= @_;
-                _cb($callback, $error, $result);
-                return;
-            }, $queries_copy, $attribs_copy);
-        });
-        return;
-    }
+    goto SLOWPATH if !$connection;
 
     $connection->execute_batch(sub {
         my ($error, $result)= @_;
-        _cb($callback, $error, $result);
+        if ($error && ref($error) && $error->retryable) {
+            return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
+        } else {
+            _cb($callback, $error, $result);
+        }
         return;
     }, $queries_copy, $attribs_copy);
 
+    return;
+
+SLOWPATH:
+    return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
+}
+
+sub _batch_slowpath {
+    my ($self, $callback, $queries_copy, $attribs_copy)= @_;
+
+    series([
+        sub {
+            my ($next)= @_;
+            $self->_connect($next);
+        }, sub {
+            my ($next)= @_;
+            $self->{pool}->get_one_cb($next);
+        }, sub {
+            my ($next, $connection)= @_;
+            $connection->execute_batch($next, $queries_copy, $attribs_copy);
+        }
+    ], sub {
+        my ($error, $result)= @_;
+        _cb($callback, $error, $result);
+        return;
+    });
     return;
 }
 
