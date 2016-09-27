@@ -351,14 +351,20 @@ sub _each_page {
 sub _wait_for_schema_agreement {
     my ($self, $callback)= @_;
 
-    # Let's face it, perf doesn't matter on this method :-)
-    $self->{pool}->get_one_cb(sub {
-        my ($error, $connection)= @_;
-        return _cb($callback, $error) if $error;
-
-        $connection->wait_for_schema_agreement(sub {
-            return _cb($callback, @_);
-        });
+    series([
+        sub {
+            my ($next)= @_;
+            $self->connect($next);
+        }, sub {
+            my ($next)= @_;
+            $self->get_one_cb($next);
+        }, sub {
+            my ($next, $connection)= @_;
+            $connection->wait_for_schema_agreement($next);
+        }
+    ], sub {
+        _cb($callback, @_);
+        return;
     });
 }
 
