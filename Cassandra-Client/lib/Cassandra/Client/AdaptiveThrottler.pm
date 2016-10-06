@@ -1,6 +1,6 @@
 package Cassandra::Client::AdaptiveThrottler;
 
-use 5.008;
+use 5.010;
 use strict;
 use warnings;
 use Time::HiRes ();

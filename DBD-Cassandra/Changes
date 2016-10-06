@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.53    unreleased
+
+      * No more Perl 5.8 support -- 5.10 is now required
+
 0.52    2016/09/26
 
       * Attempt to support older Perl versions, from 5.08 and up

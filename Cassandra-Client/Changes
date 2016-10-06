@@ -3,6 +3,7 @@ Revision history for Cassandra-Client
 0.07    unreleased
 
       * Experimental support for client-side throttling
+      * No more Perl 5.8 support -- 5.10 is now required
 
 0.06    2016/09/26
 

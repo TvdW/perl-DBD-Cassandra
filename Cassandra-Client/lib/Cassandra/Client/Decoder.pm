@@ -1,5 +1,5 @@
 package Cassandra::Client::Decoder;
-use 5.008;
+use 5.010;
 use strict;
 use warnings;
 

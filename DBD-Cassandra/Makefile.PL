@@ -12,7 +12,7 @@ WriteMakefile(
     ABSTRACT_FROM    => 'lib/DBD/Cassandra.pm',
     LICENSE          => 'perl_5',
     PL_FILES         => {},
-    MIN_PERL_VERSION => 5.008,
+    MIN_PERL_VERSION => 5.010,
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },
