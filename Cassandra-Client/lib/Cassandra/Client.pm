@@ -13,6 +13,7 @@ use Cassandra::Client::AsyncIO;
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
+use Cassandra::Client::AdaptiveThrottler;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Clone qw/clone/;
@@ -47,6 +48,12 @@ sub new {
     $self->{async_io}= $async_io;
     $self->{metadata}= $metadata;
     $self->{pool}= $pool;
+    if ($options->{throttler}) {
+        my $throttler_class= "Cassandra::Client::$options->{throttler}";
+        $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
+    } else {
+        $self->{throttler}= undef;
+    }
 
     return $self;
 }
@@ -176,6 +183,9 @@ sub _prepare {
         return _cb($callback);
     }
 
+    # Handle overloads
+    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
+
     # XXX: Do we really need the duplication of having a second fast path for prepare()?
     goto SLOWPATH if !$self->{connected};
 
@@ -184,6 +194,10 @@ sub _prepare {
 
     $connection->prepare(sub {
         my ($error)= @_;
+        if (my $throttler= $self->{throttler}) {
+            $throttler->count($error);
+        }
+
         if ($error && ref($error) && $error->retryable) {
             return $self->_prepare_slowpath($callback, $query);
         } else {
@@ -195,6 +209,9 @@ sub _prepare {
 
 SLOWPATH:
     return $self->_prepare_slowpath($callback, $query);
+
+FAILFAST:
+    return _cb($callback, "Client-induced failure by throttling mechanism");
 }
 
 sub _prepare_slowpath {
@@ -226,6 +243,9 @@ sub _execute {
     my $params_copy= $params ? clone($params) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
+    # Handle overloads
+    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
+
     goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
@@ -233,6 +253,10 @@ sub _execute {
 
     $connection->execute_prepared(sub {
         my ($error, $result)= @_;
+        if (my $throttler= $self->{throttler}) {
+            $throttler->count($error);
+        }
+
         if ($error && ref($error) && $error->retryable) {
             return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
         } else {
@@ -245,6 +269,9 @@ sub _execute {
 
 SLOWPATH:
     return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
+
+FAILFAST:
+    return _cb($callback, "Client-induced failure by throttling mechanism");
 }
 
 sub _execute_slowpath {
@@ -275,6 +302,9 @@ sub _batch {
     my $queries_copy= $queries ? clone($queries) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
+    # Handle overloads
+    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
+
     goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
@@ -282,6 +312,10 @@ sub _batch {
 
     $connection->execute_batch(sub {
         my ($error, $result)= @_;
+        if (my $throttler= $self->{throttler}) {
+            $throttler->count($error);
+        }
+
         if ($error && ref($error) && $error->retryable) {
             return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
         } else {
@@ -294,6 +328,9 @@ sub _batch {
 
 SLOWPATH:
     return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
+
+FAILFAST:
+    return _cb($callback, "Client-induced failure by throttling mechanism");
 }
 
 sub _batch_slowpath {

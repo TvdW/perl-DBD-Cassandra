@@ -19,6 +19,8 @@ sub new {
         timer_granularity   => 0.1,
         request_timeout     => 11,
         warmup              => 0,
+        throttler           => undef,
+        throttler_config    => undef,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -47,9 +49,16 @@ sub new {
     }
 
     # Strings
-    for (qw/cql_version keyspace compression default_consistency/) {
+    for (qw/cql_version keyspace compression default_consistency throttler/) {
         if (exists($config->{$_})) {
             $self->{$_}= defined($config->{$_}) ? "$config->{$_}" : undef;
+        }
+    }
+
+    # Arbitrary hashes
+    for (qw/throttler_config/) {
+        if (exists($config->{$_})) {
+            $self->{$_}= $config->{$_};
         }
     }
 

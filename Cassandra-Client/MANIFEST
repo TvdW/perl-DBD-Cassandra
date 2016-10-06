@@ -5,6 +5,7 @@ README
 lib/Cassandra/Client.pm
 lib/Cassandra/Client/AsyncIO.pm
 lib/Cassandra/Client/AsyncAnyEvent.pm
+lib/Cassandra/Client/AdaptiveThrottler.pm
 lib/Cassandra/Client/Config.pm
 lib/Cassandra/Client/Connection.pm
 lib/Cassandra/Client/Decoder.pm
