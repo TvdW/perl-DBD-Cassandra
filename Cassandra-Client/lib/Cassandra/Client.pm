@@ -183,124 +183,32 @@ sub _prepare {
         return _cb($callback);
     }
 
-    # Handle overloads
-    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
-
-    # XXX: Do we really need the duplication of having a second fast path for prepare()?
-    goto SLOWPATH if !$self->{connected};
-
-    my $connection= $self->{pool}->get_one;
-    goto SLOWPATH if !$connection;
-
-    $connection->prepare(sub {
-        my ($error)= @_;
-        if (my $throttler= $self->{throttler}) {
-            $throttler->count($error);
-        }
-
-        if ($error && ref($error) && $error->retryable) {
-            return $self->_prepare_slowpath($callback, $query);
-        } else {
-            return _cb($callback, $error);
-        }
-    }, $query);
-
-    return;
-
-SLOWPATH:
-    return $self->_prepare_slowpath($callback, $query);
-
-FAILFAST:
-    return _cb($callback, "Client-induced failure by throttling mechanism");
-}
-
-sub _prepare_slowpath {
-    my ($self, $callback, $query)= @_;
-
-    # XXX Do we need to retry prepares on other hosts if they fail for reasons other than bad CQL?
-
-    series([
-        sub {
-            my ($next)= @_;
-            $self->_connect($next);
-        }, sub {
-            my ($next)= @_;
-            $self->{pool}->get_one_cb($next);
-        }, sub {
-            my ($next, $connection)= @_;
-            $connection->prepare($next);
-        }
-    ], sub {
-        my ($error)= @_;
-        return _cb($callback, $error);
-    });
+    $self->_command("prepare", [ $callback, $query ]);
     return;
 }
 
 sub _execute {
     my ($self, $callback, $query, $params, $attribs)= @_;
-
-    my $params_copy= $params ? clone($params) : undef;
-    my $attribs_copy= $attribs ? clone($attribs) : undef;
-
-    # Handle overloads
-    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
-
-    goto SLOWPATH if !$self->{connected};
-
-    my $connection= $self->{pool}->get_one;
-    goto SLOWPATH if !$connection;
-
-    $connection->execute_prepared(sub {
-        my ($error, $result)= @_;
-        if (my $throttler= $self->{throttler}) {
-            $throttler->count($error);
-        }
-
-        if ($error && ref($error) && $error->retryable) {
-            return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
-        } else {
-            _cb($callback, $error, $result);
-        }
-        return;
-    }, \$query, $params_copy, $attribs_copy);
-
-    return;
-
-SLOWPATH:
-    return $self->_execute_slowpath($callback, $query, $params_copy, $attribs_copy);
-
-FAILFAST:
-    return _cb($callback, "Client-induced failure by throttling mechanism");
-}
-
-sub _execute_slowpath {
-    my ($self, $callback, $query, $params_copy, $attribs_copy)= @_;
-
-    series([
-        sub {
-            my ($next)= @_;
-            $self->_connect($next);
-        }, sub {
-            my ($next)= @_;
-            $self->{pool}->get_one_cb($next);
-        }, sub {
-            my ($next, $connection)= @_;
-            $connection->execute_prepared($next, \$query, $params_copy, $attribs_copy);
-        }
-    ], sub {
-        my ($error, $result)= @_;
-        _cb($callback, $error, $result);
-        return;
-    });
+    $self->_command("execute_prepared", $callback, [ \$query, clone($params), clone($attribs) ]);
     return;
 }
 
 sub _batch {
     my ($self, $callback, $queries, $attribs)= @_;
+    $self->_command("execute_batch", $callback, [ clone($queries), clone($attribs) ]);
+    return;
+}
 
-    my $queries_copy= $queries ? clone($queries) : undef;
-    my $attribs_copy= $attribs ? clone($attribs) : undef;
+sub _wait_for_schema_agreement {
+    my ($self, $callback)= @_;
+    $self->_command("wait_for_schema_agreement", $callback, []);
+    return;
+}
+
+
+# Command queue
+sub _command {
+    my ($self, $command, $callback, $args)= @_;
 
     # Handle overloads
     goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
@@ -310,31 +218,29 @@ sub _batch {
     my $connection= $self->{pool}->get_one;
     goto SLOWPATH if !$connection;
 
-    $connection->execute_batch(sub {
+    $connection->$command(sub {
         my ($error, $result)= @_;
         if (my $throttler= $self->{throttler}) {
-            $throttler->count($error);
+            $throttler->count(!!$error);
         }
 
         if ($error && ref($error) && $error->retryable) {
-            return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
-        } else {
-            _cb($callback, $error, $result);
+            return $self->_command_slowpath($command, $callback, $args);
         }
-        return;
-    }, $queries_copy, $attribs_copy);
+        return _cb($callback, $error, $result);
+    }, @$args);
 
     return;
 
 SLOWPATH:
-    return $self->_batch_slowpath($callback, $queries_copy, $attribs_copy);
+    return $self->_command_slowpath($command, $callback, $args);
 
 FAILFAST:
     return _cb($callback, "Client-induced failure by throttling mechanism");
 }
 
-sub _batch_slowpath {
-    my ($self, $callback, $queries_copy, $attribs_copy)= @_;
+sub _command_slowpath {
+    my ($self, $command, $callback, $args)= @_;
 
     series([
         sub {
@@ -345,12 +251,11 @@ sub _batch_slowpath {
             $self->{pool}->get_one_cb($next);
         }, sub {
             my ($next, $connection)= @_;
-            $connection->execute_batch($next, $queries_copy, $attribs_copy);
+            $connection->$command($next, @$args);
         }
     ], sub {
         my ($error, $result)= @_;
-        _cb($callback, $error, $result);
-        return;
+        return _cb($callback, $error, $result);
     });
     return;
 }
@@ -383,26 +288,6 @@ sub _each_page {
     $next_page->();
 
     return;
-}
-
-sub _wait_for_schema_agreement {
-    my ($self, $callback)= @_;
-
-    series([
-        sub {
-            my ($next)= @_;
-            $self->connect($next);
-        }, sub {
-            my ($next)= @_;
-            $self->get_one_cb($next);
-        }, sub {
-            my ($next, $connection)= @_;
-            $connection->wait_for_schema_agreement($next);
-        }
-    ], sub {
-        _cb($callback, @_);
-        return;
-    });
 }
 
 
