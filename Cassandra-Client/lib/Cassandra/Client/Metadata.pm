@@ -24,6 +24,11 @@ sub add_prepared {
         decoder => $decoder,
         encoder => $encoder
     };
+    if (values %{$self->{prepare_cache}} > 500) {
+        unless ($self->{warned}++) {
+            warn "Cassandra::Client: found more than 500 queries in our prepared statement cache, try using placeholders";
+        }
+    }
     return;
 }
 
