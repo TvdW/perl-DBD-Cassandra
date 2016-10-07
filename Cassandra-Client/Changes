@@ -4,6 +4,7 @@ Revision history for Cassandra-Client
 
       * Experimental support for client-side throttling
       * No more Perl 5.8 support -- 5.10 is now required
+      * Addresses an error that can occur when a query is retried against a node that doesn't know that query
 
 0.06    2016/09/26
 

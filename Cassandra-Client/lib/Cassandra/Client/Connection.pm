@@ -162,13 +162,13 @@ sub register_events {
 
 ###### QUERY CODE
 sub execute_prepared {
-    my ($self, $callback, $queryref, $parameters, $attr)= @_;
+    my ($self, $callback, $queryref, $parameters, $attr, $exec_info)= @_;
 
     # Note: parameters is retained until the query is complete. It must not be changed; clone if needed.
     # Same for attr. Note that external callers automatically have their arguments cloned.
 
     my $prepared= $self->{prepare_cache}{$$queryref} or do {
-        return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr);
+        return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr, $exec_info);
     };
 
     my $want_result_metadata= !$prepared->{result_metadata}{columns};
@@ -199,7 +199,7 @@ sub execute_prepared {
 
         if ($err) {
             if (ref $err && $err->code == 0x2500) {
-                return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr);
+                return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr, $exec_info);
             }
             return $callback->($err);
         }
@@ -217,9 +217,9 @@ sub execute_prepared {
 }
 
 sub prepare_and_try_execute_again {
-    my ($self, $callback, $queryref, $parameters, $attr)= @_;
+    my ($self, $callback, $queryref, $parameters, $attr, $exec_info)= @_;
 
-    if ($attr->{_prepared_and_tried_again}++) {
+    if ($exec_info->{_prepared_and_tried_again}++) {
         return $callback->("Query failed because it seems to be missing from the server's prepared statement cache");
     }
 
@@ -236,13 +236,13 @@ sub prepare_and_try_execute_again {
             return $callback->("Internal error: expected query to be prepared but it was not");
         }
 
-        return $self->execute_prepared($callback, $queryref, $parameters, $attr);
+        return $self->execute_prepared($callback, $queryref, $parameters, $attr, $exec_info);
     });
     return;
 }
 
 sub execute_batch {
-    my ($self, $callback, $queries, $attribs)= @_;
+    my ($self, $callback, $queries, $attribs, $exec_info)= @_;
     # Like execute_prepared, assumes ownership of $queries and $attribs
 
     if (!is_arrayref($queries)) {
@@ -265,7 +265,7 @@ sub execute_batch {
             push @prepared, [ $prep, $query->[1] ];
 
         } else {
-            return $self->prepare_and_try_batch_again($callback, $queries, $attribs);
+            return $self->prepare_and_try_batch_again($callback, $queries, $attribs, $exec_info);
         }
     }
 
@@ -295,7 +295,7 @@ sub execute_batch {
 
         if ($err) {
             if (ref $err && $err->code == 0x2500) {
-                return $self->prepare_and_try_batch_again($callback, $queries, $attribs);
+                return $self->prepare_and_try_batch_again($callback, $queries, $attribs, $exec_info);
             }
             return $callback->($err);
         }
@@ -313,9 +313,9 @@ sub execute_batch {
 }
 
 sub prepare_and_try_batch_again {
-    my ($self, $callback, $queries, $attribs)= @_;
+    my ($self, $callback, $queries, $attribs, $exec_info)= @_;
 
-    if ($attribs->{_prepared_and_tried_again}++) {
+    if ($exec_info->{_prepared_and_tried_again}++) {
         return $callback->("Batch failed because one or more queries seem to be missing from the server's prepared statement cache");
     }
 
@@ -330,7 +330,7 @@ sub prepare_and_try_batch_again {
     ], sub {
         return $callback->($_[0]) if $_[0];
 
-        return $self->execute_batch($callback, $queries, $attribs);
+        return $self->execute_batch($callback, $queries, $attribs, $exec_info);
     });
     return;
 }
