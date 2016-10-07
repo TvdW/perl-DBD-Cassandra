@@ -221,7 +221,7 @@ sub _command {
     $connection->$command(sub {
         my ($error, $result)= @_;
         if (my $throttler= $self->{throttler}) {
-            $throttler->count(!!$error);
+            $throttler->count($error);
         }
 
         if ($error && ref($error) && $error->retryable) {
@@ -255,6 +255,9 @@ sub _command_slowpath {
         }
     ], sub {
         my ($error, $result)= @_;
+        if (my $throttler= $self->{throttler}) {
+            $throttler->count($error);
+        }
         return _cb($callback, $error, $result);
     });
     return;
