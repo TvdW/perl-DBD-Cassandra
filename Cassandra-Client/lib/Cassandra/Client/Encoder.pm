@@ -5,6 +5,7 @@ use warnings;
 
 use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
 use Math::BigInt;
+use Encode;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -101,7 +102,8 @@ if (!defined($input)) {
 sub e_passthru {
     my ($type, $input, $output)= @_;
 
-    return "$output .= pack('l>', length($input)).$input;";
+    return "Encode::_utf8_off($input);
+$output .= pack('l>', length($input)).$input;";
 }
 
 sub e_string {
