@@ -788,7 +788,7 @@ sub can_timeout {
     my ($self, $id)= @_;
     my $stream= delete $self->{pending_streams}{$id};
     $self->{pending_streams}{$id}= [ sub{}, \(my $zero= 0) ]; # fake it
-    $stream->[0]->("Request timed out");
+    $stream->[0]->(Cassandra::Client::Error->new(message => "Request timed out", our_fault => 0));
     return;
 }
 
