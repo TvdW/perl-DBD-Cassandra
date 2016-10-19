@@ -25,6 +25,7 @@ WriteMakefile(
         'Clone' => '0.36',
         'Promises' => '0.94',
         'Ref::Util' => '0.008',
+        'EV' => '4.0',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Cassandra-Client-*' },

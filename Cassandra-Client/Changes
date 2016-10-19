@@ -1,5 +1,9 @@
 Revision history for Cassandra-Client
 
+0.08    unreleased
+
+      * Change event loop implementation to EV
+
 0.07    2016/10/10
 
       * Experimental support for client-side throttling

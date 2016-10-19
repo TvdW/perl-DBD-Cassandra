@@ -9,7 +9,7 @@ our $VERSION = '0.07';
 use Cassandra::Client::Config;
 use Cassandra::Client::Connection;
 use Cassandra::Client::Util qw/series/;
-use Cassandra::Client::AsyncIO;
+use Cassandra::Client::AsyncEV;
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
@@ -31,7 +31,7 @@ sub new {
     my $options= Cassandra::Client::Config->new(
         \%args
     );
-    my $async_class= $options->{anyevent} ? "Cassandra::Client::AsyncAnyEvent" : "Cassandra::Client::AsyncIO";
+    my $async_class= $options->{anyevent} ? "Cassandra::Client::AsyncAnyEvent" : "Cassandra::Client::AsyncEV";
     my $async_io= $async_class->new(
         options => $options,
     );
