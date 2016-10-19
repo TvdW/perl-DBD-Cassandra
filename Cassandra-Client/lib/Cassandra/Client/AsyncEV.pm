@@ -119,12 +119,12 @@ sub wait {
     my ($self)= @_;
     my $output= \$_[1];
 
-    my $done;
+    my ($done, $in_run);
     my @output;
     my $callback= sub {
         $done= 1;
         @output= @_;
-        $self->{ev}->break();
+        $self->{ev}->break() if $in_run;
     };
 
     $$output= sub {
@@ -133,6 +133,7 @@ sub wait {
         }
         local $self->{in_wait}= 1;
 
+        $in_run= 1;
         $self->{ev}->run unless $done;
         return @output;
     };
