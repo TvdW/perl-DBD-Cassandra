@@ -53,6 +53,7 @@ sub connect {
         default_consistency => $global_consistency,
         cql_version => $cql_version,
         request_timeout => $request_timeout,
+        anyevent => 0,
     );
     my ($error)= $client->call_connect;
     return $drh->set_err($DBI::stderr, "Can't connect to $dr_dsn: $error") if $error;
