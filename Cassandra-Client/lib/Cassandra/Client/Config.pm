@@ -21,6 +21,7 @@ sub new {
         warmup              => 0,
         throttler           => undef,
         throttler_config    => undef,
+        max_retries         => 2,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -37,7 +38,7 @@ sub new {
     }
 
     # Numbers
-    for (qw/port timer_granularity request_timeout max_connections/) {
+    for (qw/port timer_granularity request_timeout max_connections max_retries/) {
         if (defined($config->{$_})) {
             $self->{$_}= 0+ $config->{$_};
         }

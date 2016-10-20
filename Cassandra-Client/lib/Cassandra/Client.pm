@@ -225,7 +225,7 @@ sub _command {
         }
 
         if ($error && ref($error) && $error->retryable) {
-            return $self->_command_slowpath($command, $callback, $args);
+            return $self->_command_retry($command, $callback, $args, undef, $error);
         }
         return _cb($callback, $error, $result);
     }, @$args);
@@ -233,14 +233,14 @@ sub _command {
     return;
 
 SLOWPATH:
-    return $self->_command_slowpath($command, $callback, $args);
+    return $self->_command_slowpath($command, $callback, $args, undef);
 
 FAILFAST:
     return _cb($callback, "Client-induced failure by throttling mechanism");
 }
 
 sub _command_slowpath {
-    my ($self, $command, $callback, $args)= @_;
+    my ($self, $command, $callback, $args, $command_info)= @_;
 
     series([
         sub {
@@ -258,9 +258,26 @@ sub _command_slowpath {
         if (my $throttler= $self->{throttler}) {
             $throttler->count($error);
         }
+        if ($error && ref($error) && $error->retryable) {
+            return $self->_command_retry($command, $callback, $args, $command_info, $error);
+        }
         return _cb($callback, $error, $result);
     });
     return;
+}
+
+sub _command_retry {
+    my ($self, $command, $callback, $args, $command_info, $error)= @_;
+
+    $command_info->{retries}++;
+    if ($command_info->{retries} > $self->{options}{max_retries}) {
+        return $callback->($error);
+    }
+
+    my $delay= 0.1 * (2 ** $command_info->{retries});
+    $self->{async_io}->timer(sub {
+        $self->_command_slowpath($command, $callback, $args, $command_info);
+    }, $delay);
 }
 
 # Utility functions that wrap query functions
