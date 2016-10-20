@@ -522,7 +522,7 @@ Disconnect all connections and abort all current queries. After this, the C<Cass
 
 =item $client->wait_for_schema_agreement()
 
-I<Not implemented yet, this just does a C<sleep 1>!> Wait until all nodes agree on the schema version. Useful after changing table or keyspace definitions.
+Wait until all nodes agree on the schema version. Useful after changing table or keyspace definitions.
 
 =back
 
