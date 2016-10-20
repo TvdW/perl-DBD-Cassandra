@@ -129,6 +129,14 @@ sub handle_timeouts {
     return;
 }
 
+sub timer {
+    my ($self, $callback, $wait)= @_;
+    my $t; $t= AE::timer($wait, 0, sub {
+        undef $t;
+        $callback->();
+    });
+}
+
 # $something->($async->wait(my $w)); my ($error, $result)= $w->();
 sub wait {
     my ($self)= @_;

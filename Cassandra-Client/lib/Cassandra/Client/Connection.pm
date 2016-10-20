@@ -79,7 +79,7 @@ sub get_local_status {
     series([
         sub {
             my ($next)= @_;
-            $self->execute_prepared($next, \"select key, data_center, host_id, broadcast_address, rack, release_version, tokens from system.local", undef, { consistency => 'local_one' });
+            $self->execute_prepared($next, \"select key, data_center, host_id, broadcast_address, rack, release_version, tokens, schema_version from system.local", undef, { consistency => 'local_one' });
         },
         sub {
             my ($next, $result)= @_;
@@ -92,6 +92,7 @@ sub get_local_status {
                 rack => $_->[4],
                 release_version => $_->[5],
                 tokens => $_->[6],
+                schema_version => $_->[7],
             } } @{$result->rows};
 
             $next->(undef, \%local_status);
@@ -107,7 +108,7 @@ sub get_peers_status {
     series([
         sub {
             my ($next)= @_;
-            $self->execute_prepared($next, \"select peer, data_center, host_id, preferred_ip, rack, release_version, tokens from system.peers", undef, { consistency => 'local_one' });
+            $self->execute_prepared($next, \"select peer, data_center, host_id, preferred_ip, rack, release_version, tokens, schema_version from system.peers", undef, { consistency => 'local_one' });
         },
         sub {
             my ($next, $result)= @_;
@@ -120,6 +121,7 @@ sub get_peers_status {
                 rack => $_->[4],
                 release_version => $_->[5],
                 tokens => $_->[6],
+                schema_version => $_->[7],
             } } @{$result->rows};
 
             $next->(undef, \%network_status);
@@ -410,7 +412,10 @@ sub decode_result {
         return $callback->();
 
     } elsif ($result_type == RESULT_SCHEMA_CHANGE) { # Schema change
-        return $self->wait_for_schema_agreement($callback);
+        return $self->wait_for_schema_agreement(sub {
+            # We may be passed an error. Ignore it, our query succeeded
+            $callback->();
+        });
 
     } else {
         return $callback->("Query executed successfully but got an unexpected response type");
@@ -420,8 +425,41 @@ sub decode_result {
 
 sub wait_for_schema_agreement {
     my ($self, $callback)= @_;
-    sleep 1; # I am very sorry.
-    return $callback->();
+
+    my $waited= 0;
+    my $wait_delay= 0.5;
+    my $max_wait= 5;
+
+    my $wait_and_check; $wait_and_check= sub {
+        $waited += $wait_delay;
+        series([
+            sub {
+                my ($next)= @_;
+                $self->{async_io}->timer($next, $wait_delay);
+            },
+            sub {
+                my ($next)= @_;
+                $self->get_network_status($next);
+            },
+        ], sub {
+            my ($error, $network_status)= @_;
+            return $callback->($error) if $error;
+
+            my %versions;
+            $versions{$_->{schema_version}}= 1 for values %$network_status;
+            if (keys %versions > 1) {
+                if ($waited < $max_wait) {
+                    return $wait_and_check->();
+                } else {
+                    return $callback->("wait_for_schema_agreement timed out after $waited seconds");
+                }
+            }
+            return $callback->();
+        });
+    };
+
+    $wait_and_check->();
+    return;
 }
 
 
