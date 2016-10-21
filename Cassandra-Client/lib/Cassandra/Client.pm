@@ -14,6 +14,7 @@ use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
 use Cassandra::Client::AdaptiveThrottler;
+use Cassandra::Client::CommandQueue;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Clone qw/clone/;
@@ -26,6 +27,8 @@ sub new {
         connect_callbacks => undef,
         shutdown          => 0,
         shutdown_cb       => undef,
+
+        active_queries    => 0,
     }, $class;
 
     my $options= Cassandra::Client::Config->new(
@@ -43,11 +46,15 @@ sub new {
         options  => $options,
         metadata => $metadata,
     );
+    my $command_queue= Cassandra::Client::CommandQueue->new(
+        options  => $options,
+    );
 
     $self->{options}= $options;
     $self->{async_io}= $async_io;
     $self->{metadata}= $metadata;
     $self->{pool}= $pool;
+    $self->{command_queue}= $command_queue;
     if ($options->{throttler}) {
         my $throttler_class= "Cassandra::Client::$options->{throttler}";
         $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
@@ -213,16 +220,22 @@ sub _command {
     # Handle overloads
     goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
 
+    goto OVERFLOW if $self->{active_queries} >= $self->{options}{max_concurrent_queries};
+
     goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
     goto SLOWPATH if !$connection;
 
+    $self->{active_queries}++;
     $connection->$command(sub {
         my ($error, $result)= @_;
         if (my $throttler= $self->{throttler}) {
             $throttler->count($error);
         }
+
+        $self->{active_queries}--;
+        $self->_command_dequeue if $self->{command_queue}{has_any};
 
         if ($error && ref($error) && $error->retryable) {
             return $self->_command_retry($command, $callback, $args, undef, $error);
@@ -237,10 +250,15 @@ SLOWPATH:
 
 FAILFAST:
     return _cb($callback, "Client-induced failure by throttling mechanism");
+
+OVERFLOW:
+    return $self->_command_enqueue($command, $callback, $args, undef);
 }
 
 sub _command_slowpath {
     my ($self, $command, $callback, $args, $command_info)= @_;
+
+    $self->{active_queries}++;
 
     series([
         sub {
@@ -258,6 +276,10 @@ sub _command_slowpath {
         if (my $throttler= $self->{throttler}) {
             $throttler->count($error);
         }
+
+        $self->{active_queries}--;
+        $self->_command_dequeue if $self->{command_queue}{has_any};
+
         if ($error && ref($error) && $error->retryable) {
             return $self->_command_retry($command, $callback, $args, $command_info, $error);
         }
@@ -276,8 +298,27 @@ sub _command_retry {
 
     my $delay= 0.1 * (2 ** $command_info->{retries});
     $self->{async_io}->timer(sub {
-        $self->_command_slowpath($command, $callback, $args, $command_info);
+        if ($self->{active_queries} >= $self->{options}{max_concurrent_queries}) {
+            $self->_command_enqueue($command, $callback, $args, $command_info);
+        } else {
+            $self->_command_slowpath($command, $callback, $args, $command_info);
+        }
     }, $delay);
+}
+
+sub _command_enqueue {
+    my ($self, $command, $callback, $args, $command_info)= @_;
+    if (my $error= $self->{command_queue}->enqueue([$command, $callback, $args, $command_info])) {
+        return $callback->("Cannot $command: $error");
+    }
+    return;
+}
+
+sub _command_dequeue {
+    my ($self)= @_;
+    my $item= $self->{command_queue}->dequeue or return;
+    $self->_command_slowpath(@$item);
+    return;
 }
 
 # Utility functions that wrap query functions

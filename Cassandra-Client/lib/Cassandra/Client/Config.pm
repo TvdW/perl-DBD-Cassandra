@@ -7,21 +7,24 @@ sub new {
     my ($class, $config)= @_;
 
     my $self= bless {
-        anyevent            => 0,
-        contact_points      => undef,
-        port                => 9042,
-        cql_version         => undef,
-        keyspace            => undef,
-        compression         => undef,
-        default_consistency => undef,
-        max_page_size       => 5000,
-        max_connections     => 2,
-        timer_granularity   => 0.1,
-        request_timeout     => 11,
-        warmup              => 0,
-        throttler           => undef,
-        throttler_config    => undef,
-        max_retries         => 2,
+        anyevent                => 0,
+        contact_points          => undef,
+        port                    => 9042,
+        cql_version             => undef,
+        keyspace                => undef,
+        compression             => undef,
+        default_consistency     => undef,
+        max_page_size           => 5000,
+        max_connections         => 2,
+        timer_granularity       => 0.1,
+        request_timeout         => 11,
+        warmup                  => 0,
+        throttler               => undef,
+        throttler_config        => undef,
+        max_retries             => 2,
+        max_concurrent_queries  => 1000,
+        command_queue           => "CommandQueue",
+        command_queue_config    => undef,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -38,7 +41,7 @@ sub new {
     }
 
     # Numbers
-    for (qw/port timer_granularity request_timeout max_connections max_retries/) {
+    for (qw/port timer_granularity request_timeout max_connections max_retries max_concurrent_queries/) {
         if (defined($config->{$_})) {
             $self->{$_}= 0+ $config->{$_};
         }
@@ -57,7 +60,7 @@ sub new {
     }
 
     # Arbitrary hashes
-    for (qw/throttler_config/) {
+    for (qw/throttler_config command_queue_config/) {
         if (exists($config->{$_})) {
             $self->{$_}= $config->{$_};
         }

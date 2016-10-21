@@ -3,9 +3,10 @@ MANIFEST
 Makefile.PL
 README
 lib/Cassandra/Client.pm
-lib/Cassandra/Client/AsyncEV.pm
-lib/Cassandra/Client/AsyncAnyEvent.pm
 lib/Cassandra/Client/AdaptiveThrottler.pm
+lib/Cassandra/Client/AsyncAnyEvent.pm
+lib/Cassandra/Client/AsyncEV.pm
+lib/Cassandra/Client/CommandQueue.pm
 lib/Cassandra/Client/Config.pm
 lib/Cassandra/Client/Connection.pm
 lib/Cassandra/Client/Decoder.pm
@@ -22,6 +23,7 @@ t/02-sync-basic-crud.t
 t/03-types.t
 t/04-batch.t
 t/05-no-metadata.t
+t/10-queue.t
 t/99-long-loop.t
 t/manifest.t
 t/pod.t
