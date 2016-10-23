@@ -31,10 +31,9 @@ is_deeply($row, {
     id2 => "12345678-1234-1234-1234-123412341234",
 });
 
-if ($ENV{CASSANDRA_USER}) {
+SKIP: {
+    skip "Authentication not configured", 1 unless $ENV{CASSANDRA_USER};
     ok($dbh->selectall_arrayref("list authorize permission on keyspace system of $ENV{CASSANDRA_USER}", {Slice=>{}}));
-} else {
-    skip "Authentication not configured", 1;
 }
 
 $dbh->disconnect;
