@@ -9,17 +9,17 @@ our @EXPORT= ('series', 'parallel');
 sub series {
     my $list= shift;
     my $final= shift;
-    my $item= shift @$list;
 
-    $item->(sub {
-        if (!@$list) {
-            return $final->(@_);
+    my $cb_sub; $cb_sub= sub {
+        my $next= shift @$list;
+        if ($next && !$_[0]) {
+            $_[0]= $cb_sub;
+            goto &$next;
         }
-        if (my $error= shift) {
-            return $final->($error, @_);
-        }
-        return series($list, $final, @_);
-    }, @_);
+
+        goto &$final;
+    };
+    (shift @$list)->($cb_sub);
 
     return;
 }
