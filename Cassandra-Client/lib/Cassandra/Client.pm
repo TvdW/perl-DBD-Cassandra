@@ -269,6 +269,12 @@ sub _command_slowpath {
             $self->{pool}->get_one_cb($next);
         }, sub {
             my ($next, $connection)= @_;
+            # Yes, if we immediately take the slow path, which we would if we're not connected, we're going to throttle twice
+            # For now, I'm okay with that, but let's mark it with a TODO anyway.
+            # XXX
+            if ($self->{throttler} && $self->{throttler}->should_fail()) {
+                return $next->("Client-induced failure by throttling mechanism");
+            }
             $connection->$command($next, @$args);
         }
     ], sub {
