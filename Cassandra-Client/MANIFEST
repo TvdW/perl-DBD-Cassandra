@@ -24,6 +24,7 @@ t/03-types.t
 t/04-batch.t
 t/05-no-metadata.t
 t/10-queue.t
+t/50-bench.t
 t/99-long-loop.t
 t/manifest.t
 t/pod.t
