@@ -7,7 +7,7 @@ unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }
 
-plan tests => 3;
+plan tests => 4;
 
 use DBI;
 my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};consistency=quorum", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1, Warn => 1, PrintWarn => 0, PrintError => 0});
@@ -30,5 +30,11 @@ is_deeply($row, {
     val => "test",
     id2 => "12345678-1234-1234-1234-123412341234",
 });
+
+if ($ENV{CASSANDRA_USER}) {
+    ok($dbh->selectall_arrayref("list authorize permission on keyspace system of $ENV{CASSANDRA_USER}", {Slice=>{}}));
+} else {
+    skip "Authentication not configured", 1;
+}
 
 $dbh->disconnect;

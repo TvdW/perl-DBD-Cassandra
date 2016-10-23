@@ -55,6 +55,12 @@ sub x_finish_async {
     $sth->{rows}= $rows;
     $sth->{row_count}= 0+@$rows;
 
+    if (!@$rows && !@$names) {
+        # This is a weird Cassandra corner-case, triggered by doing 'list permissions' etc when there are none.
+        # Our code is fine with it, but DBI wants to have at least one column. So let's give it one.
+        @$names= ('no_column_names_returned_by_cassandra');
+    }
+
     $sth->STORE('NUM_OF_FIELDS', 0+@$names);
     $sth->{NAME}= $names;
     $sth->{cass_next_page}= $page;
