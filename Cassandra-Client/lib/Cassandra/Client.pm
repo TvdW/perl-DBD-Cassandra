@@ -257,7 +257,7 @@ FAILFAST:
     return _cb($callback, "Client-induced failure by throttling mechanism");
 
 OVERFLOW:
-    return $self->_command_enqueue($command, $callback, $args, undef);
+    return $self->_command_enqueue($command, $callback, $args, $command_info);
 }
 
 sub _command_slowpath {
