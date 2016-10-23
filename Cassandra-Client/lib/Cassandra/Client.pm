@@ -18,6 +18,7 @@ use Cassandra::Client::CommandQueue;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Clone qw/clone/;
+use Time::HiRes ();
 
 sub new {
     my ($class, %args)= @_;
@@ -217,6 +218,10 @@ sub _wait_for_schema_agreement {
 sub _command {
     my ($self, $command, $callback, $args)= @_;
 
+    my $command_info= {
+        start_time => Time::HiRes::time(),
+    };
+
     # Handle overloads
     goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
 
@@ -238,7 +243,7 @@ sub _command {
         $self->_command_dequeue if $self->{command_queue}{has_any};
 
         if ($error && ref($error) && $error->retryable) {
-            return $self->_command_retry($command, $callback, $args, undef, $error);
+            return $self->_command_retry($command, $callback, $args, $command_info, $error);
         }
         return _cb($callback, $error, $result);
     }, @$args);
@@ -246,7 +251,7 @@ sub _command {
     return;
 
 SLOWPATH:
-    return $self->_command_slowpath($command, $callback, $args, undef);
+    return $self->_command_slowpath($command, $callback, $args, $command_info);
 
 FAILFAST:
     return _cb($callback, "Client-induced failure by throttling mechanism");
