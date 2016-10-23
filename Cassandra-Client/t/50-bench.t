@@ -36,7 +36,7 @@ for (1..$rounds) {
             $client->execute($insert_query, [ $_, $_ * 2 ]);
         }
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num synchronous inserts: %.1f seconds", $diff);
+        ok(1, sprintf "$num synchronous inserts: %.1f seconds", $diff);
     }
     SYNC_SEL: {
         my $num= 1000 * $multiply;
@@ -45,7 +45,7 @@ for (1..$rounds) {
             $client->execute($select_query, [ $_ ]);
         }
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num synchronous selects: %.1f seconds", $diff);
+        ok(1, sprintf "$num synchronous selects: %.1f seconds", $diff);
     }
     PROMISES_INS: {
         my $num= 1000 * $multiply;
@@ -59,7 +59,7 @@ for (1..$rounds) {
         collect(@promises)->then(sub { $cv->send; }, sub { $fail= 1; $cv->send; });
         $cv->recv;
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num asynchronous inserts: %.1f seconds", $diff);
+        ok(1, sprintf "$num asynchronous inserts: %.1f seconds", $diff);
     }
     PROMISES_SEL: {
         my $num= 1000 * $multiply;
@@ -73,7 +73,7 @@ for (1..$rounds) {
         collect(@promises)->then(sub { $cv->send; }, sub { $fail= 1; $cv->send; });
         $cv->recv;
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num asynchronous selects: %.1f seconds", $diff);
+        ok(1, sprintf "$num asynchronous selects: %.1f seconds", $diff);
     }
     FUTURES_INS: {
         my $num= 1000 * $multiply;
@@ -84,7 +84,7 @@ for (1..$rounds) {
         }
         $_->() for @futures;
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num synchronous inserts via futures: %.1f seconds", $diff);
+        ok(1, sprintf "$num synchronous inserts via futures: %.1f seconds", $diff);
     }
     FUTURES_SEL: {
         my $num= 1000 * $multiply;
@@ -95,7 +95,7 @@ for (1..$rounds) {
         }
         $_->() for @futures;
         my $diff= time() + $t0;
-        ok(1) and diag(sprintf "$num synchronous selects via futures: %.1f seconds", $diff);
+        ok(1, sprintf "$num synchronous selects via futures: %.1f seconds", $diff);
     }
 }
 
