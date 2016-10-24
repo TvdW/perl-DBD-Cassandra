@@ -6,6 +6,8 @@ use warnings;
 require Exporter;
 our @ISA= qw(Exporter);
 
+use Cassandra::Client::Error;
+
 use constant BIGINT_SUPPORTED => eval { unpack('q>', "\0\0\0\0\0\0\0\1") };
 use if !BIGINT_SUPPORTED, 'Math::BigInt';
 
@@ -88,8 +90,10 @@ BEGIN {
             pack_stringmap          unpack_stringmap
             pack_stringmultimap     unpack_stringmultimap
             pack_inet               unpack_inet
+            pack_char               unpack_char
 
                                     unpack_metadata
+                                    unpack_errordata
             pack_queryparameters
 
             %consistency_lookup
@@ -152,6 +156,15 @@ sub pack_short {
 
 sub unpack_short {
     unpack('n', substr $_[0], 0, 2, '')
+}
+
+# TYPE: char
+sub pack_char {
+    pack('c', $_[0])
+}
+
+sub unpack_char {
+    unpack('c', substr $_[0], 0, 1, '')
 }
 
 # TYPE: string
@@ -415,6 +428,36 @@ sub pack_queryparameters {
         . ($paging_state ? pack('l>/a', $paging_state) : '')
         . ($timestamp ? (BIGINT_SUPPORTED ? pack('q>', $timestamp) : bigint_to_bytes($timestamp)) : '')
     );
+}
+
+sub unpack_errordata {
+    my $code= &unpack_int;
+
+    my %error;
+    $error{code}= $code;
+    $error{message}= &unpack_string;
+    $error{our_fault}= ( $code != 0x1000 && $code != 0x1001 && $code != 0x1002 && $code != 0x1003 && $code != 0x1100 && $code != 0x1200 );
+
+    if ($code == 0x1000) {
+        # Unavailable
+        $error{cl}= &unpack_short;
+        $error{required}= &unpack_int;
+        $error{alive}= &unpack_int;
+    } elsif ($code == 0x1100) {
+        # Write timeout
+        $error{cl}= &unpack_short;
+        $error{received}= &unpack_int;
+        $error{blockfor}= &unpack_int;
+        $error{write_type}= &unpack_string;
+    } elsif ($code == 0x1200) {
+        # Read timeout
+        $error{cl}= &unpack_short;
+        $error{received}= &unpack_int;
+        $error{blockfor}= &unpack_int;
+        $error{data_present}= &unpack_char;
+    }
+
+    return Cassandra::Client::Error->new(%error);
 }
 
 # Support for 32bit perl

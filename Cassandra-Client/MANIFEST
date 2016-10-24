@@ -17,6 +17,8 @@ lib/Cassandra/Client/Pool.pm
 lib/Cassandra/Client/Protocol.pm
 lib/Cassandra/Client/ResultSet.pm
 lib/Cassandra/Client/Util.pm
+lib/Cassandra/Client/Policy/Retry.pm
+lib/Cassandra/Client/Policy/Retry/Default.pm
 t/00-load.t
 t/01-connect.t
 t/02-sync-basic-crud.t

@@ -19,6 +19,7 @@ use Cassandra::Client::Protocol qw/
     pack_shortbytes
     pack_stringmap
     pack_stringlist
+    unpack_errordata
     unpack_inet
     unpack_int
     unpack_metadata
@@ -767,14 +768,11 @@ READ_NEXT:
                 } # Else: totally fine
 
             } elsif ($opcode == OPCODE_ERROR) {
-                my ($code, $message)= unpack('Nn/a', $body);
                 my ($cb, $dl)= @$stream_cb;
                 $$dl= 1;
-                $cb->(Cassandra::Client::Error->new(
-                    code => $code,
-                    message => $message,
-                    our_fault => ( $code != 0x1000 && $code != 0x1001 && $code != 0x1002 && $code != 0x1003 && $code != 0x1100 && $code != 0x1200 ),
-                ));
+
+                my $error= unpack_errordata($body);
+                $cb->($error);
 
             } else {
                 my ($cb, $dl)= @$stream_cb;

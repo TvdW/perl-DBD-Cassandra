@@ -15,6 +15,8 @@ use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
 use Cassandra::Client::AdaptiveThrottler;
 use Cassandra::Client::CommandQueue;
+use Cassandra::Client::Policy::Retry;
+use Cassandra::Client::Policy::Retry::Default;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Clone qw/clone/;
@@ -50,12 +52,14 @@ sub new {
     my $command_queue= Cassandra::Client::CommandQueue->new(
         options  => $options,
     );
+    my $retry_policy= Cassandra::Client::Policy::Retry::Default->new();
 
     $self->{options}= $options;
     $self->{async_io}= $async_io;
     $self->{metadata}= $metadata;
     $self->{pool}= $pool;
     $self->{command_queue}= $command_queue;
+    $self->{retry_policy}= $retry_policy;
     if ($options->{throttler}) {
         my $throttler_class= "Cassandra::Client::$options->{throttler}";
         $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
@@ -242,9 +246,7 @@ sub _command {
         $self->{active_queries}--;
         $self->_command_dequeue if $self->{command_queue}{has_any};
 
-        if ($error && ref($error) && $error->retryable) {
-            return $self->_command_retry($command, $callback, $args, $command_info, $error);
-        }
+        return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
         return _cb($callback, $error, $result);
     }, @$args);
 
@@ -291,9 +293,7 @@ sub _command_slowpath {
         $self->{active_queries}--;
         $self->_command_dequeue if $self->{command_queue}{has_any};
 
-        if ($error && ref($error) && $error->retryable) {
-            return $self->_command_retry($command, $callback, $args, $command_info, $error);
-        }
+        return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
         return _cb($callback, $error, $result);
     });
     return;
@@ -303,9 +303,6 @@ sub _command_retry {
     my ($self, $command, $callback, $args, $command_info, $error)= @_;
 
     $command_info->{retries}++;
-    if ($command_info->{retries} > $self->{options}{max_retries}) {
-        return $callback->($error);
-    }
 
     my $delay= 0.1 * (2 ** $command_info->{retries});
     $self->{async_io}->timer(sub {
@@ -315,6 +312,29 @@ sub _command_retry {
             $self->_command_slowpath($command, $callback, $args, $command_info);
         }
     }, $delay);
+}
+
+sub _command_failed {
+    my ($self, $command, $callback, $args, $command_info, $error)= @_;
+
+    return $callback->($error) if !ref($error) || !$error->retryable;
+
+    my $retry_decision;
+    if ($error->code == 0x1100) {
+        $retry_decision= $self->{retry_policy}->on_write_timeout(undef, @$error{qw/cl write_type blockfor received/}, ($command_info->{retries}||0));
+    } elsif ($error->code == 0x1200) {
+        $retry_decision= $self->{retry_policy}->on_read_timeout(undef, @$error{qw/cl blockfor received data_retrieved/}, ($command_info->{retries}||0));
+    } elsif ($error->code == 0x1000) {
+        $retry_decision= $self->{retry_policy}->on_unavailable(undef, @$error{qw/cl required alive/}, ($command_info->{retries}||0));
+    } else {
+        $retry_decision= Cassandra::Client::Policy::Retry::rethrow;
+    }
+
+    if ($retry_decision && $retry_decision eq 'retry') {
+        return $self->_command_retry($command, $callback, $args, $command_info, $error);
+    }
+
+    return $callback->($error);
 }
 
 sub _command_enqueue {

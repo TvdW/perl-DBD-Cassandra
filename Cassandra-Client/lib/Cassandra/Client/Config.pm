@@ -21,7 +21,6 @@ sub new {
         warmup                  => 0,
         throttler               => undef,
         throttler_config        => undef,
-        max_retries             => 2,
         max_concurrent_queries  => 1000,
         command_queue           => "CommandQueue",
         command_queue_config    => undef,
@@ -41,7 +40,7 @@ sub new {
     }
 
     # Numbers
-    for (qw/port timer_granularity request_timeout max_connections max_retries max_concurrent_queries/) {
+    for (qw/port timer_granularity request_timeout max_connections max_concurrent_queries/) {
         if (defined($config->{$_})) {
             $self->{$_}= 0+ $config->{$_};
         }
