@@ -300,7 +300,7 @@ sub _command_slowpath {
 }
 
 sub _command_retry {
-    my ($self, $command, $callback, $args, $command_info, $error)= @_;
+    my ($self, $command, $callback, $args, $command_info)= @_;
 
     $command_info->{retries}++;
 
@@ -333,7 +333,7 @@ sub _command_failed {
     }
 
     if ($retry_decision && $retry_decision eq 'retry') {
-        return $self->_command_retry($command, $callback, $args, $command_info, $error);
+        return $self->_command_retry($command, $callback, $args, $command_info);
     }
 
     return $callback->($error);
