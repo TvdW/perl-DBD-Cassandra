@@ -436,7 +436,7 @@ sub unpack_errordata {
     my %error;
     $error{code}= $code;
     $error{message}= &unpack_string;
-    $error{our_fault}= ( $code != 0x1000 && $code != 0x1001 && $code != 0x1002 && $code != 0x1003 && $code != 0x1100 && $code != 0x1200 );
+    $error{is_timeout}= ( $code == 0x1001 || $code == 0x1100 || $code == 0x1200 );
 
     if ($code == 0x1000) {
         # Unavailable

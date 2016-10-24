@@ -713,8 +713,19 @@ sub request {
             $self->{pending_write}= $data;
             $self->{async_io}->register_write($self->{fileno});
         } else {
+            # Oh, we failed to send out the request. That's bad. Let's first find out what happened.
             my $error= $!;
+
+            # We never actually sent our request, so take it out again
+            my $my_stream= delete $pending->{$stream_id};
+
             $self->shutdown(undef, $error);
+
+            # Now fail our stream properly, but include the retry notice
+            $my_stream->[0]->(Cassandra::Client::Error->new(
+                message  => "Disconnected: $error",
+                do_retry => 1,
+            ));
         }
     }
 
@@ -824,7 +835,7 @@ sub can_timeout {
     my ($self, $id)= @_;
     my $stream= delete $self->{pending_streams}{$id};
     $self->{pending_streams}{$id}= [ sub{}, \(my $zero= 0) ]; # fake it
-    $stream->[0]->(Cassandra::Client::Error->new(message => "Request timed out", our_fault => 0));
+    $stream->[0]->(Cassandra::Client::Error->new(message => "Request timed out", is_timeout => 1));
     return;
 }
 
@@ -852,7 +863,6 @@ sub shutdown {
     for (values %$pending) {
         $_->[0]->(Cassandra::Client::Error->new(
             message   => "Disconnected: $shutdown_reason",
-            our_fault => 0,
         ));
     }
 

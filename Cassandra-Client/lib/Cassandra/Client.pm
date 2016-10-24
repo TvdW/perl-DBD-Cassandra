@@ -317,10 +317,12 @@ sub _command_retry {
 sub _command_failed {
     my ($self, $command, $callback, $args, $command_info, $error)= @_;
 
-    return $callback->($error) if !ref($error) || !$error->retryable;
+    return $callback->($error) unless ref $error;
 
     my $retry_decision;
-    if ($error->code == 0x1100) {
+    if ($error->{do_retry}) {
+        $retry_decision= Cassandra::Client::Policy::Retry::retry;
+    } elsif ($error->code == 0x1100) {
         $retry_decision= $self->{retry_policy}->on_write_timeout(undef, @$error{qw/cl write_type blockfor received/}, ($command_info->{retries}||0));
     } elsif ($error->code == 0x1200) {
         $retry_decision= $self->{retry_policy}->on_read_timeout(undef, @$error{qw/cl blockfor received data_retrieved/}, ($command_info->{retries}||0));

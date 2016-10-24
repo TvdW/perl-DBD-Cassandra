@@ -43,7 +43,7 @@ sub count {
     my ($self, $error)= @_;
     $self->{window_total}++;
     push @{$self->{window}}, [ Time::HiRes::time()+$self->{time}, !!$error ];
-    $self->{window_success}++ unless ref($error) && !$error->retryable;
+    $self->{window_success}++ unless ref($error) && $error->{is_timeout};
     return;
 }
 
