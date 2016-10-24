@@ -6,20 +6,21 @@ use warnings;
 
 our $VERSION = '0.07';
 
+use Cassandra::Client::AsyncAnyEvent;
+use Cassandra::Client::AsyncEV;
+use Cassandra::Client::CommandQueue;
 use Cassandra::Client::Config;
 use Cassandra::Client::Connection;
-use Cassandra::Client::Util qw/series/;
-use Cassandra::Client::AsyncEV;
-use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
-use Cassandra::Client::Pool;
-use Cassandra::Client::Policy::Throttle::Adaptive;
-use Cassandra::Client::CommandQueue;
-use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Retry::Default;
+use Cassandra::Client::Policy::Retry;
+use Cassandra::Client::Policy::Throttle::Adaptive;
+use Cassandra::Client::Pool;
+use Cassandra::Client::Util qw/series/;
+
+use Clone qw/clone/;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
-use Clone qw/clone/;
 use Time::HiRes ();
 
 sub new {
