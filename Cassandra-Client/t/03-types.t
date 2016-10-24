@@ -182,5 +182,32 @@ check_enc([TYPE_SET, [ TYPE_INT ]], [ 1, 2, 3 ], "\0\0\0\3\0\0\0\4\0\0\0\1\0\0\0
 
 # Tuple
 
+# list<frozen<map<int,bool>>>
+check_simple([TYPE_LIST, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]], [
+                                                                    [ { 1 => !1, 2 => !0 } ]
+                                                                  ]);
+check_enc([TYPE_LIST, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]],
+    [ { 1 => !1, 2 => !0} ],
+    pack("H*", '000000010000001e000000020000000400000001000000010000000004000000020000000101')
+);
+
+# set<frozen<map<int,boolean>>>
+check_simple([TYPE_SET, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]], [
+                                                                    [ { 1 => !1, 2 => !0 } ],
+                                                                 ]);
+check_enc([TYPE_SET, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]],
+    [ { 1 => !1, 2 => !0 } ],
+    pack('H*', '000000010000001e000000020000000400000001000000010000000004000000020000000101')
+);
+
+# map<int,frozen<list<int>>>
+check_simple([TYPE_MAP, [TYPE_INT], [TYPE_LIST, [TYPE_INT]]], [
+                                                                { 1 => [2], 2 => [3] }
+                                                              ]);
+check_enc([TYPE_MAP, [TYPE_INT], [TYPE_LIST, [TYPE_INT]]],
+    { 1 => [2], 2 => [3] },
+    pack('H*', '0000000200000004000000010000000c00000001000000040000000200000004000000020000000c000000010000000400000003')
+);
+
 
 done_testing;
