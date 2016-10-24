@@ -58,7 +58,7 @@ sub make_encoder {
 @{[ map { my $i= $_; my $column= $columns[$i]; <<EOP } 0..$#columns
 
         { # $column->[0].$column->[1].$column->[2]
-            @{[ make_column_encoder($column->[3], "\$INPUT[$i]", '$row', 3) ]}
+            @{[ make_column_encoder($column->[3], "\$INPUT[$i]", '$row', 3, 1) ]}
 
         }
 EOP
@@ -73,7 +73,7 @@ EOC
 }
 
 sub make_column_encoder {
-    my ($type, $input, $output, $indent)= @_;
+    my ($type, $input, $output, $indent, $level)= @_;
 
     my $code= "# Encoder for type $type->[0]
 if (!defined($input)) {
@@ -91,7 +91,7 @@ if (!defined($input)) {
             $code .= "$output .= pack('l>/a', pack('$type_entry->[0]', $input));";
         }
     } else {
-        $code .= $type_entry->[0]->($type, $input, $output);
+        $code .= $type_entry->[0]->($type, $input, $output, $level);
     }
 
     $code .= "\n}\n";
@@ -140,50 +140,50 @@ EOC
 }
 
 sub e_list {
-    my ($type, $input, $output)= @_;
+    my ($type, $input, $output, $level)= @_;
     my $subtype= $type->[1];
     my $code= <<EOC;
-my \$tmp_output= '';
-\$tmp_output .= pack('l>', 0+\@{$input});
+my \$tmp_output_$level= '';
+\$tmp_output_$level .= pack('l>', 0+\@{$input});
 for my \$list_item (\@{$input}) {
-    @{[ make_column_encoder($subtype, '$list_item', '$tmp_output', 1) ]}
+    @{[ make_column_encoder($subtype, '$list_item', '$tmp_output_'.$level, 1, $level+1) ]}
 }
-$output .= pack('l>', length(\$tmp_output)).\$tmp_output;
+$output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
 EOC
 
     return $code;
 }
 
 sub e_map {
-    my ($type, $input, $output)= @_;
+    my ($type, $input, $output, $level)= @_;
     my $keytype= $type->[1];
     my $valuetype= $type->[2];
 
     my $code= <<EOC;
-my \$tmp_output= '';
-\$tmp_output .= pack('l>', 0+keys \%{$input});
+my \$tmp_output_$level= '';
+\$tmp_output_$level .= pack('l>', 0+keys \%{$input});
 for my \$key (sort keys \%{$input}) {
     my \$value= $input\->{\$key};
-    @{[ make_column_encoder($keytype, '$key', '$tmp_output', 1) ]}
-    @{[ make_column_encoder($valuetype, '$value', '$tmp_output', 1) ]}
+    @{[ make_column_encoder($keytype, '$key', '$tmp_output_'. $level, 1, $level+1) ]}
+    @{[ make_column_encoder($valuetype, '$value', '$tmp_output_'. $level, 1, $level + 1) ]}
 }
-$output .= pack('l>', length(\$tmp_output)).\$tmp_output;
+$output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
 EOC
 
     return $code;
 }
 
 sub e_set {
-    my ($type, $input, $output)= @_;
+    my ($type, $input, $output, $level)= @_;
     my $subtype= $type->[1];
 
     my $code= <<EOC;
-my \$tmp_output= '';
-\$tmp_output .= pack('l>', 0+\@{$input});
+my \$tmp_output_$level= '';
+\$tmp_output_$level .= pack('l>', 0+\@{$input});
 for my \$item (\@{$input}) {
-    @{[ make_column_encoder($subtype, '$item', '$tmp_output', 1) ]}
+    @{[ make_column_encoder($subtype, '$item', '$tmp_output_'. $level, 1, $level+1) ]}
 }
-$output .= pack('l>', length(\$tmp_output)).\$tmp_output;
+$output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
 EOC
 
     return $code;
