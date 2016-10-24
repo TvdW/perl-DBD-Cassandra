@@ -6,6 +6,7 @@ Revision history for Cassandra-Client
       * Redesign wait_for_schema_agreement, to actually wait for the schema agreement
       * Initial support for proper retry settings
       * Handle request backlogs by queueing them or failing them early
+      * Add stack traces to asynchronous queries with errors
 
 0.07    2016/10/10
 

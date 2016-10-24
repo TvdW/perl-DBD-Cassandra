@@ -364,6 +364,21 @@ sub _each_page {
 
 
 # Utility functions for callers
+sub _get_stacktrace {
+    # This gets called a lot. Let's keep it fast.
+
+    my $trace= '';
+    my ($c, $file, $line)= caller(1);
+    $trace .= "    $c ($file:$line)\n";
+    ($c, $file, $line)= caller(2) or goto DONE;
+    $trace .= "    $c ($file:$line)\n";
+    ($c, $file, $line)= caller(3) or goto DONE;
+    $trace .= "    $c ($file:$line)\n";
+
+DONE:
+    return $trace;
+}
+
 sub _cb {
     my $cb= shift;
     eval {
@@ -400,12 +415,13 @@ sub _mkpromise {
     my ($sub)= @_;
     return sub {
         my $self= shift;
+        my $trace= &_get_stacktrace;
         my $deferred= deferred;
 
         $sub->($self, sub {
             my ($error, @output)= @_;
             if ($error) {
-                $deferred->reject($error);
+                $deferred->reject("$error\n\nTrace:\n$trace");
             } else {
                 $deferred->resolve(@output);
             }
@@ -419,10 +435,11 @@ sub _mkfuture {
     my ($sub)= @_;
     return sub {
         my $self= shift;
+        my $trace= &_get_stacktrace;
         $sub->($self, $self->{async_io}->wait(my $w), @_);
         return sub {
             my ($error, @output)= $w->();
-            if ($error) { die $error; }
+            if ($error) { die "$error\n\nTrace:\n$trace"; }
             return @output;
         };
     }
