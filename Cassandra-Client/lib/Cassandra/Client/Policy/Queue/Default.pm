@@ -1,4 +1,4 @@
-package Cassandra::Client::CommandQueue;
+package Cassandra::Client::Policy::Queue::Default;
 use 5.010;
 use strict;
 use warnings;
@@ -6,10 +6,9 @@ use warnings;
 sub new {
     my ($class, %args)= @_;
 
-    my $max_entries= $args{options}{command_queue_config}{max_entries} || 0; # Default: never overflow
+    my $max_entries= $args{max_entries} || 0; # Default: never overflow
 
     return bless {
-        options     => $args{options},
         max_entries => 0+ $max_entries,
         has_any     => 0, # We're using this as a count.
         queue       => [],

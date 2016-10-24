@@ -22,7 +22,7 @@ sub new {
         throttler               => undef,
         throttler_config        => undef,
         max_concurrent_queries  => 1000,
-        command_queue           => "CommandQueue",
+        command_queue           => "Default",
         command_queue_config    => undef,
     }, $class;
 

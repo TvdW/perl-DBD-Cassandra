@@ -8,10 +8,10 @@ our $VERSION = '0.07';
 
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::AsyncEV;
-use Cassandra::Client::CommandQueue;
 use Cassandra::Client::Config;
 use Cassandra::Client::Connection;
 use Cassandra::Client::Metadata;
+use Cassandra::Client::Policy::Queue::Default;
 use Cassandra::Client::Policy::Retry::Default;
 use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Throttle::Adaptive;
@@ -50,8 +50,8 @@ sub new {
         options  => $options,
         metadata => $metadata,
     );
-    my $command_queue= Cassandra::Client::CommandQueue->new(
-        options  => $options,
+    my $command_queue= Cassandra::Client::Policy::Queue::Default->new(
+        %{ $options->{command_queue_config} || {} },
     );
     my $retry_policy= Cassandra::Client::Policy::Retry::Default->new();
 

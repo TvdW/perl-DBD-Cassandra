@@ -30,6 +30,7 @@ $client->execute("create table $db.test_int (id int primary key, value int)");
 my @queries;
 push @queries, $client->future_execute("insert into $db.test_int (id, value) values (?, ?)", [ $_, $_+1 ]) for 1..15;
 
-for (1..15) {
-    ok(eval { (shift @queries)->(); 1; }||0 == $_<=10);
+for my $i (1..15) {
+    my $success= eval { (shift @queries)->(); 1; } || 0;
+    ok($success == ( $i <= 10 )); # Only first ten should work
 }

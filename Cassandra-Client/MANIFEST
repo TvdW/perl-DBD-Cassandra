@@ -5,13 +5,13 @@ README
 lib/Cassandra/Client.pm
 lib/Cassandra/Client/AsyncAnyEvent.pm
 lib/Cassandra/Client/AsyncEV.pm
-lib/Cassandra/Client/CommandQueue.pm
 lib/Cassandra/Client/Config.pm
 lib/Cassandra/Client/Connection.pm
 lib/Cassandra/Client/Decoder.pm
 lib/Cassandra/Client/Encoder.pm
 lib/Cassandra/Client/Error.pm
 lib/Cassandra/Client/Metadata.pm
+lib/Cassandra/Client/Policy/Queue/Default.pm
 lib/Cassandra/Client/Policy/Retry.pm
 lib/Cassandra/Client/Policy/Retry/Default.pm
 lib/Cassandra/Client/Policy/Throttle/Adaptive.pm
