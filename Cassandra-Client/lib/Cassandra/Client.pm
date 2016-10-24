@@ -13,7 +13,7 @@ use Cassandra::Client::AsyncEV;
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::Metadata;
 use Cassandra::Client::Pool;
-use Cassandra::Client::AdaptiveThrottler;
+use Cassandra::Client::Policy::Throttle::Adaptive;
 use Cassandra::Client::CommandQueue;
 use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Retry::Default;
@@ -61,7 +61,8 @@ sub new {
     $self->{command_queue}= $command_queue;
     $self->{retry_policy}= $retry_policy;
     if ($options->{throttler}) {
-        my $throttler_class= "Cassandra::Client::$options->{throttler}";
+        $options->{throttler}= 'Adaptive' if $options->{throttler} eq 'AdaptiveThrottler'; # Temporary.
+        my $throttler_class= "Cassandra::Client::Policy::Throttle::$options->{throttler}";
         $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
     } else {
         $self->{throttler}= undef;

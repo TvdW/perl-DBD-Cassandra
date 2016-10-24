@@ -1,4 +1,4 @@
-package Cassandra::Client::AdaptiveThrottler;
+package Cassandra::Client::Policy::Throttle::Adaptive;
 
 use 5.010;
 use strict;

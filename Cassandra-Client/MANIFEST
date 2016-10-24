@@ -3,7 +3,6 @@ MANIFEST
 Makefile.PL
 README
 lib/Cassandra/Client.pm
-lib/Cassandra/Client/AdaptiveThrottler.pm
 lib/Cassandra/Client/AsyncAnyEvent.pm
 lib/Cassandra/Client/AsyncEV.pm
 lib/Cassandra/Client/CommandQueue.pm
@@ -19,6 +18,7 @@ lib/Cassandra/Client/ResultSet.pm
 lib/Cassandra/Client/Util.pm
 lib/Cassandra/Client/Policy/Retry.pm
 lib/Cassandra/Client/Policy/Retry/Default.pm
+lib/Cassandra/Client/Policy/Throttle/Adaptive.pm
 t/00-load.t
 t/01-connect.t
 t/02-sync-basic-crud.t
