@@ -1,6 +1,6 @@
 Revision history for Cassandra-Client
 
-0.08    unreleased
+0.08    2016/10/25
 
       * Change event loop implementation to EV
       * Redesign wait_for_schema_agreement, to actually wait for the schema agreement

@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.53    unreleased
+0.53    2016/10/25
 
       * No more Perl 5.8 support -- 5.10 is now required
       * Fix a corner case where DBI didn't like the output of a 'LIST PERMISSIONS' with zero rows
