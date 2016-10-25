@@ -23,7 +23,7 @@ sub _process_window {
     while (@{$self->{window}} && $self->{window}[0][0] < $now) {
         my $entry= shift @{$self->{window}};
         $self->{window_total}--;
-        $self->{window_success}-- unless $entry->[1];
+        $self->{window_success}-- if $entry->[1];
     }
     return;
 }
@@ -42,8 +42,9 @@ sub should_fail {
 sub count {
     my ($self, $error)= @_;
     $self->{window_total}++;
-    push @{$self->{window}}, [ Time::HiRes::time()+$self->{time}, !!$error ];
-    $self->{window_success}++ unless ref($error) && $error->{is_timeout};
+    my $success= !(ref($error) && $error->{is_timeout});
+    push @{$self->{window}}, [ Time::HiRes::time()+$self->{time}, $success ];
+    $self->{window_success}++ if $success;
     return;
 }
 
