@@ -36,6 +36,7 @@ use Cassandra::Client::Decoder qw/
 use Cassandra::Client::Error;
 use Cassandra::Client::ResultSet;
 use Scalar::Util qw/weaken/;
+use Sub::Current;
 
 use constant STREAM_ID_LIMIT => 32768;
 
@@ -431,7 +432,7 @@ sub wait_for_schema_agreement {
     my $wait_delay= 0.5;
     my $max_wait= 5;
 
-    my $wait_and_check; $wait_and_check= sub {
+    (sub {
         $waited += $wait_delay;
         series([
             sub {
@@ -450,16 +451,15 @@ sub wait_for_schema_agreement {
             $versions{$_->{schema_version}}= 1 for values %$network_status;
             if (keys %versions > 1) {
                 if ($waited < $max_wait) {
-                    return $wait_and_check->();
+                    return ROUTINE()->();
                 } else {
                     return $callback->("wait_for_schema_agreement timed out after $waited seconds");
                 }
             }
             return $callback->();
         });
-    };
+    })->();
 
-    $wait_and_check->();
     return;
 }
 

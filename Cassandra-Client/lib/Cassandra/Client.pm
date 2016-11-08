@@ -22,6 +22,7 @@ use Clone qw/clone/;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Time::HiRes ();
+use Sub::Current;
 
 sub new {
     my ($class, %args)= @_;
@@ -363,7 +364,7 @@ sub _each_page {
     my $params_copy= $params ? clone($params) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
-    my $next_page; $next_page= sub {
+    (sub {
         $self->_execute(sub {
             # Completion handler, with page data (or an error)
             my ($error, $result)= @_;
@@ -373,15 +374,14 @@ sub _each_page {
             _cb($page_callback, $result); # Note that page_callback doesn't get an error argument, that's intentional
             if ($next_page_id) {
                 $attribs_copy->{page}= $next_page_id;
-                $next_page->();
+                ROUTINE()->();
                 return;
             } else {
                 # Done!
                 return _cb($callback);
             }
         }, $query, $params_copy, $attribs_copy);
-    };
-    $next_page->();
+    })->();
 
     return;
 }

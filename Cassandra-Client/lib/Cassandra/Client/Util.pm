@@ -6,20 +6,21 @@ use warnings;
 use Exporter 'import';
 our @EXPORT= ('series', 'parallel');
 
+use Sub::Current;
+
 sub series {
     my $list= shift;
     my $final= shift;
 
-    my $cb_sub; $cb_sub= sub {
+    (shift @$list)->(sub {
         my $next= shift @$list;
         if ($next && !$_[0]) {
-            splice @_, 0, 1, $cb_sub;
+            splice @_, 0, 1, ROUTINE();
             goto &$next;
         }
 
         goto &$final;
-    };
-    (shift @$list)->($cb_sub);
+    });
 
     return;
 }
