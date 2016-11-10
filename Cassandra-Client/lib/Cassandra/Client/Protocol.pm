@@ -67,6 +67,10 @@ BEGIN {
         TYPE_VARINT => 0x0E,
         TYPE_TIMEUUID => 0x0F,
         TYPE_INET => 0x10,
+        TYPE_DATE => 0x11,
+        TYPE_TIME => 0x12,
+        TYPE_SMALLINT => 0x13,
+        TYPE_TINYINT => 0x14,
         TYPE_LIST => 0x20,
         TYPE_MAP => 0x21,
         TYPE_SET => 0x22,
@@ -122,6 +126,30 @@ BEGIN {
 
     constant->import( { %constants } );
 }
+
+my %java_type_to_ours= (
+    # Because of implementation details, we can only have non-complex types here, eg. int and blob
+    'org.apache.cassandra.db.marshal.UTF8Type'          => TYPE_VARCHAR,
+    'org.apache.cassandra.db.marshal.AsciiType'         => TYPE_ASCII,
+    'org.apache.cassandra.db.marshal.UUIDType'          => TYPE_UUID,
+    'org.apache.cassandra.db.marshal.TimeUUIDType'      => TYPE_TIMEUUID,
+    'org.apache.cassandra.db.marshal.Int32Type'         => TYPE_INT,
+    'org.apache.cassandra.db.marshal.BytesType'         => TYPE_BLOB,
+    'org.apache.cassandra.db.marshal.FloatType'         => TYPE_FLOAT,
+    'org.apache.cassandra.db.marshal.DoubleType'        => TYPE_DOUBLE,
+    'org.apache.cassandra.db.marshal.BooleanType'       => TYPE_BOOLEAN,
+    'org.apache.cassandra.db.marshal.InetAddressType'   => TYPE_INET,
+    'org.apache.cassandra.db.marshal.SimpleDateType'    => TYPE_DATE,
+    'org.apache.cassandra.db.marshal.TimeType'          => TYPE_TIME,
+    'org.apache.cassandra.db.marshal.ShortType'         => TYPE_SMALLINT,
+    'org.apache.cassandra.db.marshal.ByteType'          => TYPE_TINYINT,
+    'org.apache.cassandra.db.marshal.DateType'          => TYPE_TIMESTAMP,
+    'org.apache.cassandra.db.marshal.TimestampType'     => TYPE_TIMESTAMP,
+    'org.apache.cassandra.db.marshal.LongType'          => TYPE_BIGINT,
+    'org.apache.cassandra.db.marshal.DecimalType'       => TYPE_DECIMAL,
+    'org.apache.cassandra.db.marshal.IntegerType'       => TYPE_VARINT,
+    'org.apache.cassandra.db.marshal.CounterColumnType' => TYPE_COUNTER,
+);
 
 # TYPE: int
 sub pack_int {
@@ -289,7 +317,12 @@ sub unpack_option_type {
     my @value;
     if ($id == TYPE_CUSTOM) {
         @value= (&unpack_string);
-    } elsif ($id <= 0x10) {
+        # Java will sometimes send its types as CUSTOM instead of the real type. Quite annoying.
+        if (my $real_type= $java_type_to_ours{$value[0]}) {
+            $id= $real_type;
+            @value= ();
+        }
+    } elsif ($id < 0x20) {
         # Nothing
     } elsif ($id == TYPE_LIST || $id == TYPE_SET) { # List<?> / Set<?>
         @value= (&unpack_option_type);

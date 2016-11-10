@@ -37,7 +37,9 @@ my %types= (
     TYPE_LIST       ,=> [ \&e_list ],
     TYPE_MAP        ,=> [ \&e_map ],
     TYPE_SET        ,=> [ \&e_set ],
-
+    TYPE_TINYINT    ,=> [ 'c', 1 ],
+    TYPE_SMALLINT   ,=> [ 's>', 2 ],
+    TYPE_TIME       ,=> [ \&e_time ],
 );
 
 sub make_encoder {
@@ -237,6 +239,25 @@ VARINT: {
 $varint_enc
 }
 $output .= pack('l>/a', pack('l>', \$scale). substr(\$output_with_length_bytes, 4));
+EOC
+}
+
+sub e_time {
+    my ($type, $input, $output)= @_;
+
+    my $regex= qr/\A(\d+)(?::(\d+)(?::(\d+)(?:\.(\d+))?)?)?\z/;
+    return <<EOC;
+{
+    if ($input =~ m#$regex#) {
+        my (\$hours, \$minutes, \$seconds, \$ns)= (\$1, \$2, \$3, \$4);
+        my \$timeval= ((((\$hours||0) * 3600) + ((\$minutes||0) * 60) + (\$seconds||0))%86400) . substr((\$ns||0)."000000000", 0, 9);
+        $output .= pack('l>', 8) . ( BIGINT_SUPPORTED ? pack('q>', \$timeval) : pack_long(\$timeval) );
+    } else {
+        my \$value= $input;
+        warn "Invalid value for TIME type: \$value";
+        $output .= \$null;
+    }
+}
 EOC
 }
 

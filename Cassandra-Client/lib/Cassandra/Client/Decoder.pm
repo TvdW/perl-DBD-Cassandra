@@ -33,6 +33,9 @@ my %type_lookup= (
     TYPE_LIST       ,=> [ \&d_list     ],
     TYPE_MAP        ,=> [ \&d_map      ],
     TYPE_SET        ,=> [ \&d_set      ],
+    TYPE_TINYINT    ,=> [ 'c'          ],
+    TYPE_SMALLINT   ,=> [ 's>'         ],
+    TYPE_TIME       ,=> [ \&d_time     ],
 );
 
 sub make_decoder {
@@ -255,6 +258,23 @@ VARINT: {
 $varint_dec
 }
 $dest= \$unscaled . (\$scale > 0 ? "e+\$scale" : \$scale < 0 ? "e\$scale" : "");
+EOC
+}
+
+sub d_time {
+    my ($type, $tmp_val, $dest, $input_length)= @_;
+    return <<EOC;
+{
+    my \$ns= BIGINT_SUPPORTED ? unpack('q>', $tmp_val) : unpack_long($tmp_val);
+    my \$seconds= substr(\$ns, 0, -9, '') || 0;
+    my \$hours= int(\$seconds / 3600);
+    \$seconds -= \$hours * 3600;
+    my \$minutes= int(\$seconds / 60);
+    \$seconds -= \$minutes * 60;
+    $dest= sprintf("%.1d:%.2d:%.2d.%s", \$hours, \$minutes, \$seconds, substr("\${ns}000000000", 0, 9));
+    $dest =~ s/0+\\z//;
+    $dest =~ s/[.]\\z//;
+}
 EOC
 }
 

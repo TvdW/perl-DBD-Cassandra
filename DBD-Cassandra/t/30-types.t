@@ -31,6 +31,21 @@ my $type_table= [
     ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
     ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
     ['timeuuid',    'bad16', undef],
+    ['tinyint',     127,    $input],
+    ['tinyint',     0,      $input],
+    ['tinyint',     -128,   $input],
+    ['tinyint',     -129,   $warn],
+    ['smallint',    32767,  $input],
+    ['smallint',    0,      $input],
+    ['smallint',    -32768, $input],
+    ['smallint',    -32769, 32767],
+    ['date',        '2016-01-01', $input],
+    ['date',        '1970-01-01', $input],
+    ['date',        '1969-31-31', $input],
+    ['time',        '12:00',      '12:00:00'],
+    ['time',        '24:00',      '0:00:00'],
+    ['time',        '13:30:54.234', $input],
+    ['time',        '14',         '14:00:00'], # Why would someone want that?
 
     # List types...
     ['list<int>', [1, 2], $input],
@@ -60,7 +75,12 @@ for my $type (@$type_table) {
     my $random_id= sprintf '%.f', rand(10000);
     eval {
         my $did_warn;
-        local $SIG{__WARN__}= sub { $did_warn= 1; };
+        local $SIG{__WARN__}= sub {
+            my $warn= shift;
+            if ("$warn" !~ m@Test2/Formatter/TAP@) { # "wide character in print", ain't my fault
+                $did_warn= $warn || 1;
+            }
+        };
 
         $dbh->do("insert into test_type_$tablename (id, test) values (?, ?)", undef, $random_id, $test_val);
         my $row= $dbh->selectrow_arrayref("select test from test_type_$tablename where id=$random_id", { async => 1 });
@@ -72,6 +92,9 @@ for my $type (@$type_table) {
             is_deeply([$row->[0]], [$test_val], "input match $typename ($test_val -> $output_val)");
         } else {
             is_deeply([$row->[0]], [$output_val], "perfect match $typename ($test_val -> $output_val)");
+        }
+        if ($did_warn && !ref $output_val && $output_val ne $warn) {
+            diag("Warning: $did_warn");
         }
         1;
     } or do {
