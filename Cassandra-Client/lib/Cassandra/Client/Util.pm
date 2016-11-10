@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Exporter 'import';
-our @EXPORT= ('series', 'parallel');
+our @EXPORT= ('series', 'parallel', 'whilst');
 
 use Sub::Current;
 
@@ -55,6 +55,18 @@ sub parallel {
     }
 
     return;
+}
+
+sub whilst {
+    my ($condition, $iteratee, $callback)= @_;
+
+    (sub {
+        if (defined $_[0] || !($condition->())) {
+            goto &$callback;
+        }
+        splice @_, 0, 1, ROUTINE();
+        goto &$iteratee;
+    })->();
 }
 
 1;

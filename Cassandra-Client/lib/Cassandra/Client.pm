@@ -16,13 +16,12 @@ use Cassandra::Client::Policy::Retry::Default;
 use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Throttle::Adaptive;
 use Cassandra::Client::Pool;
-use Cassandra::Client::Util qw/series/;
+use Cassandra::Client::Util qw/series whilst/;
 
 use Clone qw/clone/;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Time::HiRes ();
-use Sub::Current;
 
 sub new {
     my ($class, %args)= @_;
@@ -364,24 +363,33 @@ sub _each_page {
     my $params_copy= $params ? clone($params) : undef;
     my $attribs_copy= $attribs ? clone($attribs) : undef;
 
-    (sub {
-        $self->_execute(sub {
-            # Completion handler, with page data (or an error)
-            my ($error, $result)= @_;
-            return _cb($callback, $error) if $error;
+    my $done= 0;
+    whilst(
+        sub { !$done },
+        sub {
+            my $next= shift;
 
-            my $next_page_id= $result->next_page;
-            _cb($page_callback, $result); # Note that page_callback doesn't get an error argument, that's intentional
-            if ($next_page_id) {
-                $attribs_copy->{page}= $next_page_id;
-                ROUTINE()->();
-                return;
-            } else {
-                # Done!
-                return _cb($callback);
-            }
-        }, $query, $params_copy, $attribs_copy);
-    })->();
+            $self->_execute(sub {
+                # Completion handler, with page data (or an error)
+                my ($error, $result)= @_;
+                return $next->($error) if $error;
+
+                my $next_page_id= $result->next_page;
+                _cb($page_callback, $result); # Note that page_callback doesn't get an error argument, that's intentional
+
+                if ($next_page_id) {
+                    $attribs_copy->{page}= $next_page_id;
+                } else {
+                    $done= 1;
+                }
+                return $next->();
+            }, $query, $params_copy, $attribs_copy);
+        },
+        sub {
+            my $error= shift;
+            return _cb($callback, $error);
+        }
+    );
 
     return;
 }

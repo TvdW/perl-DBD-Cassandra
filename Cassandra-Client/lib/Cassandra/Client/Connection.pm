@@ -36,7 +36,6 @@ use Cassandra::Client::Decoder qw/
 use Cassandra::Client::Error;
 use Cassandra::Client::ResultSet;
 use Scalar::Util qw/weaken/;
-use Sub::Current;
 
 use constant STREAM_ID_LIMIT => 32768;
 
@@ -432,33 +431,40 @@ sub wait_for_schema_agreement {
     my $wait_delay= 0.5;
     my $max_wait= 5;
 
-    (sub {
-        $waited += $wait_delay;
-        series([
-            sub {
-                my ($next)= @_;
-                $self->{async_io}->timer($next, $wait_delay);
-            },
-            sub {
-                my ($next)= @_;
-                $self->get_network_status($next);
-            },
-        ], sub {
-            my ($error, $network_status)= @_;
-            return $callback->($error) if $error;
+    my $done;
+    whilst(
+        sub { !$done },
+        sub {
+            my ($whilst_next)= @_;
 
-            my %versions;
-            $versions{$_->{schema_version}}= 1 for values %$network_status;
-            if (keys %versions > 1) {
-                if ($waited < $max_wait) {
-                    return ROUTINE()->();
+            series([
+                sub {
+                    my ($next)= @_;
+                    $self->{async_io}->timer($next, $wait_delay);
+                },
+                sub {
+                    my ($next)= @_;
+                    $waited += $wait_delay;
+                    $self->get_network_status($next);
+                },
+            ], sub {
+                my ($error, $network_status)= @_;
+                return $whilst_next->($error) if $error;
+
+                my %versions;
+                $versions{$_->{schema_version}}= 1 for values %$network_status;
+                if (keys %versions > 1) {
+                    if ($waited >= $max_wait) {
+                        return $whilst_next->("wait_for_schema_agreement timed out after $waited seconds");
+                    }
                 } else {
-                    return $callback->("wait_for_schema_agreement timed out after $waited seconds");
+                    $done= 1;
                 }
-            }
-            return $callback->();
-        });
-    })->();
+                return $whilst_next->();
+            });
+        },
+        $callback,
+    );
 
     return;
 }
