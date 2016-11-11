@@ -39,9 +39,6 @@ my $type_table= [
     ['smallint',    0,      $input],
     ['smallint',    -32768, $input],
     ['smallint',    -32769, 32767],
-    ['date',        '2016-01-01', $input],
-    ['date',        '1970-01-01', $input],
-    ['date',        '1969-31-31', $input],
     ['time',        '12:00',      '12:00:00'],
     ['time',        '24:00',      '0:00:00'],
     ['time',        '13:30:54.234', $input],
@@ -57,6 +54,39 @@ my $type_table= [
     ['list<frozen<map<int,boolean>>>', [ { 1 => !!0, 2 => !0 }, { 3 => !0, 4 => !!0 } ], $input],
     ['set<frozen<map<int,boolean>>>', [ { 1 => !!0, 2 => !0 }, { 3 => !0, 4 => !!0 } ], $input],
     ['map<int,frozen<list<int>>>', { 1 => [2, 3], 4 => [5, 6] }, $input],
+
+    # Date is probably our only non-trivial implementation. Test it a bit harder.
+    ['date',        '2000-01-01', $input],
+    ['date',        '2000-01-02', $input],
+    ['date',        '2000-02-28', $input],
+    ['date',        '2000-02-29', $input],
+    ['date',        '2000-03-01', $input],
+    ['date',        '2001-01-01', $input],
+    ['date',        '2101-01-01', $input],
+    ['date',        '2401-01-01', $input],
+    ['date',        '2400-01-01', $input],
+    ['date',        '2800-01-01', $input],
+    ['date',        '1600-01-01', $input],
+    ['date',        '2100-01-01', $input],
+    ['date',        '2200-01-01', $input],
+    ['date',        '2300-01-01', $input],
+    ['date',        '1900-01-01', $input],
+    ['date',        '1800-01-01', $input],
+    ['date',        '2016-01-01', $input],
+    ['date',        '2016-02-29', $input],
+    ['date',        '2016-03-01', $input],
+    ['date',        '1970-01-01', $input],
+    ['date',        '1969-12-31', $input],
+    ['date',        '100000-12-31', $input],
+    ['date',        '1970-01-11', $input],
+    ['date',        '0001-01-01', '1-01-01'],
+    ['date',        '0000-01-01', '0-01-01'],
+    ['date',        '-0001-01-01', '-1-01-01'],
+    ['date',        '275760-09-13', $input],
+    ['date',        '2015-02-29', '2015-03-01'],
+    ['date',        '2015-12-32', '2016-01-01'],
+    ['date',        '5881580-07-11', $input],
+    ['date',        '-5877641-06-23', $input],
 ];
 
 unless ($ENV{CASSANDRA_HOST}) {
@@ -68,11 +98,12 @@ plan tests => 2+@$type_table;
 my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
 ok($dbh);
 
+my $i= 0;
 for my $type (@$type_table) {
     my ($typename, $test_val, $output_val)= @$type;
     my $tablename= $typename; $tablename =~ s/\W/_/g;
     $dbh->do("create table if not exists test_type_$tablename (id bigint primary key, test $typename)");
-    my $random_id= sprintf '%.f', rand(10000);
+    my $random_id= ++$i;
     eval {
         my $did_warn;
         local $SIG{__WARN__}= sub {

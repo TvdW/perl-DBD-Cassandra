@@ -9,6 +9,7 @@ our @EXPORT_OK= qw/make_decoder/;
 use Cassandra::Client::Protocol qw/:constants unpack_long BIGINT_SUPPORTED/;
 use vars qw/@ROW/;
 use Math::BigInt;
+use POSIX qw/floor/;
 
 my $bigint_dec= BIGINT_SUPPORTED ? 'q>' : \&d_bigint_slow;
 
@@ -36,6 +37,7 @@ my %type_lookup= (
     TYPE_TINYINT    ,=> [ 'c'          ],
     TYPE_SMALLINT   ,=> [ 's>'         ],
     TYPE_TIME       ,=> [ \&d_time     ],
+    TYPE_DATE       ,=> [ \&d_date     ],
 );
 
 sub make_decoder {
@@ -274,6 +276,26 @@ sub d_time {
     $dest= sprintf("%.1d:%.2d:%.2d.%s", \$hours, \$minutes, \$seconds, substr("\${ns}000000000", 0, 9));
     $dest =~ s/0+\\z//;
     $dest =~ s/[.]\\z//;
+}
+EOC
+}
+
+sub d_date {
+    my ($type, $tmp_val, $dest, $input_length)= @_;
+    return <<EOC;
+{
+    my \$days_total= unpack('L>', $tmp_val) - (1<<31);
+    my \$J= \$days_total + 2440588;
+
+    my \$f= \$J + 1401 + floor((floor((4 * \$J + 274277) / 146097) * 3) / 4) - 38;
+    my \$e= 4 * \$f + 3;
+    my \$g= floor((\$e % 1461) / 4);
+    my \$h= 5 * \$g + 2;
+    my \$D= (floor((\$h % 153) / 5) + 1);
+    my \$M= ((floor(\$h / 153) + 2) % 12) + 1;
+    my \$Y= floor(\$e / 1461) - 4716 + floor((12 + 2 - \$M) / 12);
+
+    $dest= sprintf("%d-%.2d-%.2d", \$Y, \$M, \$D);
 }
 EOC
 }

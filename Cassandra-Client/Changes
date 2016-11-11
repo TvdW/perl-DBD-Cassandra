@@ -4,7 +4,7 @@ Revision history for Cassandra-Client
 
       * Fix support for Perl 5.20 and later
       * Fix a class of memory leaks caused by recursion using closures
-      * Add support for TIME/TINYINT/SMALLINT data types added in CQL 3.3
+      * Add support for TIME/DATE/TINYINT/SMALLINT data types added in CQL 3.3
 
 0.08    2016/10/25
 

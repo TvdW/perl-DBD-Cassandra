@@ -6,6 +6,7 @@ use warnings;
 use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
 use Math::BigInt;
 use Encode;
+use POSIX qw/floor/;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -40,6 +41,7 @@ my %types= (
     TYPE_TINYINT    ,=> [ 'c', 1 ],
     TYPE_SMALLINT   ,=> [ 's>', 2 ],
     TYPE_TIME       ,=> [ \&e_time ],
+    TYPE_DATE       ,=> [ \&e_date ],
 );
 
 sub make_encoder {
@@ -53,6 +55,7 @@ sub make_encoder {
     my \$length= pack('n', @{[ 0+@columns ]});
     my \$true= pack('l>c', 1, 1);
     my \$false= pack('l>c', 1, 0);
+
     sub {
         local *INPUT= \$_[0];
         my \$row= \$length;
@@ -255,6 +258,32 @@ sub e_time {
     } else {
         my \$value= $input;
         warn "Invalid value for TIME type: \$value";
+        $output .= \$null;
+    }
+}
+EOC
+}
+
+sub e_date {
+    my ($type, $input, $output)= @_;
+
+    my $regex= qr/\A(-?\d+)-(\d+)-(\d+)\z/;
+    return <<EOC;
+{
+    if ($input =~ m#$regex#) {
+        my (\$year, \$month, \$day)= (\$1, \$2, \$3);
+
+        my \$v_a= ((\$month == 1 || \$month == 2) ? 1 : 0);
+        my \$y= \$year + 4800 - \$v_a;
+        my \$m= \$month + (12 * \$v_a) - 3;
+        my \$jdn= \$day + floor(((153 * \$m) + 2) / 5) + (365 * \$y) + floor(\$y / 4) - floor(\$y / 100) + floor(\$y / 400);
+
+        my \$days= (1 << 31) - 2472633 + \$jdn;
+
+        $output .= pack('l>L>', 4, \$days);
+    } else {
+        my \$value= $input;
+        warn "Invalid value for DATE type: \$value";
         $output .= \$null;
     }
 }
