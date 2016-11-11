@@ -77,9 +77,7 @@ for my $type (@$type_table) {
         my $did_warn;
         local $SIG{__WARN__}= sub {
             my $warn= shift;
-            if ("$warn" !~ m@Test2/Formatter/TAP@) { # "wide character in print", ain't my fault
-                $did_warn= $warn || 1;
-            }
+            $did_warn= $warn || 1;
         };
 
         $dbh->do("insert into test_type_$tablename (id, test) values (?, ?)", undef, $random_id, $test_val);
@@ -89,9 +87,9 @@ for my $type (@$type_table) {
         } elsif (!ref $output_val && $output_val eq $warn) {
             ok($did_warn);
         } elsif (!ref $output_val && $output_val eq $input) {
-            is_deeply([$row->[0]], [$test_val], "input match $typename ($test_val -> $output_val)");
+            is_deeply([$row->[0]], [$test_val], "input match $typename");
         } else {
-            is_deeply([$row->[0]], [$output_val], "perfect match $typename ($test_val -> $output_val)");
+            is_deeply([$row->[0]], [$output_val], "perfect match $typename");
         }
         if ($did_warn && !ref $output_val && $output_val ne $warn) {
             diag("Warning: $did_warn");
