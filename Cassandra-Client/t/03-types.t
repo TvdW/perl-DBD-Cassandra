@@ -3,7 +3,7 @@ use 5.010;
 use strict;
 use warnings;
 use Test::More;
-use Cassandra::Client::Protocol qw/:constants pack_int/;
+use Cassandra::Client::Protocol qw/:constants pack_int pack_long/;
 use Cassandra::Client::Encoder 'make_encoder';
 use Cassandra::Client::Decoder 'make_decoder';
 
@@ -141,6 +141,47 @@ check_enc([TYPE_VARINT], -1, "\xff");
 check_enc([TYPE_VARINT], -128, "\x80");
 check_enc([TYPE_VARINT], -129, "\xff\x7f");
 check_enc([TYPE_VARINT], "1000000000000000000000000000000000000000000000000000000000000000000", "\x09\x7e\xdd\x87\x1c\xfd\xa3\xa5\x69\x77\x58\xbf\x0e\x3c\xbb\x5a\xc5\x74\x1c\x64\0\0\0\0\0\0\0\0");
+
+# Time
+check_enc([TYPE_TIME], '00:00:00.0', "\0\0\0\0\0\0\0\0");
+check_enc([TYPE_TIME], '23:59:59.999999999', pack_long("86399999999999"));
+
+# Date
+check_simple([TYPE_DATE], [
+                            "1970-01-01", 
+                            "2016-01-01", 
+                            ( map sprintf("0-02-%.2d", $_), 1..29 ),
+                            ( map sprintf("10001-02-%.2d", $_), 1..28 ),
+                            ( map sprintf("10001-03-%.2d", $_), 1..5 ),
+                          ]);
+check_enc([TYPE_DATE], "1970-01-01", "\x80\0\0\0");
+check_enc([TYPE_DATE], "1970-03-01", "\x80\0\0\x3b");
+check_enc([TYPE_DATE], "1970-02-29", "\x80\0\0\x3b");
+check_enc([TYPE_DATE], "-5877641-06-23", "\0\0\0\0");
+check_enc([TYPE_DATE], "5881580-07-11", "\377\377\377\377");
+
+# Tinyint
+check_simple([TYPE_TINYINT], [ (1..10), -50, -128, 127 ]);
+check_enc([TYPE_TINYINT], 0, "\0");
+check_enc([TYPE_TINYINT], 5, "\5");
+check_enc([TYPE_TINYINT], -1, "\xff");
+check_enc([TYPE_TINYINT], 127, "\x7f");
+check_enc([TYPE_TINYINT], -128, "\x80");
+{
+    local $SIG{__WARN__}= sub{}; # Perl throws warnings when wrapping chars, but not all others...
+    check_enc([TYPE_TINYINT], 128, "\x80"); # Wrap.
+    check_enc([TYPE_TINYINT], -129, "\x7f"); # Wrap.
+}
+
+# Smallint
+check_simple([TYPE_SMALLINT], [ (1..10), -50, -32768, 32767 ]);
+check_enc([TYPE_SMALLINT], 123, "\0\x7b");
+check_enc([TYPE_SMALLINT], -1, "\xff\xff");
+check_enc([TYPE_SMALLINT], 1, "\0\1");
+check_enc([TYPE_SMALLINT], 32767, "\x7f\xff");
+check_enc([TYPE_SMALLINT], -32768, "\x80\0");
+check_enc([TYPE_SMALLINT], 32768, "\x80\0"); # Wrap
+check_enc([TYPE_SMALLINT], -32769, "\x7f\xff"); # Wrap.
 
 # Timeuuid
 check_simple([TYPE_TIMEUUID], [ '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', undef ]);
