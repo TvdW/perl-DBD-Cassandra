@@ -143,6 +143,10 @@ check_enc([TYPE_VARINT], -129, "\xff\x7f");
 check_enc([TYPE_VARINT], "1000000000000000000000000000000000000000000000000000000000000000000", "\x09\x7e\xdd\x87\x1c\xfd\xa3\xa5\x69\x77\x58\xbf\x0e\x3c\xbb\x5a\xc5\x74\x1c\x64\0\0\0\0\0\0\0\0");
 
 # Time
+check_simple([TYPE_TIME], [
+                            ( map "$_:00:00.12345", 0..23 ),
+                            ( map "$_:59:59.999999999", 0..23 ),
+                          ]);
 check_enc([TYPE_TIME], '00:00:00.0', "\0\0\0\0\0\0\0\0");
 check_enc([TYPE_TIME], '23:59:59.999999999', pack_long("86399999999999"));
 
