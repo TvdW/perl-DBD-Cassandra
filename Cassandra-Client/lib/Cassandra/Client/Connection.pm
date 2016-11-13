@@ -676,6 +676,9 @@ sub setup_io {
     my ($self)= @_;
     $self->{async_io}->register($self->{fileno}, $self);
     $self->{async_io}->register_read($self->{fileno});
+
+    $self->{pending_write}= '';
+    $self->{async_io}->register_write($self->{fileno});
     return;
 }
 
