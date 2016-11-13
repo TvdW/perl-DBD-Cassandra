@@ -27,6 +27,7 @@ t/04-batch.t
 t/05-no-metadata.t
 t/06-async-utils.t
 t/10-queue.t
+t/20-memleak.t
 t/50-bench.t
 t/99-long-loop.t
 t/manifest.t

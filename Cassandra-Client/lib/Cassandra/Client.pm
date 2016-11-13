@@ -90,6 +90,7 @@ sub _connect {
         my $contact_point= shift @contact_points;
         if (!$contact_point) {
             delete $self->{connecting};
+            undef $next_connect;
             return _cb($_, "Unable to connect to any Cassandra server. Last error: $last_error") for @{delete $self->{connect_callbacks}};
         }
 
@@ -119,6 +120,7 @@ sub _connect {
                 return $next_connect->();
             }
 
+            undef $next_connect;
             $self->{connected}= 1;
             delete $self->{connecting};
             _cb($_) for @{delete $self->{connect_callbacks}};
