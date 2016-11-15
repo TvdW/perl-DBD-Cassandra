@@ -26,6 +26,7 @@ t/03-types.t
 t/04-batch.t
 t/05-no-metadata.t
 t/06-async-utils.t
+t/07-named-parameters.t
 t/10-queue.t
 t/20-memleak.t
 t/50-bench.t

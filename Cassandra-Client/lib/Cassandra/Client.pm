@@ -615,8 +615,8 @@ Executes a single query on Cassandra, and fetch the results (if any).
 For queries that have large amounts of result rows and end up spanning multiple pages, C<each_page> is the function you need. C<execute> does not handle pagination, and may end up missing rows unless pagination is implemented by its user through the C<page> attribute.
 
     $client->execute(
-        "UPDATE my_table SET column=? WHERE id=?",
-        [ 2, 5 ],
+        "UPDATE my_table SET column=:new_column WHERE id=:id",
+        { new_column => 2, id => 5 },
         { consistency => "quorum" },
     );
 

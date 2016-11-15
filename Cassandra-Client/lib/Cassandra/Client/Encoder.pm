@@ -7,6 +7,7 @@ use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
 use Math::BigInt;
 use Encode;
 use POSIX qw/floor/;
+use Ref::Util qw/is_hashref/;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -48,6 +49,7 @@ sub make_encoder {
     my ($metadata)= @_;
 
     my @columns= @{$metadata->{columns}};
+    my @names= map { $_->[2] } @columns;
 
     my $code= <<EOC;
 
@@ -57,7 +59,11 @@ sub make_encoder {
     my \$false= pack('l>c', 1, 0);
 
     sub {
-        local *INPUT= \$_[0];
+        my \$input_ref= \$_[0];
+        if (is_hashref(\$input_ref)) {
+            \$input_ref= [ @\$input_ref{\@names} ];
+        }
+        local *INPUT= \$input_ref;
         my \$row= \$length;
 
 @{[ map { my $i= $_; my $column= $columns[$i]; <<EOP } 0..$#columns
