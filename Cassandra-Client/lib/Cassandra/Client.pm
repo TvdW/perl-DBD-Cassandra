@@ -326,6 +326,8 @@ sub _command_failed {
     my $retry_decision;
     if ($error->{do_retry}) {
         $retry_decision= Cassandra::Client::Policy::Retry::retry;
+    } elsif ($error->{request_error}) {
+        $retry_decision= $self->{retry_policy}->on_request_error(undef, undef, $error, ($command_info->{retries}||0));
     } elsif ($error->code == 0x1100) {
         $retry_decision= $self->{retry_policy}->on_write_timeout(undef, @$error{qw/cl write_type blockfor received/}, ($command_info->{retries}||0));
     } elsif ($error->code == 0x1200) {

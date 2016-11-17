@@ -1,5 +1,9 @@
 Revision history for Cassandra-Client
 
+0.10    unreleased
+
+      * Add a retry policy implementation for generic request failures
+
 0.09    2016/11/15
 
       * Fix support for Perl 5.20 and later

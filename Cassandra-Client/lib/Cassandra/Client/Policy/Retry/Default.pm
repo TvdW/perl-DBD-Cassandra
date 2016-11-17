@@ -37,4 +37,11 @@ sub on_write_timeout {
     return rethrow;
 }
 
+sub on_request_error {
+    my ($self, $statement, $consistency_level, $error, $nr_retries)= @_;
+
+    return rethrow if $nr_retries;
+    return try_next_host;
+}
+
 1;

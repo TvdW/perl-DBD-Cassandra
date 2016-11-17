@@ -685,7 +685,10 @@ sub setup_io {
 sub request {
     # my $body= $_[3] (let's avoid copying that blob). Yes, this code assumes ownership of the body.
     my ($self, $cb, $opcode)= @_;
-    return $cb->("Connection shutting down") if $self->{shutdown};
+    return $cb->(Cassandra::Client::Error->new(
+        message => "Connection shutting down",
+        request_error => 1,
+    )) if $self->{shutdown};
 
     my $pending= $self->{pending_streams};
 
@@ -693,7 +696,10 @@ sub request {
     my $attempts= 0;
     while (exists($pending->{$stream_id}) || $stream_id >= STREAM_ID_LIMIT) {
         $stream_id= (++$stream_id) % STREAM_ID_LIMIT;
-        return $cb->("Cannot find a stream ID to post query with") if ++$attempts >= STREAM_ID_LIMIT;
+        return $cb->(Cassandra::Client::Error->new(
+            message => "Cannot find a stream ID to post query with",
+            request_error => 1,
+        )) if ++$attempts >= STREAM_ID_LIMIT;
     }
     $self->{last_stream_id}= $stream_id;
     $pending->{$stream_id}= [$cb, $self->{async_io}->deadline($self->{fileno}, $stream_id, $self->{request_timeout})];
@@ -732,8 +738,9 @@ sub request {
 
             # Now fail our stream properly, but include the retry notice
             $my_stream->[0]->(Cassandra::Client::Error->new(
-                message  => "Disconnected: $error",
-                do_retry => 1,
+                message       => "Disconnected: $error",
+                do_retry      => 1,
+                request_error => 1,
             ));
         }
     }
@@ -871,7 +878,8 @@ sub shutdown {
 
     for (values %$pending) {
         $_->[0]->(Cassandra::Client::Error->new(
-            message   => "Disconnected: $shutdown_reason",
+            message       => "Disconnected: $shutdown_reason",
+            request_error => 1,
         ));
     }
 
