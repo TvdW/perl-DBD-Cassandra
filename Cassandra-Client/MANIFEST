@@ -11,6 +11,8 @@ lib/Cassandra/Client/Decoder.pm
 lib/Cassandra/Client/Encoder.pm
 lib/Cassandra/Client/Error.pm
 lib/Cassandra/Client/Metadata.pm
+lib/Cassandra/Client/NetworkStatus.pm
+lib/Cassandra/Client/Policy/LoadBalancing/Default.pm
 lib/Cassandra/Client/Policy/Queue/Default.pm
 lib/Cassandra/Client/Policy/Retry.pm
 lib/Cassandra/Client/Policy/Retry/Default.pm

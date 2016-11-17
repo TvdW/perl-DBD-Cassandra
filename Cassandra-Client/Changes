@@ -5,6 +5,7 @@ Revision history for Cassandra-Client
       * Add a retry policy implementation for generic request failures
       * Throttler: finally fix the feedback mechanism
       * Rework shutdown() to not need asynchronous code
+      * Rework the pool management logic
 
 0.09    2016/11/15
 

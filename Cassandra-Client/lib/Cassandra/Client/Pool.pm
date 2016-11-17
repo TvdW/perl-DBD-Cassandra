@@ -6,6 +6,8 @@ use warnings;
 use Scalar::Util 'weaken';
 use Cassandra::Client::Util;
 use List::Util 'shuffle';
+use Cassandra::Client::Policy::LoadBalancing::Default;
+use Cassandra::Client::NetworkStatus;
 
 sub new {
     my ($class, %args)= @_;
@@ -14,6 +16,7 @@ sub new {
         options => $args{options},
         metadata => $args{metadata},
         max_connections => $args{options}{max_connections},
+        policy => Cassandra::Client::Policy::LoadBalancing::Default->new(),
 
         shutdown => 0,
         pool => {},
@@ -25,16 +28,42 @@ sub new {
 
         i => 0,
 
-        master_id => undef,
-        master_selection => undef,
-        network_status => undef,
-
         connecting => {},
         wait_connect => [],
-        datacenter => undef,
     }, $class;
     weaken($self->{client});
+    $self->{network_status}= Cassandra::Client::NetworkStatus->new(pool => $self);
     return $self;
+}
+
+sub init {
+    my ($self, $callback, $first_connection)= @_;
+
+    # This code can be called twice.
+
+    # If we didn't have a datacenter pinned before, now we do
+    $self->{policy}{datacenter} ||= $first_connection->{datacenter};
+
+    $self->add($first_connection);
+    $self->{policy}->set_connected($first_connection->ip_address);
+
+    # Master selection, warmup, etc
+    series([
+        sub {
+            my ($next)= @_;
+            $self->{network_status}->init($next);
+        },
+        sub {
+            my ($next)= @_;
+
+            if ($self->{config}{warmup}) {
+                $self->connect_if_needed($next);
+            } else {
+                $self->connect_if_needed();
+                return $next->();
+            }
+        },
+    ], $callback);
 }
 
 sub get_one {
@@ -81,11 +110,8 @@ sub remove {
 
     $self->rebuild;
 
-    if ($self->{master_id} && $self->{master_id} == $connection->get_pool_id) {
-        $self->{master_id}= undef;
-        $self->select_master;
-    }
-
+    $self->{policy}->set_disconnected($ipaddress);
+    $self->{network_status}->disconnected($connection->get_pool_id);
     $self->connect_if_needed;
 
     return;
@@ -106,7 +132,11 @@ sub add {
     $self->{id2ip}{$id}= $ipaddress;
 
     $self->rebuild;
-    $self->select_master unless defined $self->{master_id};
+
+    my $waiters= delete $self->{wait_connect};
+    $_->(undef, $connection) for @$waiters;
+
+    $self->{network_status}->select_master(sub{});
 
     return;
 }
@@ -123,33 +153,13 @@ sub rebuild {
 sub shutdown {
     my ($self)= @_;
 
+    $self->{network_status}->shutdown;
     $self->{shutdown}= 1;
 
     my @pool= @{$self->{list}};
     $_->shutdown("Shutting down") for @pool;
 
     return;
-}
-
-sub warmup {
-    my ($self, $callback)= @_;
-
-    # Master selection, warmup, etc
-    series([
-        sub {
-            my ($next)= @_;
-            $self->select_master($next);
-        },
-        sub {
-            my ($next)= @_;
-            if ($self->{config}{warmup}) {
-                $self->connect_if_needed($next);
-            } else {
-                $self->connect_if_needed();
-                return $next->();
-            }
-        },
-    ], $callback);
 }
 
 sub connect_if_needed {
@@ -161,11 +171,7 @@ sub connect_if_needed {
     my $max_connect= $self->{max_connections} - $self->{count};
     return $callback->() if $max_connect <= 0;
 
-    my @attempts= grep {
-               !$self->{pool}{$_}
-            && !$self->{connecting}{$_}
-            && (!$self->{datacenter} || ($self->{datacenter} eq $self->{network_status}{$_}{data_center}))
-        } keys %{$self->{network_status}};
+    my @attempts= $self->{policy}->get_candidate_hosts;
     if (@attempts > $max_connect) {
         @attempts= shuffle @attempts;
         @attempts= @attempts[0..($max_connect-1)];
@@ -176,6 +182,8 @@ sub connect_if_needed {
             my ($next)= @_;
 
             $self->{connecting}{$ip}= 1;
+            $self->{policy}->set_connected($ip);
+
             my $connection= Cassandra::Client::Connection->new(
                 client => $self->{client},
                 options => $self->{options},
@@ -185,21 +193,21 @@ sub connect_if_needed {
             );
             $connection->connect(sub {
                 my ($error)= @_;
-                if (!$error) {
-                    $self->add($connection);
-
-                    my $waiters= delete $self->{wait_connect};
-                    $_->(undef, $connection) for @$waiters;
-                }
                 delete $self->{connecting}{$ip};
+
+                if ($error) {
+                    $self->{policy}->set_disconnected($ip);
+                } else {
+                    $self->add($connection);
+                }
+
                 return $next->(); # Ignore the error
             });
         } } @attempts
     ], sub {
         if (!%{$self->{connecting}} && !$self->{count} && $self->{wait_connect}) {
             my $waiters= delete $self->{wait_connect};
-            # XXX No longer true :-/
-            $_->("Unable to connect: no servers reachable") for @$waiters;
+            $_->("Unable to connect to servers") for @$waiters;
         }
 
         # We can't get errors here, no need to check for them
@@ -207,77 +215,30 @@ sub connect_if_needed {
     });
 }
 
-sub select_master {
-    my ($self, $callback)= @_;
-
-    if (!$callback) {
-        return if $self->{master_selection};
-        return if $self->{shutdown};
-        return if defined $self->{master_id};
-        return unless $self->{count};
-    } else {
-        return $callback->('Shutting down') if $self->{shutdown};
-        return $callback->() if defined $self->{master_id};
-        return $callback->('Not connected') unless $self->{count};
-        if ($self->{master_selection}) {
-            push @{$self->{master_selection}}, $callback;
-            return;
-        }
-    }
-
-    $self->{master_selection}= [ $callback ? $callback : () ];
-
-    # XXX RETRY (important)
-
-    my $new_master= $self->get_one;
-    parallel([
-        sub {
-            my ($next)= @_;
-            $new_master->register_events($next);
-        },
-        sub {
-            my ($next)= @_;
-            $new_master->get_network_status(sub {
-                my ($error, $status)= @_;
-                if ($error) { return $next->($error); }
-
-                $self->{network_status}= $status;
-
-                return $next->();
-            });
-        }
-    ], sub {
-        my ($error)= @_;
-        $self->{master_id}= $new_master->get_pool_id unless $error;
-        my $callbacks= delete $self->{master_selection};
-        $_->($error) for @$callbacks;
-    });
-
-    return;
-}
-
+# Events coming from the network
 sub event_added_node {
     my ($self, $ipaddress)= @_;
-    $self->refresh_network_status;
-    $self->connect_if_needed;
+    $self->{network_status}->event_added_node($ipaddress);
 }
 
 sub event_removed_node {
     my ($self, $ipaddress)= @_;
-    delete $self->{network_status}{$ipaddress};
+    $self->{network_status}->event_removed_node($ipaddress);
 
     if (my $conn= $self->{pool}{$ipaddress}) {
         $conn->shutdown("Removed from pool");
     }
 }
 
-sub refresh_network_status {
-    my ($self)= @_;
-    $self->get_one->get_network_status(sub {
-        my ($error, $status)= @_;
-        $self->{network_status}= $status unless $error;
-    });
-    #XXX Retries are welcome
+# Events coming from network_status
+sub on_new_node {
+    my ($self, $node)= @_;
+    $self->{policy}->on_new_node($node);
+}
+
+sub on_removed_node {
+    my ($self, $node)= @_;
+    $self->{policy}->on_removed_node($node);
 }
 
 1;

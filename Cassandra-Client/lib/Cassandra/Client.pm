@@ -108,9 +108,7 @@ sub _connect {
             },
             sub {
                 my ($next)= @_;
-                $self->{pool}{datacenter}= $connection->{datacenter}; #XXX
-                $self->{pool}->add($connection);
-                $self->{pool}->warmup($next);
+                $self->{pool}->init($next, $connection);
             },
         ], sub {
             my $error= shift;
@@ -575,7 +573,7 @@ Default max page size to pass to the server. This defaults to C<5000>. Note that
 
 =item max_connections
 
-Maximum amount of connections to keep open in the Cassandra connection pool. Defaults to C<2> for historical reasons, will be raised in a future version.
+Maximum amount of connections to keep open in the Cassandra connection pool. Defaults to C<2> for historical reasons, raise this if appropriate.
 
 =item timer_granularity
 
