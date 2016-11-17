@@ -35,14 +35,14 @@ sub should_fail {
     my $fail= ( rand() < (($self->{window_total} - ($self->{ratio} * $self->{window_success})) / ($self->{window_total} + 1)) );
     return unless $fail;
 
-    $self->count(1);
+    $self->count(undef, 1);
     return 1;
 }
 
 sub count {
-    my ($self, $error)= @_;
+    my ($self, $error, $force_error)= @_;
     $self->{window_total}++;
-    my $success= !(ref($error) && $error->{is_timeout});
+    my $success= !(ref($error) && $error->{is_timeout}) && !$force_error;
     push @{$self->{window}}, [ Time::HiRes::time()+$self->{time}, $success ];
     $self->{window_success}++ if $success;
     return;
