@@ -8,7 +8,7 @@ use Cassandra::Client::Util qw/series parallel/;
 use Scalar::Util 'weaken';
 
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
-plan tests => 11;
+plan tests => 13;
 
 {
     # Weaken() sanity
@@ -20,8 +20,11 @@ plan tests => 11;
 my $deinit;
 BEGIN {
     no warnings;
+    no strict 'refs';
+    my $destroy= *{"Cassandra::Client::DESTROY"}{CODE};
     *Cassandra::Client::DESTROY= sub {
         $deinit= 1;
+        goto &$destroy;
     };
 }
 
@@ -47,10 +50,16 @@ $client->execute("delete from $db.test_int where id=5");
     ok(@$rows == 0);
 }
 
+my @conns= values %{$client->{pool}{pool}};
+weaken $_ for @conns;
+ok(0+(grep $_, @conns));
+
 ok(!$deinit);
 $client->shutdown if rand() < 0.5;
 weaken $client;
 ok($deinit);
+
+ok(!grep $_, @conns);
 
 if (!$deinit) {
     if (eval("use Devel::Cycle; use Data::Dumper; 1")) {

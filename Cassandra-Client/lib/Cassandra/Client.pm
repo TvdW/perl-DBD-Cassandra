@@ -398,6 +398,16 @@ sub _each_page {
     return;
 }
 
+sub DESTROY {
+    local $@;
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+
+    my $self= shift;
+    if ($self->{connected}) {
+        $self->shutdown;
+    }
+}
+
 
 # Utility functions for callers
 sub _get_stacktrace {
