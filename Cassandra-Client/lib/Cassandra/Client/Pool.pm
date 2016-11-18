@@ -121,20 +121,14 @@ sub rebuild {
 }
 
 sub shutdown {
-    my ($self, $callback)= @_;
+    my ($self)= @_;
 
     $self->{shutdown}= 1;
 
     my @pool= @{$self->{list}};
-    parallel([
-        map {
-            my $conn= $_;
-            sub {
-                my $next= shift;
-                $conn->shutdown($next, "Shutting down");
-            }
-        } @pool
-    ], $callback);
+    $_->shutdown("Shutting down") for @pool;
+
+    return;
 }
 
 sub warmup {
@@ -273,7 +267,7 @@ sub event_removed_node {
     delete $self->{network_status}{$ipaddress};
 
     if (my $conn= $self->{pool}{$ipaddress}) {
-        $conn->shutdown(undef, "Removed from pool");
+        $conn->shutdown("Removed from pool");
     }
 }
 

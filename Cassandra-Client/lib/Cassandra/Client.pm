@@ -30,7 +30,6 @@ sub new {
         connected         => 0,
         connect_callbacks => undef,
         shutdown          => 0,
-        shutdown_cb       => undef,
 
         active_queries    => 0,
     }, $class;
@@ -131,30 +130,14 @@ sub _connect {
     return;
 }
 
-sub _shutdown {
-    my ($self, $callback)= @_;
+sub shutdown {
+    my ($self)= @_;
 
-    if ($self->{shutdown_cb}) {
-        push @{$self->{shutdown_cb}}, $callback;
-        return;
-    }
-    if ($self->{shutdown} && !$self->{shutdown_cb}) {
-        return _cb($callback);
-    }
-    if (!$self->{connected}) {
-        return _cb($callback, 'Cannot shutdown: not connected');
-    }
-
+    return if $self->{shutdown};
     $self->{shutdown}= 1;
     $self->{connected}= 0;
-    $self->{shutdown_cb}= [$callback];
 
-    $self->{pool}->shutdown(sub {
-        my ($error)= @_;
-        my $cb= $self->{shutdown_cb};
-        $self->{shutdown_cb}= undef;
-        _cb($_, $error) for @$cb;
-    });
+    $self->{pool}->shutdown;
 
     return;
 }
@@ -508,7 +491,6 @@ PUBLIC_METHODS: {
         execute
         each_page
         prepare
-        shutdown
         wait_for_schema_agreement
     /) {
         *{$_}=               _mksync        (\&{"_$_"});

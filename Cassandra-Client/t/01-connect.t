@@ -7,14 +7,14 @@ use Cassandra::Client;
 use AnyEvent;
 
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
-plan tests => 5;
+plan tests => 4;
 
 {
     my $cv= AnyEvent->condvar;
 
     my $client= Cassandra::Client->new( contact_points => [split /,/, $ENV{CASSANDRA_HOST}], username => $ENV{CASSANDRA_USER}, password => $ENV{CASSANDRA_AUTH}, anyevent => 1);
     $client->async_connect->then(sub {
-        $client->async_shutdown
+        $client->shutdown
 
     })->then(sub {
         $cv->send;
@@ -46,8 +46,7 @@ plan tests => 5;
     my ($error)= $client->call_connect;
     ok(!$error) or diag($error);
 
-    ($error)= $client->call_shutdown;
-    ok(!$error) or diag($error);
+    $client->shutdown;
 }
 
 {
@@ -56,8 +55,7 @@ plan tests => 5;
         my $cfuture= $client->future_connect;
         $cfuture->();
 
-        my $sfuture= $client->future_shutdown;
-        $sfuture->();
+        $client->shutdown;
 
         ok(1);
     } or do {

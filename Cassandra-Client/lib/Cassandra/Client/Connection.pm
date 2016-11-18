@@ -734,7 +734,7 @@ sub request {
             # We never actually sent our request, so take it out again
             my $my_stream= delete $pending->{$stream_id};
 
-            $self->shutdown(undef, $error);
+            $self->shutdown($error);
 
             # Now fail our stream properly, but include the retry notice
             $my_stream->[0]->(Cassandra::Client::Error->new(
@@ -818,7 +818,7 @@ READ_MORE:
     }
 
     if ($shutdown_when_done) {
-        $self->shutdown(undef, $shutdown_when_done);
+        $self->shutdown($shutdown_when_done);
     }
 
     return;
@@ -834,7 +834,7 @@ sub can_write {
         }
 
         my $error= "$!";
-        return $self->shutdown(undef, $error);
+        return $self->shutdown($error);
     }
     if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
     substr($self->{pending_write}, 0, $result, '');
@@ -856,13 +856,9 @@ sub can_timeout {
 }
 
 sub shutdown {
-    my ($self, $cb, $shutdown_reason)= @_;
+    my ($self, $shutdown_reason)= @_;
 
-    if ($self->{shutdown}) {
-        $cb->() if $cb;
-        return;
-    }
-
+    return if $self->{shutdown};
     $self->{shutdown}= 1;
 
     my $pending= $self->{pending_streams};
@@ -882,8 +878,6 @@ sub shutdown {
             request_error => 1,
         ));
     }
-
-    $cb->() if $cb;
 
     return;
 }
