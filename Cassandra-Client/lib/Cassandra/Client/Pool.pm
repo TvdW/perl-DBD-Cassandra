@@ -5,7 +5,6 @@ use warnings;
 
 use Scalar::Util 'weaken';
 use Cassandra::Client::Util;
-use List::Util 'shuffle';
 use Cassandra::Client::Policy::LoadBalancing::Default;
 use Cassandra::Client::NetworkStatus;
 
@@ -32,7 +31,7 @@ sub new {
         wait_connect => [],
     }, $class;
     weaken($self->{client});
-    $self->{network_status}= Cassandra::Client::NetworkStatus->new(pool => $self);
+    $self->{network_status}= Cassandra::Client::NetworkStatus->new(pool => $self, async_io => $self->{client}{async_io});
     return $self;
 }
 
@@ -164,55 +163,75 @@ sub shutdown {
 
 sub connect_if_needed {
     my ($self, $callback)= @_;
-    $callback ||= sub{};
-
-    return $callback->("Shutting down") if $self->{shutdown};
 
     my $max_connect= $self->{max_connections} - $self->{count};
-    return $callback->() if $max_connect <= 0;
+    return if $max_connect <= 0;
 
-    my @attempts= $self->{policy}->get_candidate_hosts;
-    if (@attempts > $max_connect) {
-        @attempts= shuffle @attempts;
-        @attempts= @attempts[0..($max_connect-1)];
+    $max_connect -= keys %{$self->{connecting}};
+    return if $max_connect <= 0;
+
+    return if $self->{shutdown};
+
+    if ($self->{_in_connect}) {
+        return;
     }
+    local $self->{_in_connect}= 1;
 
-    parallel([
-        map { my $ip= $_; sub {
-            my ($next)= @_;
+    my $done= 0;
+    my $expect= $max_connect;
+    for (1..$max_connect) {
+        $expect-- unless $self->spawn_new_connection(sub {
+            $done++;
 
-            $self->{connecting}{$ip}= 1;
-            $self->{policy}->set_connected($ip);
+            if ($done == $expect) {
+                $callback->() if $callback;
+            }
+        });
+    }
+    if ($callback && !$expect) {
+        $callback->();
+    }
+}
 
-            my $connection= Cassandra::Client::Connection->new(
-                client => $self->{client},
-                options => $self->{options},
-                host => $ip,
-                async_io => $self->{client}{async_io},
-                metadata => $self->{metadata},
-            );
-            $connection->connect(sub {
-                my ($error)= @_;
-                delete $self->{connecting}{$ip};
+sub spawn_new_connection {
+    my ($self, $callback)= @_;
 
-                if ($error) {
-                    $self->{policy}->set_disconnected($ip);
-                } else {
-                    $self->add($connection);
+    my $host= $self->{policy}->get_next_candidate;
+    return unless $host;
+
+    $self->{connecting}{$host}= 1;
+    $self->{policy}->set_connected($host);
+
+    my $connection= Cassandra::Client::Connection->new(
+        client => $self->{client},
+        options => $self->{options},
+        host => $host,
+        async_io => $self->{client}{async_io},
+        metadata => $self->{metadata},
+    );
+    $connection->connect(sub {
+        my ($error)= @_;
+
+        delete $self->{connecting}{$host};
+        if ($error) {
+            $self->{policy}->set_disconnected($host);
+
+            if (my $waiters= delete $self->{wait_connect}) {
+                if ($self->{count} && @$waiters) {
+                    warn 'We have callbacks waiting for a connection while we\'re connected';
                 }
+                $_->("Failed to connect to server") for @$waiters;
+            }
 
-                return $next->(); # Ignore the error
-            });
-        } } @attempts
-    ], sub {
-        if (!%{$self->{connecting}} && !$self->{count} && $self->{wait_connect}) {
-            my $waiters= delete $self->{wait_connect};
-            $_->("Unable to connect to servers") for @$waiters;
+            $self->connect_if_needed;
+        } else {
+            $self->add($connection);
         }
 
-        # We can't get errors here, no need to check for them
-        $callback->();
+        $callback->($error);
     });
+
+    return 1;
 }
 
 # Events coming from the network

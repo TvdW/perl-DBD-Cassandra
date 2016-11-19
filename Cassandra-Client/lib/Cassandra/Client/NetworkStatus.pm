@@ -11,6 +11,7 @@ sub new {
 
     my $self= bless {
         pool => $args{pool},
+        async_io => $args{async_io},
 
         waiting_for_cb => [],
         master_id => undef,
@@ -36,6 +37,7 @@ sub select_master {
     }
     push @{$self->{waiting_for_cb}}, $callback;
 
+    my $attempts= 0;
     whilst(
         sub { # condition
             !$self->{shutdown} && !$self->{master_id}
@@ -43,6 +45,15 @@ sub select_master {
         sub { # while
             my ($wnext)= @_;
             series([
+                sub {
+                    my ($next)= @_;
+                    if ($attempts++) {
+                        # Don't retry immediately
+                        $self->{async_io}->timer($next, 1);
+                    } else {
+                        $next->();
+                    }
+                },
                 sub {
                     my ($next)= @_;
                     $self->{pool}->get_one_cb($next);
@@ -69,7 +80,6 @@ sub select_master {
                     $next->();
                 },
             ], sub {
-                # XXX Immediately retrying here is a bad idea, ddos alert
                 $wnext->();
             });
         },

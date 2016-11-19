@@ -2,6 +2,7 @@ package Cassandra::Client::Policy::LoadBalancing::Default;
 use 5.010;
 use strict;
 use warnings;
+use List::Util 'shuffle';
 
 sub new {
     my ($class, %args)= @_;
@@ -10,6 +11,7 @@ sub new {
         nodes => {},
         local_nodes => {},
         connected => {},
+        candidates => [],
     }, $class;
 }
 
@@ -53,9 +55,16 @@ sub on_removed_node {
     delete $self->{local_nodes}{$peer};
 }
 
-sub get_candidate_hosts {
+sub get_next_candidate {
     my ($self)= @_;
-    return grep { !$self->{connected}{$_} } keys %{$self->{local_nodes}};
+    my $candidates= $self->{candidates};
+    while (my $maybe= shift @$candidates) {
+        if ($self->{local_nodes}{$maybe} && !$self->{connected}{$maybe}) {
+            return $maybe;
+        }
+    }
+    @$candidates= shuffle grep { !$self->{connected}{$_} } keys %{$self->{local_nodes}};
+    return shift @$candidates;
 }
 
 sub set_connected {
