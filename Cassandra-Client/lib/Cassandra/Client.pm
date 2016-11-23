@@ -48,6 +48,7 @@ sub new {
         client   => $self,
         options  => $options,
         metadata => $metadata,
+        async_io => $async_io,
     );
     my $command_queue= Cassandra::Client::Policy::Queue::Default->new(
         %{ $options->{command_queue_config} || {} },

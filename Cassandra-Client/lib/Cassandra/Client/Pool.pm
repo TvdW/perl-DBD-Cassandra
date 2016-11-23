@@ -15,6 +15,7 @@ sub new {
         options => $args{options},
         metadata => $args{metadata},
         max_connections => $args{options}{max_connections},
+        async_io => $args{async_io},
         policy => Cassandra::Client::Policy::LoadBalancing::Default->new(),
 
         shutdown => 0,
@@ -31,7 +32,7 @@ sub new {
         wait_connect => [],
     }, $class;
     weaken($self->{client});
-    $self->{network_status}= Cassandra::Client::NetworkStatus->new(pool => $self, async_io => $self->{client}{async_io});
+    $self->{network_status}= Cassandra::Client::NetworkStatus->new(pool => $self, async_io => $args{async_io});
     return $self;
 }
 
@@ -206,7 +207,7 @@ sub spawn_new_connection {
         client => $self->{client},
         options => $self->{options},
         host => $host,
-        async_io => $self->{client}{async_io},
+        async_io => $self->{async_io},
         metadata => $self->{metadata},
     );
     $connection->connect(sub {
