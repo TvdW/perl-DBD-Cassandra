@@ -3,6 +3,8 @@ use 5.010;
 use strict;
 use warnings;
 
+use Encode;
+
 require Exporter;
 our @ISA= qw(Exporter);
 
