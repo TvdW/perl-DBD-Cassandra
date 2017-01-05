@@ -187,13 +187,21 @@ sub _prepare {
 
 sub _execute {
     my ($self, $callback, $query, $params, $attribs)= @_;
-    $self->_command("execute_prepared", $callback, [ \$query, clone($params), clone($attribs) ]);
+
+    my $attribs_clone= clone($attribs);
+    $attribs_clone->{consistency} ||= $self->{options}{default_consistency};
+
+    $self->_command("execute_prepared", $callback, [ \$query, clone($params), $attribs_clone ]);
     return;
 }
 
 sub _batch {
     my ($self, $callback, $queries, $attribs)= @_;
-    $self->_command("execute_batch", $callback, [ clone($queries), clone($attribs) ]);
+
+    my $attribs_clone= clone($attribs);
+    $attribs_clone->{consistency} ||= $self->{options}{default_consistency};
+
+    $self->_command("execute_batch", $callback, [ clone($queries), $attribs_clone ]);
     return;
 }
 

@@ -80,7 +80,7 @@ sub get_local_status {
     series([
         sub {
             my ($next)= @_;
-            $self->execute_prepared($next, \"select key, data_center, host_id, broadcast_address, rack, release_version, tokens, schema_version from system.local", undef, { consistency => 'local_one' });
+            $self->execute_prepared($next, \"select key, data_center, host_id, broadcast_address, rack, release_version, tokens, schema_version from system.local");
         },
         sub {
             my ($next, $result)= @_;
@@ -109,7 +109,7 @@ sub get_peers_status {
     series([
         sub {
             my ($next)= @_;
-            $self->execute_prepared($next, \"select peer, data_center, host_id, preferred_ip, rack, release_version, tokens, schema_version from system.peers", undef, { consistency => 'local_one' });
+            $self->execute_prepared($next, \"select peer, data_center, host_id, preferred_ip, rack, release_version, tokens, schema_version from system.peers");
         },
         sub {
             my ($next, $result)= @_;
@@ -186,10 +186,9 @@ sub execute_prepared {
         };
     }
 
-    my $chosen_consistency= $attr->{consistency} || $self->{options}{default_consistency};
-    my $consistency= ($chosen_consistency ? $consistency_lookup{$chosen_consistency} : CONSISTENCY_ONE);
+    my $consistency= $consistency_lookup{$attr->{consistency} || 'one'};
     if (!defined $consistency) {
-        return $callback->("Invalid consistency level specified");
+        return $callback->("Invalid consistency level specified: $consistency");
     }
 
     my $page_size= (0+($attr->{page_size} || $self->{options}{max_page_size} || 0)) || undef;
@@ -280,10 +279,9 @@ sub execute_batch {
         }
     }
 
-    my $chosen_consistency= $attribs->{consistency} || $self->{options}{default_consistency};
-    my $consistency= ($chosen_consistency ? $consistency_lookup{$chosen_consistency} : CONSISTENCY_ONE);
+    my $consistency= $consistency_lookup{$attribs->{consistency} || 'one'};
     if (!defined $consistency) {
-        return $callback->("Invalid consistency level specified");
+        return $callback->("Invalid consistency level specified: $consistency");
     }
 
     my $batch_frame= pack('Cn', $batch_type, (0+@prepared));
@@ -542,7 +540,7 @@ sub handshake {
         sub {
             my ($next)= @_;
             if ($self->{options}{keyspace}) {
-                return $self->execute_prepared($next, \('use "'.$self->{options}{keyspace}.'"'), undef, { consistency => 'local_one' });
+                return $self->execute_prepared($next, \('use "'.$self->{options}{keyspace}.'"'));
             }
             return $next->();
         },
