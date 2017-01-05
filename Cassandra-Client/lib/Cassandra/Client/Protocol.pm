@@ -251,6 +251,10 @@ sub unpack_stringlist {
 
 # TYPE: bytes
 sub pack_bytes {
+    if (utf8::is_utf8($_[0])) {
+        warn 'BUG: utf8 data passed to pack_bytes';
+        Encode::_utf8_off($_[0]);
+    }
     defined $_[0] ? (pack_int(length($_[0])).$_[0]) : pack_int(-1)
 }
 
@@ -269,6 +273,10 @@ sub unpack_bytes {
 
 # TYPE: shortbytes
 sub pack_shortbytes {
+    if (utf8::is_utf8($_[0])) {
+        warn 'BUG: utf8 data passed to pack_shortbytes';
+        Encode::_utf8_off($_[0]);
+    }
     defined $_[0] ? (pack_short(length($_[0])).$_[0]) : pack_short(-1)
 }
 

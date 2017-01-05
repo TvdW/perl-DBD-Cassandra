@@ -573,8 +573,10 @@ sub handshake {
 sub authenticate {
     my ($self, $callback, $authenticator)= @_;
 
-    my $user= $self->{options}{username};
-    my $pass= $self->{options}{password};
+    my $user= "$self->{options}{username}";
+    my $pass= "$self->{options}{password}";
+    utf8::encode($user) if utf8::is_utf8($user);
+    utf8::encode($pass) if utf8::is_utf8($pass);
 
     if (!$user || !$pass) {
         return $callback->("Server expected authentication using <$authenticator> but no credentials were set");
