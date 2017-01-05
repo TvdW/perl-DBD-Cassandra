@@ -207,7 +207,11 @@ sub execute_prepared {
         }
 
         if ($code != OPCODE_RESULT) {
-            return $callback->("Expected a RESULT frame but got something else; considering the query failed");
+            # This shouldn't ever happen...
+            return $callback->(Cassandra::Client::Error->new(
+                message         => "Expected a RESULT frame but got something else; considering the query failed",
+                request_error   => 1,
+            ));
         }
 
         $self->decode_result($callback, $prepared, $_[2]);
@@ -302,7 +306,11 @@ sub execute_batch {
         }
 
         if ($code != OPCODE_RESULT) {
-            return $callback->("Expected a RESULT frame but got something else; considering the query failed");
+            # This shouldn't ever happen...
+            return $callback->(Cassandra::Client::Error->new(
+                message         => "Expected a RESULT frame but got something else; considering the batch failed",
+                request_error   => 1,
+            ));
         }
 
         $self->decode_result($callback, undef, $_[2]);
