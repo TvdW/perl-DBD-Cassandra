@@ -8,6 +8,9 @@ use Ref::Util qw/is_arrayref/;
 use IO::Socket::INET;
 use Errno;
 use Socket qw/SOL_SOCKET IPPROTO_TCP SO_KEEPALIVE TCP_NODELAY/;
+use Scalar::Util qw/weaken/;
+use Net::SSLeay qw/ERROR_WANT_READ ERROR_WANT_WRITE ERROR_NONE/;
+
 use Cassandra::Client::Util;
 use Cassandra::Client::Protocol qw/
     :constants
@@ -35,7 +38,7 @@ use Cassandra::Client::Decoder qw/
 /;
 use Cassandra::Client::Error;
 use Cassandra::Client::ResultSet;
-use Scalar::Util qw/weaken/;
+use Cassandra::Client::TLSHandling;
 
 use constant STREAM_ID_LIMIT => 32768;
 
@@ -68,6 +71,9 @@ sub new {
         pending_write   => undef,
         shutdown        => 0,
         read_buffer     => \(my $empty= ''),
+
+        tls             => undef,
+        tls_want_write  => undef,
     }, $class;
     weaken($self->{async_io});
     weaken($self->{client});
@@ -649,6 +655,17 @@ sub connect {
 
     $self->{connecting}= [$callback];
 
+    if ($self->{options}{tls}) {
+        eval {
+            $self->{tls}= $self->{client}{tls}->new_conn;
+            1;
+        } or do {
+            my $error= $@ || "unknown TLS error";
+            $_->($error) for @{delete $self->{connecting}};
+            return;
+        };
+    }
+
     my $socket; {
         local $@;
 
@@ -660,7 +677,9 @@ sub connect {
         );
 
         unless ($socket) {
-            return $callback->("Could not connect: $@");
+            my $error= "Could not connect: $@";
+            $_->($error) for @{delete $self->{connecting}};
+            return;
         }
 
         $socket->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1);
@@ -669,7 +688,18 @@ sub connect {
 
     $self->{socket}= $socket;
     $self->{fileno}= $socket->fileno;
-    $self->setup_io;
+    $self->{async_io}->register($self->{fileno}, $self);
+    $self->{async_io}->register_read($self->{fileno});
+
+    # We create a fake buffer, to ensure we wait until we can actually write
+    $self->{pending_write}= '';
+    $self->{async_io}->register_write($self->{fileno});
+
+    if ($self->{options}{tls}) {
+        Net::SSLeay::set_fd(${$self->{tls}}, $self->{fileno});
+        Net::SSLeay::set_connect_state(${$self->{tls}});
+    }
+
     $self->handshake(sub {
         my $st= shift;
         $self->{connected}= 1;
@@ -677,16 +707,6 @@ sub connect {
         undef $self->{connecting};
     });
 
-    return;
-}
-
-sub setup_io {
-    my ($self)= @_;
-    $self->{async_io}->register($self->{fileno}, $self);
-    $self->{async_io}->register_read($self->{fileno});
-
-    $self->{pending_write}= '';
-    $self->{async_io}->register_write($self->{fileno});
     return;
 }
 
@@ -727,29 +747,69 @@ sub request {
             last WRITE;
         }
 
-        my $length= length $data;
-        my $result= syswrite($self->{socket}, $data, $length);
-        if ($result && $result == $length) {
-            # All good
-        } elsif (defined $result || $!{EAGAIN}) {
-            substr($data, 0, $result, '') if $result;
-            $self->{pending_write}= $data;
-            $self->{async_io}->register_write($self->{fileno});
+        if ($self->{tls}) {
+            my $length= length $data;
+            my $rv= Net::SSLeay::write(${$self->{tls}}, $data);
+            if ($rv == $length) {
+                # All good
+            } elsif ($rv > 0) {
+                # Partital write
+                substr($data, 0, $rv, '');
+                $self->{pending_write}= $data;
+                $self->{async_io}->register_write($self->{fileno});
+            } else {
+                $rv= Net::SSLeay::get_error(${$self->{tls}}, $rv);
+                if ($rv == ERROR_WANT_WRITE || $rv == ERROR_WANT_READ || $rv == ERROR_NONE) {
+                    # Ok...
+                    $self->{pending_write}= $data;
+                    if ($rv == ERROR_WANT_READ) {
+                        $self->{tls_want_write}= 1;
+                    } else {
+                        $self->{async_io}->register_write($self->{fileno});
+                    }
+                } else {
+                    # We failed to send the request.
+                    my $error= Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+
+                    # We never actually sent our request, so take it out again
+                    my $my_stream= delete $pending->{$stream_id};
+
+                    $self->shutdown($error);
+
+                    # Now fail our stream properly, but include the retry notice
+                    $my_stream->[0]->(Cassandra::Client::Error->new(
+                        message       => "Disconnected: $error",
+                        do_retry      => 1,
+                        request_error => 1,
+                    ));
+                }
+            }
+
         } else {
-            # Oh, we failed to send out the request. That's bad. Let's first find out what happened.
-            my $error= $!;
+            my $length= length $data;
+            my $result= syswrite($self->{socket}, $data, $length);
+            if ($result && $result == $length) {
+                # All good
+            } elsif (defined $result || $!{EAGAIN}) {
+                substr($data, 0, $result, '') if $result;
+                $self->{pending_write}= $data;
+                $self->{async_io}->register_write($self->{fileno});
+            } else {
+                # Oh, we failed to send out the request. That's bad. Let's first find out what happened.
+                my $error= $!;
 
-            # We never actually sent our request, so take it out again
-            my $my_stream= delete $pending->{$stream_id};
+                # We never actually sent our request, so take it out again
+                my $my_stream= delete $pending->{$stream_id};
 
-            $self->shutdown($error);
+                $self->shutdown($error);
 
-            # Now fail our stream properly, but include the retry notice
-            $my_stream->[0]->(Cassandra::Client::Error->new(
-                message       => "Disconnected: $error",
-                do_retry      => 1,
-                request_error => 1,
-            ));
+                # Now fail our stream properly, but include the retry notice
+                $my_stream->[0]->(Cassandra::Client::Error->new(
+                    message       => "Disconnected: $error",
+                    do_retry      => 1,
+                    request_error => 1,
+                ));
+            }
         }
     }
 
@@ -764,19 +824,50 @@ sub can_read {
 
 READ:
     while (!$self->{shutdown}) {
-        my $read_cnt= sysread($self->{socket}, $BUFFER, 10240, $bufsize);
         my $read_something;
-        if ($read_cnt) {
-            $bufsize += $read_cnt;
-            $read_something= 1;
 
-        } elsif (!defined $read_cnt) {
-            if (!$!{EAGAIN}) {
-                my $error= "$!";
-                $shutdown_when_done= $error;
+        if ($self->{tls}) {
+            my ($bytes, $rv)= Net::SSLeay::read(${$self->{tls}});
+            if (length $bytes) {
+                $BUFFER .= $bytes;
+                $bufsize += $rv;
+                $read_something= 1;
             }
-        } elsif ($read_cnt == 0) { # EOF
-            $shutdown_when_done= "Disconnected from server";
+
+            if ($rv <= 0) {
+                $rv= Net::SSLeay::get_error(${$self->{tls}}, $rv);
+                if ($rv == ERROR_WANT_WRITE) {
+                    $self->{async_io}->register_write($self->{fileno});
+                } elsif ($rv == ERROR_WANT_READ) {
+                    # Can do! Wait for the next event.
+
+                    # Resume our write if needed.
+                    if (delete $self->{tls_want_write}) {
+                        # Try our write again!
+                        $self->{async_io}->register_write($self->{fileno});
+                    }
+                } elsif ($rv == ERROR_NONE) {
+                    # Huh?
+                } else {
+                    my $error= Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+                    $shutdown_when_done= "TLS error: $error";
+                }
+            }
+
+        } else {
+            my $read_cnt= sysread($self->{socket}, $BUFFER, 10240, $bufsize);
+            if ($read_cnt) {
+                $bufsize += $read_cnt;
+                $read_something= 1;
+
+            } elsif (!defined $read_cnt) {
+                if (!$!{EAGAIN}) {
+                    my $error= "$!";
+                    $shutdown_when_done= $error;
+                }
+            } elsif ($read_cnt == 0) { # EOF
+                $shutdown_when_done= "Disconnected from server";
+            }
         }
 
 READ_NEXT:
@@ -835,21 +926,52 @@ READ_MORE:
 sub can_write {
     my ($self)= @_;
 
-    my $result= syswrite($self->{socket}, $self->{pending_write});
-    if (!defined($result)) {
-        if ($!{EAGAIN}) {
-            return; # Huh. Oh well, whatever
+    if ($self->{tls}) {
+        my $rv= Net::SSLeay::write(${$self->{tls}}, $self->{pending_write});
+        if ($rv > 0) {
+            substr($self->{pending_write}, 0, $rv, '');
+            if (!length $self->{pending_write}) {
+                $self->{async_io}->unregister_write($self->{fileno});
+                delete $self->{pending_write};
+            }
+            return;
+
+        } else {
+            $rv= Net::SSLeay::get_error(${$self->{tls}}, $rv);
+            if ($rv == ERROR_WANT_WRITE) {
+                # Wait until the next callback.
+                return;
+            } elsif ($rv == ERROR_WANT_READ) {
+                # Unschedule ourselves
+                $self->{async_io}->unregister_write($self->{fileno});
+                $self->{tls_want_write}= 1;
+                return;
+            } elsif ($rv == ERROR_NONE) {
+                # Huh?
+                return;
+            } else {
+                my $error= Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+                return $self->shutdown("TLS error: $error");
+            }
         }
 
-        my $error= "$!";
-        return $self->shutdown($error);
-    }
-    if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
-    substr($self->{pending_write}, 0, $result, '');
+    } else {
+        my $result= syswrite($self->{socket}, $self->{pending_write});
+        if (!defined($result)) {
+            if ($!{EAGAIN}) {
+                return; # Huh. Oh well, whatever
+            }
 
-    if (!length $self->{pending_write}) {
-        $self->{async_io}->unregister_write($self->{fileno});
-        delete $self->{pending_write};
+            my $error= "$!";
+            return $self->shutdown($error);
+        }
+        if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
+        substr($self->{pending_write}, 0, $result, '');
+
+        if (!length $self->{pending_write}) {
+            $self->{async_io}->unregister_write($self->{fileno});
+            delete $self->{pending_write};
+        }
     }
 
     return;

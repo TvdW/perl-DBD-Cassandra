@@ -24,6 +24,7 @@ sub new {
         max_concurrent_queries  => 1000,
         command_queue           => "Default",
         command_queue_config    => undef,
+        tls                     => 0,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -33,7 +34,7 @@ sub new {
     } else { die "contact_points not specified"; }
 
     # Booleans
-    for (qw/anyevent warmup/) {
+    for (qw/anyevent warmup tls/) {
         if (exists($config->{$_})) {
             $self->{$_}= !!$config->{$_};
         }

@@ -16,6 +16,7 @@ use Cassandra::Client::Policy::Retry::Default;
 use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Throttle::Adaptive;
 use Cassandra::Client::Pool;
+use Cassandra::Client::TLSHandling;
 use Cassandra::Client::Util qw/series whilst/;
 
 use Clone qw/clone/;
@@ -54,6 +55,7 @@ sub new {
         %{ $options->{command_queue_config} || {} },
     );
     my $retry_policy= Cassandra::Client::Policy::Retry::Default->new();
+    my $tls= $options->{tls} ? Cassandra::Client::TLSHandling->new() : undef;
 
     $self->{options}= $options;
     $self->{async_io}= $async_io;
@@ -61,6 +63,7 @@ sub new {
     $self->{pool}= $pool;
     $self->{command_queue}= $command_queue;
     $self->{retry_policy}= $retry_policy;
+    $self->{tls}= $tls;
     if ($options->{throttler}) {
         $options->{throttler}= 'Adaptive' if $options->{throttler} eq 'AdaptiveThrottler'; # Temporary.
         my $throttler_class= "Cassandra::Client::Policy::Throttle::$options->{throttler}";

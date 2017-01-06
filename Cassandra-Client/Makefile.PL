@@ -27,6 +27,7 @@ WriteMakefile(
         'Ref::Util' => '0.008',
         'EV' => '4.0',
         'Sub::Current' => '0.02',
+        'Net::SSLeay' => '1.63',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Cassandra-Client-*' },
