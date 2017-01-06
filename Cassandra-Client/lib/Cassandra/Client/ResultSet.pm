@@ -35,6 +35,28 @@ sub rows {
     $_[0]{rows}
 }
 
+=item $result->row_hashes()
+
+Returns an arrayref of all rows in the ResultSet. Each row will be represented as a hashref with cells.
+
+=cut
+
+sub row_hashes {
+    my $self= shift;
+    my $rows= $self->rows;
+    my @names= @{$self->column_names};
+
+    my @result;
+
+    for my $row (@$rows) {
+        my $newrow= {};
+        @{$newrow}{@names}= @$row;
+        push @result, $newrow;
+    }
+
+    return \@result;
+}
+
 =item $result->column_names()
 
 Returns an arrayref with the names of the columns in the result set, to be used with rows returned from C<rows()>.

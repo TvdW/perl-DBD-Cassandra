@@ -6,7 +6,7 @@ use Test::More;
 use Cassandra::Client;
 
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
-plan tests => 4;
+plan tests => 5;
 
 my $client= Cassandra::Client->new( contact_points => [split /,/, $ENV{CASSANDRA_HOST}], username => $ENV{CASSANDRA_USER}, password => $ENV{CASSANDRA_AUTH}, anyevent => (rand()<.5) );
 $client->connect();
@@ -22,6 +22,13 @@ $client->execute("insert into $db.test_int (id, value) values (5, 6)");
     ok(@$rows == 1);
     ok($rows->[0][0] == 5);
     ok($rows->[0][1] == 6);
+    my $hashes= $result->row_hashes;
+    is_deeply($hashes, [
+        {
+            id => 5,
+            value => 6,
+        }
+    ]);
 }
 
 $client->execute("delete from $db.test_int where id=5");
