@@ -291,7 +291,7 @@ sub execute_batch {
 
     my $consistency= $consistency_lookup{$attribs->{consistency} || 'one'};
     if (!defined $consistency) {
-        return $callback->("Invalid consistency level specified: $attr->{consistency}");
+        return $callback->("Invalid consistency level specified: $attribs->{consistency}");
     }
 
     my $batch_frame= pack('Cn', $batch_type, (0+@prepared));
