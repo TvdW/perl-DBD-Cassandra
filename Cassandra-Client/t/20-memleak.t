@@ -9,7 +9,7 @@ use Scalar::Util 'weaken';
 use Socket qw/PF_INET SOCK_STREAM/;
 
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
-plan tests => 13;
+plan tests => 14;
 
 {
     # Weaken() sanity
@@ -84,8 +84,8 @@ ok(!grep $_, @conns);
 
 my @fd_sequence_done= get_fd_sequence(100);
 if (join(',', @fd_sequence_init) ne join(',', @fd_sequence_init2)) {
-    diag('Disabling FD sequence checker, does not seem supported');
-} elsif (join(',', @fd_sequence_init) ne join(',', @fd_sequence_done)) {
+    ok(1) and diag('Disabling FD sequence checker, does not seem supported');
+} else {
     my %cur= map { $_, 1 } @fd_sequence_done;
     my @mismatch= grep { !$cur{$_} } @fd_sequence_init;
     my @where= map { readlink("/proc/$$/fd/$_") } @mismatch;

@@ -9,6 +9,7 @@ Revision history for Cassandra-Client
       * Support for UTF-8 authentication data
       * Convenience method row_hashes() on a ResultSet
       * TLS support
+      * Make sure file handles always get closed when shutdown() is called
 
 0.09    2016/11/15
 

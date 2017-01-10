@@ -159,6 +159,9 @@ sub shutdown {
     my @pool= @{$self->{list}};
     $_->shutdown("Shutting down") for @pool;
 
+    my @connecting= values %{$self->{connecting}};
+    $_->shutdown("Shutting down") for @connecting;
+
     return;
 }
 
@@ -200,9 +203,6 @@ sub spawn_new_connection {
     my $host= $self->{policy}->get_next_candidate;
     return unless $host;
 
-    $self->{connecting}{$host}= 1;
-    $self->{policy}->set_connected($host);
-
     my $connection= Cassandra::Client::Connection->new(
         client => $self->{client},
         options => $self->{options},
@@ -210,6 +210,10 @@ sub spawn_new_connection {
         async_io => $self->{async_io},
         metadata => $self->{metadata},
     );
+
+    $self->{connecting}{$host}= $connection;
+    $self->{policy}->set_connected($host);
+
     $connection->connect(sub {
         my ($error)= @_;
 
