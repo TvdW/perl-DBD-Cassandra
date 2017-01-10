@@ -648,12 +648,11 @@ sub connect {
     my ($self, $callback)= @_;
     return $callback->() if $self->{connected};
 
-    if ($self->{connecting}) {
-        push @{$self->{connecting}}, $callback;
+    if ($self->{connecting}++) {
+        warn "BUG: Calling connect twice?";
+        return $callback->("Internal bug: called connect twice.");
         return;
     }
-
-    $self->{connecting}= [$callback];
 
     if ($self->{options}{tls}) {
         eval {
@@ -661,8 +660,7 @@ sub connect {
             1;
         } or do {
             my $error= $@ || "unknown TLS error";
-            $_->($error) for @{delete $self->{connecting}};
-            return;
+            return $callback->($error);
         };
     }
 
@@ -678,8 +676,7 @@ sub connect {
 
         unless ($socket) {
             my $error= "Could not connect: $@";
-            $_->($error) for @{delete $self->{connecting}};
-            return;
+            return $callback->($error);
         }
 
         $socket->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1);
@@ -701,10 +698,9 @@ sub connect {
     }
 
     $self->handshake(sub {
-        my $st= shift;
+        my $error= shift;
         $self->{connected}= 1;
-        $_->($st) for @{$self->{connecting}};
-        undef $self->{connecting};
+        return $callback->($error);
     });
 
     return;
