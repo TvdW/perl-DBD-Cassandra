@@ -194,7 +194,7 @@ sub execute_prepared {
 
     my $consistency= $consistency_lookup{$attr->{consistency} || 'one'};
     if (!defined $consistency) {
-        return $callback->("Invalid consistency level specified: $consistency");
+        return $callback->("Invalid consistency level specified: $attr->{consistency}");
     }
 
     my $page_size= (0+($attr->{page_size} || $self->{options}{max_page_size} || 0)) || undef;
@@ -291,7 +291,7 @@ sub execute_batch {
 
     my $consistency= $consistency_lookup{$attribs->{consistency} || 'one'};
     if (!defined $consistency) {
-        return $callback->("Invalid consistency level specified: $consistency");
+        return $callback->("Invalid consistency level specified: $attr->{consistency}");
     }
 
     my $batch_frame= pack('Cn', $batch_type, (0+@prepared));
