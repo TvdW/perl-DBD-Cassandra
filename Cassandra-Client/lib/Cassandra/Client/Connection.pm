@@ -700,6 +700,9 @@ sub connect {
     $self->handshake(sub {
         my $error= shift;
         $self->{connected}= 1;
+        if ($error) {
+            $self->shutdown("Failed to connect: $error");
+        }
         return $callback->($error);
     });
 

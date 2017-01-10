@@ -6,6 +6,7 @@ use Test::More;
 use Cassandra::Client;
 use Cassandra::Client::Util qw/series parallel/;
 use Scalar::Util 'weaken';
+use Socket qw/PF_INET SOCK_STREAM/;
 
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
 plan tests => 13;
@@ -15,6 +16,23 @@ plan tests => 13;
     my $h= {};
     weaken($h);
     ok(!$h) or diag("Our weaken() sucks.");
+}
+
+sub get_fd_sequence {
+    my ($count)= @_;
+    my @sockets;
+    for (1..$count) {
+        socket(my $sock, PF_INET, SOCK_STREAM, 0) or die $!;
+        push @sockets, $sock;
+    }
+
+    my @sequence;
+    while (my $sock= shift @sockets) {
+        push @sequence, fileno($sock);
+        close($sock);
+    }
+
+    return @sequence;
 }
 
 my $deinit;
@@ -27,6 +45,9 @@ BEGIN {
         goto &$destroy;
     };
 }
+
+my @fd_sequence_init= get_fd_sequence(100);
+my @fd_sequence_init2= get_fd_sequence(100);
 
 my $client= Cassandra::Client->new( contact_points => [split /,/, $ENV{CASSANDRA_HOST}], username => $ENV{CASSANDRA_USER}, password => $ENV{CASSANDRA_AUTH}, anyevent => (rand()<.5) );
 $client->connect();
@@ -60,6 +81,18 @@ weaken $client;
 ok($deinit);
 
 ok(!grep $_, @conns);
+
+my @fd_sequence_done= get_fd_sequence(100);
+if (join(',', @fd_sequence_init) ne join(',', @fd_sequence_init2)) {
+    diag('Disabling FD sequence checker, does not seem supported');
+} elsif (join(',', @fd_sequence_init) ne join(',', @fd_sequence_done)) {
+    my %cur= map { $_, 1 } @fd_sequence_done;
+    my @mismatch= grep { !$cur{$_} } @fd_sequence_init;
+    my @where= map { readlink("/proc/$$/fd/$_") } @mismatch;
+    my @real_mismatch= grep /socket/, @where;
+    my $count= @real_mismatch;
+    ok($count == 0, "$count file handles were not closed");
+}
 
 if (!$deinit) {
     if (eval("use Devel::Cycle; use Data::Dumper; 1")) {
