@@ -85,6 +85,8 @@ ok(!grep $_, @conns);
 my @fd_sequence_done= get_fd_sequence(100);
 if (join(',', @fd_sequence_init) ne join(',', @fd_sequence_init2)) {
     ok(1) and diag('Disabling FD sequence checker, does not seem supported');
+} elsif (! -d "/proc/$$/fd") {
+    ok(1) and diag('Disabling FD sequence checker, we don\'t have a useful /proc');
 } else {
     my %cur= map { $_, 1 } @fd_sequence_done;
     my @mismatch= grep { !$cur{$_} } @fd_sequence_init;
