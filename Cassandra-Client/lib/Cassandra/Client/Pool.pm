@@ -86,7 +86,10 @@ sub get_one_cb {
         return $callback->("Disconnected: all servers unreachable");
     }
 
-    push @{$self->{wait_connect} ||= []}, $callback;
+    push @{$self->{wait_connect} ||= []}, {
+        callback => $callback,
+        attempts => 0,
+    };
 }
 
 sub remove {
@@ -134,7 +137,7 @@ sub add {
     $self->rebuild;
 
     my $waiters= delete $self->{wait_connect};
-    $_->(undef, $connection) for @$waiters;
+    $_->{callback}->(undef, $connection) for @$waiters;
 
     $self->{network_status}->select_master(sub{});
 
@@ -225,7 +228,13 @@ sub spawn_new_connection {
                 if ($self->{count} && @$waiters) {
                     warn 'We have callbacks waiting for a connection while we\'re connected';
                 }
-                $_->("Failed to connect to server") for @$waiters;
+                for my $waiter (@$waiters) {
+                    if ($waiter->{attempts}++ || !%{$self->{connecting}}) {
+                        $waiter->{callback}->("Failed to connect to server");
+                    } else {
+                        push @{$self->{wait_connect} ||= []}, $waiter;
+                    }
+                }
             }
 
             $self->connect_if_needed;
