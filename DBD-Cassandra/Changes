@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.54    2017/01/30
+
+      * Require a newer version of Cassandra::Client
+
 0.53    2016/10/25
 
       * No more Perl 5.8 support -- 5.10 is now required

@@ -1,6 +1,6 @@
 Revision history for Cassandra-Client
 
-0.10    unreleased
+0.10    2017/01/30
 
       * Add a retry policy implementation for generic request failures
       * Throttler: finally fix the feedback mechanism

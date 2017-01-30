@@ -21,7 +21,7 @@ WriteMakefile(
     },
     PREREQ_PM => {
         'DBI'                    => '1.621',
-        'Cassandra::Client'      => '0.04',
+        'Cassandra::Client'      => '0.10',
     },
 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

@@ -3,7 +3,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Cassandra::Client 0.04;
+use Cassandra::Client 0.10;
 
 # "*FIX ME* Explain what the imp_data_size is, so that implementors aren't
 #  practicing cargo-cult programming" - DBI::DBD docs
