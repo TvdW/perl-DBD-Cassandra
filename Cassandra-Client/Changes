@@ -1,5 +1,9 @@
 Revision history for Cassandra-Client
 
+0.11    unreleased
+
+      * Stricter and faster reference checks
+
 0.10    2017/01/30
 
       * Add a retry policy implementation for generic request failures

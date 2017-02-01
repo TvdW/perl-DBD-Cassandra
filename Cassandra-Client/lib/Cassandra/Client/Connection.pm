@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use vars qw/$BUFFER/;
 
-use Ref::Util qw/is_arrayref/;
+use Ref::Util qw/is_blessed_ref is_plain_arrayref/;
 use IO::Socket::INET;
 use Errno;
 use Socket qw/SOL_SOCKET IPPROTO_TCP SO_KEEPALIVE TCP_NODELAY/;
@@ -206,7 +206,7 @@ sub execute_prepared {
         my ($err, $code)= @_;
 
         if ($err) {
-            if (ref $err && $err->code == 0x2500) {
+            if (is_blessed_ref($err) && $err->code == 0x2500) {
                 return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr, $exec_info);
             }
             return $callback->($err);
@@ -257,19 +257,19 @@ sub execute_batch {
     my ($self, $callback, $queries, $attribs, $exec_info)= @_;
     # Like execute_prepared, assumes ownership of $queries and $attribs
 
-    if (!is_arrayref($queries)) {
+    if (!is_plain_arrayref($queries)) {
         return $callback->("execute_batch: queries argument must be an array of arrays");
     }
 
     my @prepared;
     for my $query (@$queries) {
-        if (!is_arrayref($query)) {
+        if (!is_plain_arrayref($query)) {
             return $callback->("execute_batch: entries in query argument must be arrayrefs");
         }
         if (!$query->[0]) {
             return $callback->("Empty or no query given, cannot execute as part of a batch");
         }
-        if ($query->[1] && !is_arrayref($query->[1])) {
+        if ($query->[1] && !is_plain_arrayref($query->[1])) {
             return $callback->("Query parameters to batch() must be given as an arrayref");
         }
 
@@ -305,7 +305,7 @@ sub execute_batch {
         my ($err, $code)= @_;
 
         if ($err) {
-            if (ref $err && $err->code == 0x2500) {
+            if (is_blessed_ref($err) && $err->code == 0x2500) {
                 return $self->prepare_and_try_batch_again($callback, $queries, $attribs, $exec_info);
             }
             return $callback->($err);

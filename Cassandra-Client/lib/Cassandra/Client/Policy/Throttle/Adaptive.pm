@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use Time::HiRes ();
+use Ref::Util qw/is_blessed_ref/;
 
 sub new {
     my ($class, %args)= @_;
@@ -42,7 +43,7 @@ sub should_fail {
 sub count {
     my ($self, $error, $force_error)= @_;
     $self->{window_total}++;
-    my $success= !(ref($error) && $error->{is_timeout}) && !$force_error;
+    my $success= !(is_blessed_ref($error) && $error->{is_timeout}) && !$force_error;
     push @{$self->{window}}, [ Time::HiRes::time()+$self->{time}, $success ];
     $self->{window_success}++ if $success;
     return;

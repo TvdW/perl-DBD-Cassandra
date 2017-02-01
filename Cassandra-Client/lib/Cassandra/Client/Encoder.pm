@@ -7,7 +7,7 @@ use Cassandra::Client::Protocol qw/:constants BIGINT_SUPPORTED pack_long/;
 use Math::BigInt;
 use Encode;
 use POSIX qw/floor/;
-use Ref::Util qw/is_hashref/;
+use Ref::Util qw/is_hashref is_ref/;
 
 use Exporter 'import';
 our @EXPORT_OK= qw/
@@ -95,7 +95,7 @@ if (!defined($input)) {
     if (!$type_entry) {
         warn "Cannot encode type $type->[0]. Sending a NULL instead, this is probably not what you want!"; # XXX Can we do this?
         $code .= "$output .= \$null;";
-    } elsif (!ref $type_entry->[0]) {
+    } elsif (!is_ref $type_entry->[0]) {
         if (my $length= $type_entry->[1]) {
             $code .= "$output .= pack('l>$type_entry->[0]', $length, $input);";
         } else {

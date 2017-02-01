@@ -23,6 +23,7 @@ use Clone qw/clone/;
 use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Time::HiRes ();
+use Ref::Util qw/is_ref/;
 
 sub new {
     my ($class, %args)= @_;
@@ -314,7 +315,7 @@ sub _command_retry {
 sub _command_failed {
     my ($self, $command, $callback, $args, $command_info, $error)= @_;
 
-    return $callback->($error) unless ref $error;
+    return $callback->($error) unless is_ref($error);
 
     my $retry_decision;
     if ($error->{do_retry}) {

@@ -10,6 +10,7 @@ use Cassandra::Client::Protocol qw/:constants unpack_long BIGINT_SUPPORTED/;
 use vars qw/@ROW/;
 use Math::BigInt;
 use POSIX qw/floor/;
+use Ref::Util qw/is_coderef is_ref/;
 
 my $bigint_dec= BIGINT_SUPPORTED ? 'q>' : \&d_bigint_slow;
 
@@ -86,9 +87,9 @@ sub make_value_decoder {
 
     if (!$lookedup) {
         warn 'Type '.$type->[0].' not implemented, returning undef';
-    } elsif (!ref $lookedup->[0]) { # decode pack format
+    } elsif (!is_ref $lookedup->[0]) { # decode pack format
         $val_decoder .= "$dest= unpack('$lookedup->[0]', $tmp_val);\n";
-    } elsif (ref $lookedup->[0] eq 'CODE') {
+    } elsif (is_coderef $lookedup->[0]) {
         $val_decoder .= $lookedup->[0]->($type, $tmp_val, $dest, $input_length);
     }
 

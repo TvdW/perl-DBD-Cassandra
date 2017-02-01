@@ -4,6 +4,7 @@ use strict;
 use DBI;
 use Test::More;
 use utf8;
+use Ref::Util qw/is_ref/;
 
 my $input= "__as__input";
 my $warn= "__warn";
@@ -115,14 +116,14 @@ for my $type (@$type_table) {
         my $row= $dbh->selectrow_arrayref("select test from test_type_$tablename where id=$random_id", { async => 1 });
         if (!defined $output_val) {
             ok(0);
-        } elsif (!ref $output_val && $output_val eq $warn) {
+        } elsif (!is_ref($output_val) && $output_val eq $warn) {
             ok($did_warn);
-        } elsif (!ref $output_val && $output_val eq $input) {
+        } elsif (!is_ref($output_val) && $output_val eq $input) {
             is_deeply([$row->[0]], [$test_val], "input match $typename");
         } else {
             is_deeply([$row->[0]], [$output_val], "perfect match $typename");
         }
-        if ($did_warn && !ref $output_val && $output_val ne $warn) {
+        if ($did_warn && !is_ref($output_val) && $output_val ne $warn) {
             diag("Warning: $did_warn");
         }
         1;
