@@ -61,6 +61,7 @@ sub new {
         prepare_cache   => $args{metadata}->prepare_cache,
         last_stream_id  => 0,
         pending_streams => {},
+        in_prepare      => {},
 
         decompress_func => undef,
         compress_func   => undef,
@@ -353,7 +354,12 @@ sub prepare_and_try_batch_again {
 sub prepare {
     my ($self, $callback, $query)= @_;
 
-    # XXX Should we guard against the case of preparing the same statement in parallel?
+    if (exists $self->{in_prepare}{$query}) {
+        push @{$self->{in_prepare}{$query}}, $callback;
+        return;
+    }
+
+    $self->{in_prepare}{$query}= [ $callback ];
 
     series([
         sub {
@@ -383,13 +389,17 @@ sub prepare {
                 1;
             } or do {
                 my $error= $@ || "??";
-                return $callback->("Error while preparing query, couldn't compile encoder/decoder: $error");
+                return $next->("Error while preparing query, couldn't compile encoder/decoder: $error");
             };
 
             $self->{metadata}->add_prepared($query, $id, $metadata, $resultmetadata, $decoder, $encoder);
-            $next->();
+            return $next->();
         },
-    ], $callback);
+    ], sub {
+        my $error= shift;
+        my $in_prepare= delete($self->{in_prepare}{$query}) or die "BUG";
+        $_->($error) for @$in_prepare;
+    });
 
     return;
 }
