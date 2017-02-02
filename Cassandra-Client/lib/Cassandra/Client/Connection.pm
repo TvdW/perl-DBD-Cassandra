@@ -6,7 +6,7 @@ use vars qw/$BUFFER/;
 
 use Ref::Util qw/is_blessed_ref is_plain_arrayref/;
 use IO::Socket::INET;
-use Errno;
+use Errno qw/EAGAIN/;
 use Socket qw/SOL_SOCKET IPPROTO_TCP SO_KEEPALIVE TCP_NODELAY/;
 use Scalar::Util qw/weaken/;
 use Net::SSLeay qw/ERROR_WANT_READ ERROR_WANT_WRITE ERROR_NONE/;
@@ -799,7 +799,7 @@ sub request {
             my $result= syswrite($self->{socket}, $data, $length);
             if ($result && $result == $length) {
                 # All good
-            } elsif (defined $result || $!{EAGAIN}) {
+            } elsif (defined $result || $! == EAGAIN) {
                 substr($data, 0, $result, '') if $result;
                 $self->{pending_write}= $data;
                 $self->{async_io}->register_write($self->{fileno});
@@ -833,14 +833,14 @@ sub can_read {
 
 READ:
     while (!$self->{shutdown}) {
-        my $read_something;
+        my $should_read_more;
 
         if ($self->{tls}) {
             my ($bytes, $rv)= Net::SSLeay::read(${$self->{tls}});
             if (length $bytes) {
                 $BUFFER .= $bytes;
                 $bufsize += $rv;
-                $read_something= 1;
+                $should_read_more= 1;
             }
 
             if ($rv <= 0) {
@@ -864,13 +864,13 @@ READ:
             }
 
         } else {
-            my $read_cnt= sysread($self->{socket}, $BUFFER, 10240, $bufsize);
+            my $read_cnt= sysread($self->{socket}, $BUFFER, 16384, $bufsize);
             if ($read_cnt) {
                 $bufsize += $read_cnt;
-                $read_something= 1;
+                $should_read_more= 1 if $read_cnt >= 16384;
 
             } elsif (!defined $read_cnt) {
-                if (!$!{EAGAIN}) {
+                if ($! != EAGAIN) {
                     my $error= "$!";
                     $shutdown_when_done= $error;
                 }
@@ -922,7 +922,7 @@ READ_NEXT:
         goto READ_NEXT;
 
 READ_MORE:
-        last READ unless $read_something;
+        last READ unless $should_read_more;
     }
 
     if ($shutdown_when_done) {
@@ -967,7 +967,7 @@ sub can_write {
     } else {
         my $result= syswrite($self->{socket}, $self->{pending_write});
         if (!defined($result)) {
-            if ($!{EAGAIN}) {
+            if ($! == EAGAIN) {
                 return; # Huh. Oh well, whatever
             }
 
