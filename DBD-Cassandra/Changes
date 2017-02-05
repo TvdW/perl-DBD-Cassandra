@@ -1,5 +1,9 @@
 Revision history for DBD-Cassandra
 
+0.55    unreleased
+
+      * Very basic TLS support
+
 0.54    2017/01/30
 
       * Require a newer version of Cassandra::Client

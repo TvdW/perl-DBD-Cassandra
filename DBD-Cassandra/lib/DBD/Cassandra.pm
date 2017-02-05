@@ -131,6 +131,10 @@ Maximum amount of time (in seconds) to wait for a Cassandra network operation to
 
 B<Deprecated>. These two are summed and used as C<request_timeout>.
 
+=item tls
+
+Boolean (1|0); whether to use TLS. Defaults to off.
+
 =back
 
 =item Statement handles
