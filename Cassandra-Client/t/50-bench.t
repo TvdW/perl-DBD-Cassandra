@@ -16,6 +16,7 @@ my $client= Cassandra::Client->new(
     password  => $ENV{CASSANDRA_AUTH},
     anyevent  => 1,
     throttler => "Adaptive",
+    tls       => $ENV{CASSANDRA_TLS},
 );
 $client->connect();
 
