@@ -6,6 +6,11 @@ use Test::More;
 use Cassandra::Client;
 use AnyEvent;
 
+# Add some junk into our Perl magic variables
+local $"= "junk join string ,";
+local $/= "junk slurp";
+local $\= "abcdef";
+
 plan skip_all => "CASSANDRA_HOST not set" unless $ENV{CASSANDRA_HOST};
 plan tests => 4;
 

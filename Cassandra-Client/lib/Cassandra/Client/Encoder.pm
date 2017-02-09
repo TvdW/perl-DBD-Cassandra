@@ -51,6 +51,8 @@ sub make_encoder {
     my @columns= @{$metadata->{columns}};
     my @names= map { $_->[2] } @columns;
 
+    local $"= "";
+
     my $code= <<EOC;
 
     my \$null= pack('l>', -1);

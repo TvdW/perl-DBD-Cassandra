@@ -7,6 +7,11 @@ use Cassandra::Client::Protocol qw/:constants pack_int pack_long/;
 use Cassandra::Client::Encoder 'make_encoder';
 use Cassandra::Client::Decoder 'make_decoder';
 
+# Add some junk into our Perl magic variables
+local $"= "junk join string ,";
+local $/= "junk slurp";
+local $\= "abcdef";
+
 sub check_encdec {
     my ($rowspec, $row, $expected)= @_;
     eval {

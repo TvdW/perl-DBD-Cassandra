@@ -45,6 +45,8 @@ sub make_decoder {
     my ($metadata)= @_;
     return undef unless $metadata->{columns};
 
+    local $"= "";
+
     my $column_count= 0+@{$metadata->{columns}};
 
     my $decoder= <<EOC;
