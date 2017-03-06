@@ -1,6 +1,6 @@
 Revision history for DBD-Cassandra
 
-0.55    unreleased
+0.55    2017/03/06
 
       * Very basic TLS support
 
