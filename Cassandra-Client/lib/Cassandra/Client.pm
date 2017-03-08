@@ -24,6 +24,7 @@ use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Time::HiRes ();
 use Ref::Util qw/is_ref/;
+use Sub::Current;
 
 sub new {
     my ($class, %args)= @_;
@@ -89,12 +90,10 @@ sub _connect {
     my @contact_points= shuffle @{$self->{options}{contact_points}};
     my $last_error= "No hosts to connect to";
 
-    my $next_connect;
-    $next_connect= sub {
+    my $next_connect= sub {
         my $contact_point= shift @contact_points;
         if (!$contact_point) {
             delete $self->{connecting};
-            undef $next_connect;
             return _cb($_, "Unable to connect to any Cassandra server. Last error: $last_error") for @{delete $self->{connect_callbacks}};
         }
 
@@ -119,10 +118,9 @@ sub _connect {
             my $error= shift;
             if ($error) {
                 $last_error= "On $contact_point: $error";
-                return $next_connect->();
+                return ROUTINE()->();
             }
 
-            undef $next_connect;
             $self->{connected}= 1;
             delete $self->{connecting};
             _cb($_) for @{delete $self->{connect_callbacks}};
