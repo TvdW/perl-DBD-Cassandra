@@ -95,7 +95,8 @@ sub _connect {
         if (!$contact_point) {
             delete $self->{connecting};
             undef $next_connect;
-            return _cb($_, "Unable to connect to any Cassandra server. Last error: $last_error") for @{delete $self->{connect_callbacks}};
+            _cb($_, "Unable to connect to any Cassandra server. Last error: $last_error") for @{delete $self->{connect_callbacks}};
+            return;
         }
 
         my $connection= Cassandra::Client::Connection->new(
