@@ -783,6 +783,9 @@ sub request {
                     # We never actually sent our request, so take it out again
                     my $my_stream= delete $pending->{$stream_id};
 
+                    # Disable our stream's deadline
+                    ${$my_stream->[1]}= 1;
+
                     $self->shutdown($error);
 
                     # Now fail our stream properly, but include the retry notice
@@ -809,6 +812,9 @@ sub request {
 
                 # We never actually sent our request, so take it out again
                 my $my_stream= delete $pending->{$stream_id};
+
+                # Disable our stream's deadline
+                ${$my_stream->[1]}= 1;
 
                 $self->shutdown($error);
 
@@ -1006,6 +1012,9 @@ sub shutdown {
 
     my $pending= $self->{pending_streams};
     $self->{pending_streams}= {};
+
+    # Disable our deadlines
+    ${$_->[1]}= 1 for values %$pending;
 
     $self->{async_io}->unregister_read($self->{fileno});
     if (defined(delete $self->{pending_write})) {
