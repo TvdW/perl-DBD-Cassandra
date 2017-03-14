@@ -3,7 +3,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Time::HiRes qw();
+use Time::HiRes qw(CLOCK_MONOTONIC);
 use vars qw/@TIMEOUTS/;
 
 sub new {
@@ -88,11 +88,11 @@ sub deadline {
         $self->{ae_timeout}= AnyEvent->timer(
             after => $self->{timer_granularity},
             interval => $self->{timer_granularity},
-            cb => sub { $self->handle_timeouts(Time::HiRes::time()) },
+            cb => sub { $self->handle_timeouts(Time::HiRes::clock_gettime(CLOCK_MONOTONIC)) },
         );
     }
 
-    my $curtime= Time::HiRes::time;
+    my $curtime= Time::HiRes::clock_gettime(CLOCK_MONOTONIC);
     my $deadline= $curtime + $timeout;
     my $additem= [ $deadline, $fh, $id, 0 ];
 
