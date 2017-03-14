@@ -1007,13 +1007,13 @@ sub shutdown {
     my $pending= $self->{pending_streams};
     $self->{pending_streams}= {};
 
-    $self->{socket}->close;
     $self->{async_io}->unregister_read($self->{fileno});
     if (defined(delete $self->{pending_write})) {
         $self->{async_io}->unregister_write($self->{fileno});
     }
     $self->{async_io}->unregister($self->{fileno}, $self);
     $self->{client}->_disconnected($self->get_pool_id);
+    $self->{socket}->close;
 
     for (values %$pending) {
         $_->[0]->(Cassandra::Client::Error->new(
