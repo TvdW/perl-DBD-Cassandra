@@ -101,12 +101,14 @@ sub handle_timeouts {
 
     local *TIMEOUTS= $self->{timeouts};
 
+    my %triggered_read;
     while (@TIMEOUTS && $curtime >= $TIMEOUTS[0][0]) {
         my $item= shift @TIMEOUTS;
         if (!$item->[3]) { # If it timed out
             my ($deadline, $fh, $id, $timedout)= @$item;
             my $obj= $self->{fh_to_obj}{$fh};
-            $obj->can_timeout($id);
+            $obj->can_read unless $triggered_read{$fh}++;
+            $obj->can_timeout($id) unless $item->[3]; # We may have received an answer...
         }
     }
 
