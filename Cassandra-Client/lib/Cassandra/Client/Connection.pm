@@ -904,9 +904,7 @@ READ_NEXT:
         if ($stream_id != -1) {
             my $stream_cb= delete $self->{pending_streams}{$stream_id};
             if (!$stream_cb) {
-                if (!$self->{shutdown}) {
-                    warn 'BUG: received response for unknown stream';
-                } # Else: totally fine
+                warn 'BUG: received response for unknown stream';
 
             } elsif ($opcode == OPCODE_ERROR) {
                 my ($cb, $dl)= @$stream_cb;
