@@ -1036,7 +1036,7 @@ sub shutdown {
 
 ###### COMPRESSION
 BEGIN {
-    @compression_preference= qw/snappy lz4/;
+    @compression_preference= qw/lz4 snappy/;
 
     %available_compression= (
         snappy  => scalar eval "use Compress::Snappy (); 1;",
