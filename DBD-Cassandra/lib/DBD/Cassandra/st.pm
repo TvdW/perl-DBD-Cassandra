@@ -8,7 +8,7 @@ $DBD::Cassandra::st::imp_data_size = 0;
 
 sub bind_param {
     my ($sth, $pNum, $val, $attr)= @_;
-    my $params= $sth->{cass_params};
+    my $params= ($sth->{cass_params} ||= []);
     $params->[$pNum-1] = $val;
     1;
 }

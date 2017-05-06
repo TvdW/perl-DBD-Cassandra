@@ -17,5 +17,6 @@ t/30-types.t
 t/40-paging.t
 t/50-async.t
 t/60-hash.t
+t/60-bind.t
 t/manifest.t
 t/pod.t
