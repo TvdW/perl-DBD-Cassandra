@@ -395,6 +395,7 @@ sub _each_page {
 
 sub DESTROY {
     local $@;
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
 
     my $self= shift;
     if ($self->{connected}) {

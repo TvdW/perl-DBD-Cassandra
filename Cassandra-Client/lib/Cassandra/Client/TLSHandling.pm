@@ -30,6 +30,7 @@ sub new_conn {
 
 sub DESTROY {
     local $@;
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
 
     my $self= shift;
 
@@ -45,6 +46,7 @@ use warnings;
 
 sub DESTROY {
     local $@;
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
 
     my $self= shift;
     Net::SSLeay::free($$self);
