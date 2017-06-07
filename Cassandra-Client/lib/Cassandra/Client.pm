@@ -24,6 +24,7 @@ use List::Util qw/shuffle/;
 use Promises qw/deferred/;
 use Time::HiRes ();
 use Ref::Util qw/is_ref/;
+use Devel::GlobalDestruction;
 
 sub new {
     my ($class, %args)= @_;
@@ -395,7 +396,7 @@ sub _each_page {
 
 sub DESTROY {
     local $@;
-    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+    return if in_global_destruction;
 
     my $self= shift;
     if ($self->{connected}) {
