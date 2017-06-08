@@ -5,6 +5,7 @@ Revision history for Cassandra-Client
       * Stricter and faster reference checks
       * Deduplicate parallel prepare() calls for the same query
       * Deal with some of Perl's special variables like $"
+      * Avoid leaking file descriptors in some cases
 
 0.10    2017/01/30
 

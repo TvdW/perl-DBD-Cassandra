@@ -34,8 +34,9 @@ sub unregister {
     delete $self->{fh_to_obj}{$fh};
     if ($self->{timeouts} && grep { $_->[1] == $fh && !$_->[3] } @{$self->{timeouts}}) {
         warn 'In unregister(): not all timeouts were dismissed!';
-        @{$self->{timeouts}}= grep { $_->[1] != $fh } @{$self->{timeouts}};
     }
+    @{$self->{timeouts}}= grep { $_->[1] != $fh } @{$self->{timeouts}};
+    undef $self->{ae_timeout} unless @{$self->{timeouts}};
     return;
 }
 
