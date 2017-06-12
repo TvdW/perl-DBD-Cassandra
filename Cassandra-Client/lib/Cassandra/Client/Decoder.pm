@@ -161,17 +161,17 @@ sub d_list {
 
     my $val_decoder= <<EOC;
 {
-    my \$list_entries= unpack('l>', substr($tmp_val, 0, 4, ''));
-    my (\$list_byte_count, \$list_bytes, \@list);
-    \$#list= \$list_entries - 1;
-    for my \$list_i (0..(\$list_entries-1)) {
-        \$list_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
-        if (\$list_byte_count >= 0) {
-            \$list_bytes= substr($tmp_val, 0, \$list_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$list_bytes', '$list[$list_i]', '$list_byte_count', $level+1) ]}
+    my \$list_entries_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+    my (\$list_byte_count_$level, \$list_bytes_$level, \@list_$level);
+    \$#list_$level= \$list_entries_$level - 1;
+    for my \$list_i_$level (0..(\$list_entries_$level-1)) {
+        \$list_byte_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+        if (\$list_byte_count_$level >= 0) {
+            \$list_bytes_$level= substr($tmp_val, 0, \$list_byte_count_$level, '');
+            @{[ make_value_decoder($type->[1], 3, '$list_bytes_'.$level, '$list_'.$level.'[$list_i_'.$level.']', '$list_byte_count_'.$level, $level+1) ]}
         }
     }
-    $dest= \\\@list;
+    $dest= \\\@list_$level;
 }
 EOC
 }
