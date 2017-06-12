@@ -1,6 +1,6 @@
 Revision history for Cassandra-Client
 
-0.11    unreleased
+0.11    2017/06/12
 
       * Stricter and faster reference checks
       * Deduplicate parallel prepare() calls for the same query
