@@ -39,6 +39,7 @@ my %type_lookup= (
     TYPE_SMALLINT   ,=> [ 's>'         ],
     TYPE_TIME       ,=> [ \&d_time     ],
     TYPE_DATE       ,=> [ \&d_date     ],
+    TYPE_TUPLE      ,=> [ \&d_tuple    ],
 );
 
 sub make_decoder {
@@ -66,7 +67,7 @@ sub make_decoder {
             \$byte_count= unpack('l>', substr(\$_[0], 0, 4, ''));
             if (\$byte_count >= 0) {
                 \$tmp_val= substr(\$_[0], 0, \$byte_count, '');
-                @{[ make_value_decoder($column->[3], 4, '$tmp_val', "\$ROW[$_]", '$byte_count') ]}
+                @{[ make_value_decoder($column->[3], 4, '$tmp_val', "\$ROW[$_]", '$byte_count', 1) ]}
             } # default: else { \$row[$col]= undef; }
 
 EOP
@@ -82,7 +83,7 @@ EOC
 }
 
 sub make_value_decoder {
-    my ($type, $indent, $tmp_val, $dest, $input_length)= @_;
+    my ($type, $indent, $tmp_val, $dest, $input_length, $level)= @_;
 
     my $val_decoder= "# Decoder for type $type->[0]\n";
     my $lookedup= $type_lookup{$type->[0]};
@@ -92,7 +93,7 @@ sub make_value_decoder {
     } elsif (!is_ref $lookedup->[0]) { # decode pack format
         $val_decoder .= "$dest= unpack('$lookedup->[0]', $tmp_val);\n";
     } elsif (is_coderef $lookedup->[0]) {
-        $val_decoder .= $lookedup->[0]->($type, $tmp_val, $dest, $input_length);
+        $val_decoder .= $lookedup->[0]->($type, $tmp_val, $dest, $input_length, $level);
     }
 
     # Indent it for readability
@@ -109,7 +110,7 @@ utf8::decode $dest;";
 }
 
 sub d_map {
-    my ($type, $tmp_val, $dest, $input_length)= @_;
+    my ($type, $tmp_val, $dest, $input_length, $level)= @_;
 
     my $val_decoder= <<EOC;
 {
@@ -120,12 +121,12 @@ sub d_map {
         \$map_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
         if (\$map_byte_count >= 0) {
             \$map_bytes= substr($tmp_val, 0, \$map_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$map_bytes', '$key', '$map_byte_count') ]}
+            @{[ make_value_decoder($type->[1], 3, '$map_bytes', '$key', '$map_byte_count', $level+1) ]}
         }
         \$map_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
         if (\$map_byte_count >= 0) {
             \$map_bytes= substr($tmp_val, 0, \$map_byte_count, '');
-            @{[ make_value_decoder($type->[2], 3, '$map_bytes', '$value', '$map_byte_count') ]}
+            @{[ make_value_decoder($type->[2], 3, '$map_bytes', '$value', '$map_byte_count', $level+1) ]}
         }
         \$map{\$key}= \$value;
     }
@@ -135,7 +136,7 @@ EOC
 }
 
 sub d_set {
-    my ($type, $tmp_val, $dest, $input_length)= @_;
+    my ($type, $tmp_val, $dest, $input_length, $level)= @_;
 
     my $val_decoder= <<EOC;
 {
@@ -146,7 +147,7 @@ sub d_set {
         \$set_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
         if (\$set_byte_count >= 0) {
             \$set_bytes= substr($tmp_val, 0, \$set_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$set_bytes', '$item', '$set_byte_count') ]}
+            @{[ make_value_decoder($type->[1], 3, '$set_bytes', '$item', '$set_byte_count', $level+1) ]}
         }
         push \@set, \$item;
     }
@@ -156,7 +157,7 @@ EOC
 }
 
 sub d_list {
-    my ($type, $tmp_val, $dest, $input_length)= @_;
+    my ($type, $tmp_val, $dest, $input_length, $level)= @_;
 
     my $val_decoder= <<EOC;
 {
@@ -167,7 +168,7 @@ sub d_list {
         \$list_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
         if (\$list_byte_count >= 0) {
             \$list_bytes= substr($tmp_val, 0, \$list_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$list_bytes', '$list[$list_i]', '$list_byte_count') ]}
+            @{[ make_value_decoder($type->[1], 3, '$list_bytes', '$list[$list_i]', '$list_byte_count', $level+1) ]}
         }
     }
     $dest= \\\@list;
@@ -301,6 +302,35 @@ sub d_date {
     $dest= sprintf("%d-%.2d-%.2d", \$Y, \$M, \$D);
 }
 EOC
+}
+
+sub d_tuple {
+    my ($type, $tmp_val, $dest, $input_length, $level)= @_;
+
+    my $code= <<EOC;
+{
+    my \@destination_$level; $dest= \\\@destination_$level;
+    \$destination_$level\[@{[ (@{$type->[1]}-1) ]}]= undef;
+EOC
+
+    for my $i (0..@{$type->[1]}-1) {
+        $code .= <<EOC;
+    # Field #$i
+    {
+        my \$tuple_bytes_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+        if (\$tuple_bytes_count_$level >= 0) {
+            my \$tuple_bytes_$level= substr($tmp_val, 0, \$tuple_bytes_count_$level, '');
+            @{[ make_value_decoder($type->[1][$i], 1, '$tuple_bytes_'.$level, "\$destination_$level\[$i]", '$tuple_bytes_count_'.$level, $level+1) ]}
+        }
+    }
+EOC
+    }
+
+$code .= <<EOC;
+}
+EOC
+
+    return $code;
 }
 
 1;

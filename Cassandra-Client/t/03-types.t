@@ -231,6 +231,11 @@ check_enc([TYPE_SET, [ TYPE_INT ]], [ 1, 2, 3 ], "\0\0\0\3\0\0\0\4\0\0\0\1\0\0\0
 # UDT
 
 # Tuple
+check_simple([TYPE_TUPLE, [[TYPE_INT], [TYPE_INT]]], [
+                                                      [ 1, 2 ],
+                                                      [ 1, 2 ]
+                                                     ]);
+check_enc([TYPE_TUPLE, [[TYPE_INT], [TYPE_INT]]], [ 1, 2 ], "\0\0\0\4\0\0\0\1\0\0\0\4\0\0\0\2" );
 
 # list<frozen<map<int,bool>>>
 check_simple([TYPE_LIST, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]], [

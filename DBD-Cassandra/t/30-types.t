@@ -44,6 +44,8 @@ my $type_table= [
     ['time',        '24:00',      '0:00:00'],
     ['time',        '13:30:54.234', $input],
     ['time',        '14',         '14:00:00'], # Why would someone want that?
+    ['tuple<int,int>', [ 1, 2 ], $input],
+    ['tuple<text,int,frozen<tuple<int,int>>>', [ "test string", 15, [ 1, 2 ] ], $input],
 
     # List types...
     ['list<int>', [1, 2], $input],

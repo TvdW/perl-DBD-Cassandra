@@ -43,6 +43,7 @@ my %types= (
     TYPE_SMALLINT   ,=> [ 's>', 2 ],
     TYPE_TIME       ,=> [ \&e_time ],
     TYPE_DATE       ,=> [ \&e_date ],
+    TYPE_TUPLE      ,=> [ \&e_tuple ],
 );
 
 sub make_encoder {
@@ -296,6 +297,26 @@ sub e_date {
     }
 }
 EOC
+}
+
+sub e_tuple {
+    my ($type, $input, $output, $level)= @_;
+
+    my $code= <<EOC;
+my \$tmp_output_$level= '';
+my \$tmp_input_$level= '';
+EOC
+    for my $i (0..@{$type->[1]}-1) {
+        my $subtype= $type->[1][$i];
+        $code .= "\$tmp_input_$level= ($input || undef)->[$i];\n";
+        $code .= make_column_encoder($subtype, '$tmp_input_'.$level, '$tmp_output_'.$level, 1, $level+1)."\n";
+    }
+
+$code .= <<EOC;
+$output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
+EOC
+
+    return $code;
 }
 
 1;
