@@ -114,23 +114,23 @@ sub d_map {
 
     my $val_decoder= <<EOC;
 {
-    my \$map_entries= unpack('l>', substr($tmp_val, 0, 4, ''));
-    my (\$map_byte_count, \$map_bytes, \%map);
-    for (1..\$map_entries) {
-        my (\$key, \$value);
-        \$map_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
-        if (\$map_byte_count >= 0) {
-            \$map_bytes= substr($tmp_val, 0, \$map_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$map_bytes', '$key', '$map_byte_count', $level+1) ]}
+    my \$map_entries_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+    my (\$map_byte_count_$level, \$map_bytes_$level, \%map_$level);
+    for (1..\$map_entries_$level) {
+        my (\$key_$level, \$value_$level);
+        \$map_byte_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+        if (\$map_byte_count_$level >= 0) {
+            \$map_bytes_$level= substr($tmp_val, 0, \$map_byte_count_$level, '');
+            @{[ make_value_decoder($type->[1], 3, '$map_bytes_'.$level, '$key_'.$level, '$map_byte_count_'.$level, $level+1) ]}
         }
-        \$map_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
-        if (\$map_byte_count >= 0) {
-            \$map_bytes= substr($tmp_val, 0, \$map_byte_count, '');
-            @{[ make_value_decoder($type->[2], 3, '$map_bytes', '$value', '$map_byte_count', $level+1) ]}
+        \$map_byte_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+        if (\$map_byte_count_$level >= 0) {
+            \$map_bytes_$level= substr($tmp_val, 0, \$map_byte_count_$level, '');
+            @{[ make_value_decoder($type->[2], 3, '$map_bytes_'.$level, '$value_'.$level, '$map_byte_count_'.$level, $level+1) ]}
         }
-        \$map{\$key}= \$value;
+        \$map_$level\{\$key_$level}= \$value_$level;
     }
-    $dest= \\\%map;
+    $dest= \\\%map_$level;
 }
 EOC
 }
