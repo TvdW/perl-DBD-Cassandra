@@ -229,6 +229,10 @@ check_simple([TYPE_SET, [ TYPE_INT ]], [
 check_enc([TYPE_SET, [ TYPE_INT ]], [ 1, 2, 3 ], "\0\0\0\3\0\0\0\4\0\0\0\1\0\0\0\4\0\0\0\2\0\0\0\4\0\0\0\3");
 
 # UDT
+check_simple([TYPE_UDT, 'keyspacename', 'udtname', [ ['my_int', [ TYPE_INT ] ] ] ], [
+                                                                                      { my_int => 5 },
+                                                                                    ]);
+check_enc([TYPE_UDT, 'keyspacename', 'udtname', [ [ 'my_int', [ TYPE_INT ] ] ] ], { my_int => 5 }, "\0\0\0\4\0\0\0\5");
 
 # Tuple
 check_simple([TYPE_TUPLE, [[TYPE_INT], [TYPE_INT]]], [

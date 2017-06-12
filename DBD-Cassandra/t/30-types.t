@@ -46,6 +46,8 @@ my $type_table= [
     ['time',        '14',         '14:00:00'], # Why would someone want that?
     ['tuple<int,int>', [ 1, 2 ], $input],
     ['tuple<text,int,frozen<tuple<int,int>>>', [ "test string", 15, [ 1, 2 ] ], $input],
+    ['address', { street => "abc", city => "def", zip_code => 1234 }, $input ],
+    ['map<text,frozen<address>>', { tom => { street => "abc", zip_code => 5, city => "abc" }, someone_else => { street => "def", city => 15, zip_code => 15 } }, $input],
 
     # List types...
     ['list<int>', [1, 2], $input],
@@ -92,6 +94,10 @@ my $type_table= [
     ['date',        '-5877641-06-23', $input],
 ];
 
+my %udt= (
+    address => 'street text, city text, zip_code int',
+);
+
 unless ($ENV{CASSANDRA_HOST}) {
     plan skip_all => "CASSANDRA_HOST not set";
 }
@@ -101,6 +107,10 @@ plan tests => 2+@$type_table;
 my $tls= $ENV{CASSANDRA_TLS} // '';
 my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};keyspace=dbd_cassandra_tests;tls=$tls", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
 ok($dbh);
+
+for my $udt_name (keys %udt) {
+    $dbh->do('create type if not exists '.$udt_name.' ('.$udt{$udt_name}.')');
+}
 
 my $i= 0;
 for my $type (@$type_table) {

@@ -40,6 +40,7 @@ my %type_lookup= (
     TYPE_TIME       ,=> [ \&d_time     ],
     TYPE_DATE       ,=> [ \&d_date     ],
     TYPE_TUPLE      ,=> [ \&d_tuple    ],
+    TYPE_UDT        ,=> [ \&d_udt      ],
 );
 
 sub make_decoder {
@@ -320,7 +321,7 @@ EOC
         my \$tuple_bytes_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
         if (\$tuple_bytes_count_$level >= 0) {
             my \$tuple_bytes_$level= substr($tmp_val, 0, \$tuple_bytes_count_$level, '');
-            @{[ make_value_decoder($type->[1][$i], 1, '$tuple_bytes_'.$level, "\$destination_$level\[$i]", '$tuple_bytes_count_'.$level, $level+1) ]}
+            @{[ make_value_decoder($type->[1][$i], 3, '$tuple_bytes_'.$level, "\$destination_$level\[$i]", '$tuple_bytes_count_'.$level, $level+1) ]}
         }
     }
 EOC
@@ -328,6 +329,31 @@ EOC
 
 $code .= <<EOC;
 }
+EOC
+
+    return $code;
+}
+
+sub d_udt {
+    my ($type, $tmp_val, $dest, $input_length, $level)= @_;
+    my (undef, $keyspace, $udtname, $subtypes)= @$type;
+
+    my $code= <<EOC;
+# UDT: $keyspace.$udtname
+my \%udt_$level; $dest= \\\%udt_$level;
+
+@{[ map { my ($subtypename, $subtype)= @$_; <<EOP; } @$subtypes
+if ($tmp_val) { # $subtypename
+    my \$udt_bytes_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+    if (\$udt_bytes_count_$level >= 0) {
+        my \$udt_bytes_$level= substr($tmp_val, 0, \$udt_bytes_count_$level, '');
+        @{[ make_value_decoder($subtype, 2, '$udt_bytes_'.$level, '$udt_'.$level.'{\''.$subtypename.'\'}', '$udt_bytes_count_'.$level, $level+1) ]}
+    } else {
+        \$udt_$level\{'$subtypename'}= undef;
+    }
+}
+EOP
+]}
 EOC
 
     return $code;

@@ -44,6 +44,7 @@ my %types= (
     TYPE_TIME       ,=> [ \&e_time ],
     TYPE_DATE       ,=> [ \&e_date ],
     TYPE_TUPLE      ,=> [ \&e_tuple ],
+    TYPE_UDT        ,=> [ \&e_udt ],
 );
 
 sub make_encoder {
@@ -313,6 +314,26 @@ EOC
     }
 
 $code .= <<EOC;
+$output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
+EOC
+
+    return $code;
+}
+
+sub e_udt {
+    my ($type, $input, $output, $level)= @_;
+    my (undef, $keyspace, $udt_name, $subtypes)= @$type;
+
+    my $code= <<EOC;
+# UDT: $keyspace.$udt_name
+my \$tmp_output_$level= '';
+@{[ map { my ($subtypename, $subtype)= @$_; <<EOP; } @$subtypes
+{ # $subtypename
+    @{[ make_column_encoder($subtype, "($input\->{'$subtypename'})", "\$tmp_output_$level", 1, $level+1) ]}
+}
+EOP
+]}
+
 $output .= pack('l>', length(\$tmp_output_$level)).\$tmp_output_$level;
 EOC
 
