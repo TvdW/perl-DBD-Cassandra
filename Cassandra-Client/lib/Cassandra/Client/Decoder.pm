@@ -140,18 +140,18 @@ sub d_set {
 
     my $val_decoder= <<EOC;
 {
-    my \$set_entries= unpack('l>', substr($tmp_val, 0, 4, ''));
-    my (\$set_byte_count, \$set_bytes, \@set);
-    for (1..\$set_entries) {
-        my \$item;
-        \$set_byte_count= unpack('l>', substr($tmp_val, 0, 4, ''));
-        if (\$set_byte_count >= 0) {
-            \$set_bytes= substr($tmp_val, 0, \$set_byte_count, '');
-            @{[ make_value_decoder($type->[1], 3, '$set_bytes', '$item', '$set_byte_count', $level+1) ]}
+    my \$set_entries_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+    my (\$set_byte_count_$level, \$set_bytes_$level, \@set_$level);
+    for (1..\$set_entries_$level) {
+        my \$item_$level;
+        \$set_byte_count_$level= unpack('l>', substr($tmp_val, 0, 4, ''));
+        if (\$set_byte_count_$level >= 0) {
+            \$set_bytes_$level= substr($tmp_val, 0, \$set_byte_count_$level, '');
+            @{[ make_value_decoder($type->[1], 3, '$set_bytes_'.$level, '$item_'.$level, '$set_byte_count_'.$level, $level+1) ]}
         }
-        push \@set, \$item;
+        push \@set_$level, \$item_$level;
     }
-    $dest= \\\@set;
+    $dest= \\\@set_$level;
 }
 EOC
 }
