@@ -169,6 +169,24 @@ rows, as extra queries may be executed by the driver internally.
 
 =back
 
+=head1 COLLECTION TYPES
+
+Cassandra supports collection types natively, eg. C<list> and C<map>.
+B<DBD::Cassandra> translates them to native Perl types, eg. hashes and
+arrays.
+
+When doing queries, placeholders can be substituted by these collections.
+For example, inserting a map into a table is done by passing a Perl hash.
+
+    my $sth= $dbh->prepare('INSERT INTO some_table (id, value) VALUES (?,?);');
+    $sth->execute(5, { days => 15 });
+
+This will also work for C<IN> queries, which accept an array.
+
+    my $sth= $dbh->prepare('SELECT id, value FROM some_table WHERE id IN ?');
+    $sth->execute([1, 2, 3]);
+    my $rows= $sth->fetchall_arrayref();
+
 =head1 ASYNCHRONOUS QUERIES
 
     my $sth= $dbh->prepare("SELECT id FROM some_table WHERE x=?",
