@@ -3,7 +3,7 @@ use 5.010;
 use strict;
 use warnings;
 use Test::More;
-use Cassandra::Client::Protocol qw/:constants pack_int pack_long/;
+use Cassandra::Client::Protocol qw/:constants pack_int pack_long pack_metadata unpack_metadata/;
 use Cassandra::Client::Encoder 'make_encoder';
 use Cassandra::Client::Decoder 'make_decoder';
 
@@ -17,10 +17,18 @@ sub check_encdec {
     eval {
         $expected= $row unless defined $expected;
 
+        my $metadata= pack_metadata($rowspec);
+        my $unpacked= unpack_metadata($metadata);
+
         my $encoder= make_encoder($rowspec);
         ok($encoder) or diag('No encoder');
-        my $decoder= make_decoder($rowspec);
+
+        #my ($new_decoder)= unpack_metadata2($metadata);
+        #ok($new_decoder) or diag('No decoder');
+
+        my $decoder= make_decoder($unpacked);
         ok($decoder) or diag('No decoder');
+
         my $encoded= $encoder->($row);
         ok(length $encoded) or diag('Encoding failed');
         HACK: { # Turns the encoded parameter list into something our decoders understand
