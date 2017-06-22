@@ -130,6 +130,7 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
                 return -3;
             }
             field->name = newSVpvn_utf8(str, str_len, 1);
+            PERL_HASH(field->name_hash, str, str_len);
 
             if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, &field->type) != 0)) {
                 return -3;

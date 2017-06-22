@@ -526,7 +526,7 @@ void decode_udt(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
         field = &udt->fields[i];
         value = newSV(0);
 
-        hv_store_ent(the_obj, field->name, value, 0);
+        hv_store_ent(the_obj, field->name, value, field->name_hash);
 
         decode_cell(aTHX_ input, len, &pos, &field->type, value);
     }

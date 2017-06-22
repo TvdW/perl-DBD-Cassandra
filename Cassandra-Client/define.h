@@ -47,6 +47,7 @@ struct cc_type {
 
 struct cc_udt_field {
     SV *name;
+    U32 name_hash;
     struct cc_type type;
 };
 
