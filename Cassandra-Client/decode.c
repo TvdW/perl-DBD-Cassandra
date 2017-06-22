@@ -272,8 +272,13 @@ void decode_inet(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     if (len == 4) {
         sv_setpvf(output, "%d.%d.%d.%d", input[0], input[1], input[2], input[3]);
 
+    } else if (len == 16) {
+        char str[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, input, str, INET6_ADDRSTRLEN);
+        sv_setpv(output, str);
+
     } else {
-        croak("Unable to decode inet: ipv6 not supported yet");
+        croak("decode_inet: len != (4|16)");
     }
 }
 

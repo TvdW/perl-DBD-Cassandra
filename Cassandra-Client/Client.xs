@@ -3,6 +3,8 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#include <arpa/inet.h>
+
 #include "define.h"
 #include "proto.c"
 #include "decode.c"
