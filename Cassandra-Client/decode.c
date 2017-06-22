@@ -12,6 +12,7 @@ void decode_map     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *ou
 void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_time    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_tinyint (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+void decode_tuple   (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_udt     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_utf8    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_uuid    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
@@ -105,6 +106,10 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
 
         case CC_TYPE_UDT:
             decode_udt(aTHX_ bytes, bytes_len, type, output);
+            break;
+
+        case CC_TYPE_TUPLE:
+            decode_tuple(aTHX_ bytes, bytes_len, type, output);
             break;
 
         default:
@@ -511,6 +516,10 @@ void decode_udt(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
     pos = 0;
 
     for (i = 0; i < udt->field_count; i++) {
+        if (len == pos) {
+            break;
+        }
+
         struct cc_udt_field *field;
         SV *value;
 
@@ -520,5 +529,32 @@ void decode_udt(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
         hv_store_ent(the_obj, field->name, value, 0);
 
         decode_cell(aTHX_ input, len, &pos, &field->type, value);
+    }
+}
+
+void decode_tuple(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
+{
+    SV *the_rv;
+    AV *the_tuple;
+    struct cc_tuple *tuple;
+    int i;
+    STRLEN pos;
+
+    the_tuple = newAV();
+    the_rv = newRV_noinc((SV*)the_tuple);
+    sv_setsv(output, the_rv);
+    SvREFCNT_dec(the_rv);
+
+    tuple = type->tuple;
+    assert(tuple);
+
+    pos = 0;
+
+    for (i = 0; i < tuple->field_count; i++) {
+        struct cc_type *type = &tuple->fields[i];
+        SV *decoded = newSV(0);
+        av_push(the_tuple, decoded);
+
+        decode_cell(aTHX_ input, len, &pos, type, decoded);
     }
 }

@@ -137,8 +137,26 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         }
 
     } else if (output->type_id == CC_TYPE_TUPLE) {
-        // Tuple
-        return -3;
+        uint16_t field_count;
+        int i;
+
+        Newxz(output->tuple, 1, struct cc_tuple);
+
+        if (UNLIKELY(unpack_short_nocroak(aTHX_ input, len, pos, &field_count) != 0)) {
+            return -3;
+        }
+        output->tuple->field_count = field_count;
+
+        Newxz(output->tuple->fields, field_count, struct cc_type);
+
+        for (i = 0; i < field_count; i++) {
+            struct cc_type *field;
+            field = &output->tuple->fields[i];
+
+            if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, field) != 0)) {
+                return -3;
+            }
+        }
 
     } else {
         return -2;
@@ -180,10 +198,10 @@ void cc_type_destroy(pTHX_ struct cc_type *type)
 
     } else if (type->type_id == CC_TYPE_UDT) {
         if (type->udt != NULL) {
-            int i;
             SvREFCNT_dec(type->udt->keyspace);
             SvREFCNT_dec(type->udt->udt_name);
-            if (type->udt->fields) {
+            if (type->udt->fields != NULL) {
+                int i;
                 for (i = 0; i < type->udt->field_count; i++) {
                     SvREFCNT_dec(type->udt->fields[i].name);
                     cc_type_destroy(&type->udt->fields[i].type);
@@ -192,6 +210,20 @@ void cc_type_destroy(pTHX_ struct cc_type *type)
             }
             Safefree(type->udt);
             type->udt = NULL;
+        }
+
+    } else if (type->type_id == CC_TYPE_TUPLE) {
+        if (type->tuple != NULL) {
+            if (type->tuple->fields != NULL) {
+                int i;
+                for (i = 0; i < type->tuple->field_count; i++) {
+                    cc_type_destroy(&type->tuple->fields[i]);
+                }
+                Safefree(type->tuple->fields);
+            }
+
+            Safefree(type->tuple);
+            type->tuple = NULL;
         }
     }
 }

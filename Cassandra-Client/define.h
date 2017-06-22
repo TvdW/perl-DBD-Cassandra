@@ -33,6 +33,7 @@ struct cc_type;
 struct cc_udt;
 struct cc_udt_field;
 struct cc_column;
+struct cc_tuple;
 
 struct cc_type {
     uint16_t type_id;
@@ -40,6 +41,7 @@ struct cc_type {
         struct cc_type *inner_type;
         char *custom_name;
         struct cc_udt *udt;
+        struct cc_tuple *tuple;
     };
 };
 
@@ -53,6 +55,11 @@ struct cc_udt {
     SV *udt_name;
     int field_count;
     struct cc_udt_field *fields;
+};
+
+struct cc_tuple {
+    int field_count;
+    struct cc_type *fields;
 };
 
 struct cc_column {
