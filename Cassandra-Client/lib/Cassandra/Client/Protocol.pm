@@ -106,6 +106,7 @@ BEGIN {
             %batch_type_lookup
 
             BIGINT_SUPPORTED
+                                    unpack_metadata2
         /
     );
 

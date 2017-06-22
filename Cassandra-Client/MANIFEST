@@ -1,13 +1,16 @@
 Changes
+Client.xs
 MANIFEST
 Makefile.PL
 README
+TYPEMAP
+decode.c
+define.h
 lib/Cassandra/Client.pm
 lib/Cassandra/Client/AsyncAnyEvent.pm
 lib/Cassandra/Client/AsyncEV.pm
 lib/Cassandra/Client/Config.pm
 lib/Cassandra/Client/Connection.pm
-lib/Cassandra/Client/Decoder.pm
 lib/Cassandra/Client/Encoder.pm
 lib/Cassandra/Client/Error.pm
 lib/Cassandra/Client/Metadata.pm
@@ -22,6 +25,7 @@ lib/Cassandra/Client/Protocol.pm
 lib/Cassandra/Client/ResultSet.pm
 lib/Cassandra/Client/TLSHandling.pm
 lib/Cassandra/Client/Util.pm
+proto.c
 t/00-load.t
 t/01-connect.t
 t/02-sync-basic-crud.t
@@ -36,3 +40,4 @@ t/50-bench.t
 t/99-long-loop.t
 t/manifest.t
 t/pod.t
+type.c

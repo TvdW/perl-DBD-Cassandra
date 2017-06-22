@@ -25,6 +25,9 @@ use Promises qw/deferred/;
 use Time::HiRes ();
 use Ref::Util qw/is_ref/;
 use Devel::GlobalDestruction;
+use XSLoader;
+
+XSLoader::load(__PACKAGE__, $VERSION);
 
 sub new {
     my ($class, %args)= @_;

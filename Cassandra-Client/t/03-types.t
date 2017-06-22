@@ -3,9 +3,9 @@ use 5.010;
 use strict;
 use warnings;
 use Test::More;
-use Cassandra::Client::Protocol qw/:constants pack_int pack_long pack_metadata unpack_metadata/;
+use Cassandra::Client;
+use Cassandra::Client::Protocol qw/:constants pack_int pack_long pack_metadata unpack_metadata2 unpack_metadata/;
 use Cassandra::Client::Encoder 'make_encoder';
-use Cassandra::Client::Decoder 'make_decoder';
 
 # Add some junk into our Perl magic variables
 local $"= "junk join string ,";
@@ -18,16 +18,11 @@ sub check_encdec {
         $expected= $row unless defined $expected;
 
         my $metadata= pack_metadata($rowspec);
-        my $unpacked= unpack_metadata($metadata);
+        my ($decoder)= unpack_metadata2($metadata);
+        ok($decoder) or diag('No decoder');
 
         my $encoder= make_encoder($rowspec);
         ok($encoder) or diag('No encoder');
-
-        #my ($new_decoder)= unpack_metadata2($metadata);
-        #ok($new_decoder) or diag('No decoder');
-
-        my $decoder= make_decoder($unpacked);
-        ok($decoder) or diag('No decoder');
 
         my $encoded= $encoder->($row);
         ok(length $encoded) or diag('Encoding failed');
@@ -35,13 +30,13 @@ sub check_encdec {
             substr($encoded, 0, 2, '');
             $encoded= pack_int(1).$encoded;
         }
-        my $decoded= $decoder->($encoded);
+        my $decoded= $decoder->decode($encoded);
         is_deeply($decoded->[0], $expected);
 
         1;
     } or do {
         my $error= $@ || '??';
-        ok(0) or diag $error;
+        ok(0) or diag($error);
     };
 }
 
