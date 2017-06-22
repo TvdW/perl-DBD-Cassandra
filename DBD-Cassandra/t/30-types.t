@@ -46,7 +46,7 @@ my $type_table= [
     ['time',        '14',         '14:00:00'], # Why would someone want that?
     ['tuple<int,int>', [ 1, 2 ], $input],
     ['tuple<text,int,frozen<tuple<int,int>>>', [ "test string", 15, [ 1, 2 ] ], $input],
-    ['address', { street => "abc", city => "def", zip_code => 1234 }, $input ],
+    ['frozen<address>', { street => "abc", city => "def", zip_code => 1234 }, $input ],
     ['map<text,frozen<address>>', { tom => { street => "abc", zip_code => 5, city => "abc" }, someone_else => { street => "def", city => 15, zip_code => 15 } }, $input],
 
     # List types...
