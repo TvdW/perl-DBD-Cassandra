@@ -128,7 +128,7 @@ inline int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, cha
 
 inline void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
-    if (UNLIKELY(unpack_string_nocroak(input, len, pos, output, outlen)) != 0)
+    if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, output, outlen)) != 0)
         croak("unpack_string: input invalid");
 }
 

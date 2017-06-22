@@ -205,7 +205,7 @@ void cc_type_destroy(pTHX_ struct cc_type *type)
                 int i;
                 for (i = 0; i < type->udt->field_count; i++) {
                     SvREFCNT_dec(type->udt->fields[i].name);
-                    cc_type_destroy(&type->udt->fields[i].type);
+                    cc_type_destroy(aTHX_ &type->udt->fields[i].type);
                 }
                 Safefree(type->udt->fields);
             }
@@ -218,7 +218,7 @@ void cc_type_destroy(pTHX_ struct cc_type *type)
             if (type->tuple->fields != NULL) {
                 int i;
                 for (i = 0; i < type->tuple->field_count; i++) {
-                    cc_type_destroy(&type->tuple->fields[i]);
+                    cc_type_destroy(aTHX_ &type->tuple->fields[i]);
                 }
                 Safefree(type->tuple->fields);
             }
