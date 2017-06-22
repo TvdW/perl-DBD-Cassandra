@@ -12,6 +12,7 @@ void decode_map     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *ou
 void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_time    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_tinyint (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+void decode_udt     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_utf8    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_uuid    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 void decode_varint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
@@ -100,6 +101,10 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
 
         case CC_TYPE_MAP:
             decode_map(aTHX_ bytes, bytes_len, type, output);
+            break;
+
+        case CC_TYPE_UDT:
+            decode_udt(aTHX_ bytes, bytes_len, type, output);
             break;
 
         default:
@@ -484,5 +489,36 @@ void decode_map(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
         hv_store_ent(the_map, key, value, 0);
 
         decode_cell(aTHX_ input, len, &pos, value_type, value);
+    }
+}
+
+void decode_udt(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
+{
+    struct cc_udt *udt;
+    int i;
+    STRLEN pos;
+    HV *the_obj;
+    SV *the_rv;
+
+    the_obj = newHV();
+    the_rv = newRV_noinc((SV*)the_obj);
+    sv_setsv(output, the_rv);
+    SvREFCNT_dec(the_rv);
+
+    udt = type->udt;
+    assert(udt && udt->fields);
+
+    pos = 0;
+
+    for (i = 0; i < udt->field_count; i++) {
+        struct cc_udt_field *field;
+        SV *value;
+
+        field = &udt->fields[i];
+        value = newSV(0);
+
+        hv_store_ent(the_obj, field->name, value, 0);
+
+        decode_cell(aTHX_ input, len, &pos, &field->type, value);
     }
 }

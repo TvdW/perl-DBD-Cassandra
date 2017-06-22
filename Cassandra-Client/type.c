@@ -15,7 +15,9 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
     } else if (output->type_id == CC_TYPE_CUSTOM) {
         char *custom_type;
         STRLEN type_length;
-        unpack_string(aTHX_ input, len, pos, &custom_type, &type_length);
+        if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, &custom_type, &type_length) != 0)) {
+            return -3;
+        }
         const char *marshal_prefix = "org.apache.cassandra.db.marshal.";
         if (type_length > strlen(marshal_prefix) && !memcmp(marshal_prefix, custom_type, strlen(marshal_prefix))) {
             char *marshal_type;
@@ -74,17 +76,17 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         Newxz(inner, 1, struct cc_type);
         output->inner_type = inner;
 
-        if (unpack_type_nocroak(aTHX_ input, len, pos, inner) != 0) {
+        if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, inner) != 0)) {
             return -3;
         }
 
     } else if (output->type_id == CC_TYPE_MAP) {
         Newxz(output->inner_type, 2, struct cc_type);
 
-        if (unpack_type_nocroak(aTHX_ input, len, pos, &output->inner_type[0]) != 0) {
+        if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, &output->inner_type[0]) != 0)) {
             return -3;
         }
-        if (unpack_type_nocroak(aTHX_ input, len, pos, &output->inner_type[1]) != 0) {
+        if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, &output->inner_type[1]) != 0)) {
             return -3;
         }
 
@@ -93,13 +95,46 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         Newxz(inner, 1, struct cc_type);
         output->inner_type = inner;
 
-        if (unpack_type_nocroak(aTHX_ input, len, pos, inner) != 0) {
+        if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, inner) != 0)) {
             return -3;
         }
 
     } else if (output->type_id == CC_TYPE_UDT) {
-        // UDT
-        return -3;
+        char *str;
+        STRLEN str_len;
+        uint16_t field_count;
+        int i;
+
+        Newxz(output->udt, 1, struct cc_udt);
+
+        if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, &str, &str_len) != 0)) {
+            return -3;
+        }
+        output->udt->keyspace = newSVpvn_utf8(str, str_len, 1);
+
+        if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, &str, &str_len) != 0)) {
+            return -3;
+        }
+        output->udt->udt_name = newSVpvn_utf8(str, str_len, 1);
+
+        if (UNLIKELY(unpack_short_nocroak(aTHX_ input, len, pos, &field_count) != 0)) {
+            return -3;
+        }
+        output->udt->field_count = field_count;
+
+        Newxz(output->udt->fields, field_count, struct cc_udt_field);
+
+        for (i = 0; i < field_count; i++) {
+            struct cc_udt_field *field = &output->udt->fields[i];
+            if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, &str, &str_len) != 0)) {
+                return -3;
+            }
+            field->name = newSVpvn_utf8(str, str_len, 1);
+
+            if (UNLIKELY(unpack_type_nocroak(aTHX_ input, len, pos, &field->type) != 0)) {
+                return -3;
+            }
+        }
 
     } else if (output->type_id == CC_TYPE_TUPLE) {
         // Tuple
@@ -141,6 +176,22 @@ void cc_type_destroy(pTHX_ struct cc_type *type)
         if (type->custom_name != NULL) {
             Safefree(type->custom_name);
             type->custom_name = NULL;
+        }
+
+    } else if (type->type_id == CC_TYPE_UDT) {
+        if (type->udt != NULL) {
+            int i;
+            SvREFCNT_dec(type->udt->keyspace);
+            SvREFCNT_dec(type->udt->udt_name);
+            if (type->udt->fields) {
+                for (i = 0; i < type->udt->field_count; i++) {
+                    SvREFCNT_dec(type->udt->fields[i].name);
+                    cc_type_destroy(&type->udt->fields[i].type);
+                }
+                Safefree(type->udt->fields);
+            }
+            Safefree(type->udt);
+            type->udt = NULL;
         }
     }
 }

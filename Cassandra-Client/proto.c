@@ -112,16 +112,24 @@ SV *unpack_bytes_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 // String
-inline void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+inline int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     uint16_t string_length = unpack_short(aTHX_ input, len, pos);
 
     if (UNLIKELY(len - *pos < string_length))
-        croak("unpack_string: input too short. Data corrupted?");
+        return -1;
 
     *output = input + *pos;
     *outlen = string_length;
     *pos += string_length;
+
+    return 0;
+}
+
+inline void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+{
+    if (UNLIKELY(unpack_string_nocroak(input, len, pos, output, outlen)) != 0)
+        croak("unpack_string: input invalid");
 }
 
 SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)

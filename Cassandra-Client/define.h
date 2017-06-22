@@ -29,12 +29,30 @@
 #define CC_TYPE_UDT       0x0030
 #define CC_TYPE_TUPLE     0x0031
 
+struct cc_type;
+struct cc_udt;
+struct cc_udt_field;
+struct cc_column;
+
 struct cc_type {
     uint16_t type_id;
     union {
         struct cc_type *inner_type;
         char *custom_name;
+        struct cc_udt *udt;
     };
+};
+
+struct cc_udt_field {
+    SV *name;
+    struct cc_type type;
+};
+
+struct cc_udt {
+    SV *keyspace;
+    SV *udt_name;
+    int field_count;
+    struct cc_udt_field *fields;
 };
 
 struct cc_column {

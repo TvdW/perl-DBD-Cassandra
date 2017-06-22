@@ -137,12 +137,9 @@ DESTROY(self)
     int i;
     for (i = 0; i < self->column_count; i++) {
         struct cc_column *column = &(self->columns[i]);
-        if (column->keyspace)
-            SvREFCNT_dec(column->keyspace);
-        if (column->table)
-            SvREFCNT_dec(column->table);
-        if (column->name)
-            SvREFCNT_dec(column->name);
+        SvREFCNT_dec(column->keyspace);
+        SvREFCNT_dec(column->table);
+        SvREFCNT_dec(column->name);
         cc_type_destroy(aTHX_ &column->type);
     }
     Safefree(self->columns);
