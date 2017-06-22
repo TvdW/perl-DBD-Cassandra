@@ -10,7 +10,7 @@
 typedef struct {
     int column_count;
     struct cc_column *columns;
-} Cassandra__Client__Decoder;
+} Cassandra__Client__RowMeta;
 
 MODULE = Cassandra::Client  PACKAGE = Cassandra::Client::Protocol
 PROTOTYPES: DISABLE
@@ -22,9 +22,9 @@ unpack_metadata2(data)
     STRLEN pos, size;
     char *ptr;
     int32_t flags, column_count;
-    Cassandra__Client__Decoder *decoder;
+    Cassandra__Client__RowMeta *row_meta;
 
-    ST(0) = &PL_sv_undef; // Will have our Decoder instance
+    ST(0) = &PL_sv_undef; // Will have our RowMeta instance
     ST(1) = &PL_sv_undef; // Will have our paging state
 
     ptr = SvPV(data, size);
@@ -59,15 +59,15 @@ unpack_metadata2(data)
             sv_2mortal(global_table);
         }
 
-        Newxz(decoder, 1, Cassandra__Client__Decoder);
+        Newxz(row_meta, 1, Cassandra__Client__RowMeta);
         ST(0) = sv_newmortal();
-        sv_setref_pv(ST(0), "Cassandra::Client::DecoderPtr", (void*)decoder);
+        sv_setref_pv(ST(0), "Cassandra::Client::RowMetaPtr", (void*)row_meta);
 
-        decoder->column_count = column_count;
-        Newxz(decoder->columns, column_count, struct cc_column);
+        row_meta->column_count = column_count;
+        Newxz(row_meta->columns, column_count, struct cc_column);
 
         for (i = 0; i < column_count; i++) {
-            struct cc_column *column = &(decoder->columns[i]);
+            struct cc_column *column = &(row_meta->columns[i]);
             if (have_global_spec) {
                 column->keyspace = global_keyspace;
                 SvREFCNT_inc(column->keyspace);
@@ -87,11 +87,11 @@ unpack_metadata2(data)
 
     XSRETURN(2);
 
-MODULE = Cassandra::Client  PACKAGE = Cassandra::Client::DecoderPtr
+MODULE = Cassandra::Client  PACKAGE = Cassandra::Client::RowMetaPtr
 
 AV*
 decode(self, data)
-    Cassandra::Client::Decoder *self
+    Cassandra::Client::RowMeta *self
     SV *data
   CODE:
     STRLEN size, pos;
@@ -132,7 +132,7 @@ decode(self, data)
 
 void
 DESTROY(self)
-    Cassandra::Client::Decoder *self
+    Cassandra::Client::RowMeta *self
   CODE:
     int i;
     for (i = 0; i < self->column_count; i++) {

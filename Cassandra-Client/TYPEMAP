@@ -1,2 +1,2 @@
 TYPEMAP
-Cassandra::Client::Decoder* T_PTROBJ
+Cassandra::Client::RowMeta* T_PTROBJ
