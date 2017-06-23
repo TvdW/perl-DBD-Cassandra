@@ -1,10 +1,18 @@
-// Long
+#define PERL_NO_GET_CONTEXT
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+#include "define.h"
+#include "type.h"
+
+/* Long */
 inline int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 8))
         croak("unpack_long: input too short. Data corrupted?");
 
-    // I'm going to assume a LE system here. If that's not the case, let's hope $user ran the tests.
+    /* I'm going to assume a LE system here. If that's not the case, let's hope $user ran the tests. */
     uint32_t first_half  = ntohl(*(uint32_t*)(input+*pos));
     uint32_t second_half = ntohl(*(uint32_t*)(input+*pos+4));
     int64_t result = (((int64_t)first_half) << 32) | ((int64_t)second_half);
@@ -13,7 +21,7 @@ inline int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
-// Tinyint
+/* Tinyint */
 inline int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 1))
@@ -23,7 +31,7 @@ inline int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
-// Int
+/* Int */
 inline int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 4))
@@ -33,7 +41,7 @@ inline int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
-// Float
+/* Float */
 inline float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     int32_t result_bytes = unpack_int(aTHX_ input, len, pos);
@@ -41,7 +49,7 @@ inline float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
-// Double
+/* Double */
 inline double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     int64_t result_bytes = unpack_long(aTHX_ input, len, pos);
@@ -49,7 +57,7 @@ inline double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
-// Short
+/* Short */
 inline int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out)
 {
     if (UNLIKELY(len - *pos < 2))
@@ -67,7 +75,7 @@ inline uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return out;
 }
 
-// Bytes
+/* Bytes */
 inline int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     uint16_t bytes_length = unpack_short(aTHX_ input, len, pos);
@@ -81,7 +89,7 @@ inline int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char *
     return 0;
 }
 
-// Bytes
+/* Bytes */
 inline int unpack_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     int32_t bytes_length = unpack_int(aTHX_ input, len, pos);
@@ -111,7 +119,7 @@ SV *unpack_bytes_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
     }
 }
 
-// String
+/* String */
 inline int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     uint16_t string_length = unpack_short(aTHX_ input, len, pos);
@@ -140,7 +148,7 @@ SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return newSVpvn_utf8(string, str_len, 1);
 }
 
-// Long string
+/* Long string */
 inline void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     int32_t string_length = unpack_int(aTHX_ input, len, pos);
@@ -152,6 +160,3 @@ inline void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char 
     *outlen = string_length;
     *pos += string_length;
 }
-
-// option "type"
-#include "type.c"

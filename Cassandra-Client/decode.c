@@ -1,22 +1,31 @@
-void decode_bigint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_blob    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_boolean (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_date    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_decimal (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_double  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_float   (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_inet    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_int     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_list    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_map     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_time    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_tinyint (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_tuple   (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_udt     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_utf8    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_uuid    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
-void decode_varint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+#define PERL_NO_GET_CONTEXT
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+#include "define.h"
+#include "cc_bignum.h"
+#include "decode.h"
+
+static void decode_bigint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_blob    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_boolean (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_date    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_decimal (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_double  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_float   (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_inet    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_int     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_list    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_map     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_time    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_tinyint (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_tuple   (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_udt     (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_utf8    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_uuid    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+static void decode_varint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 
 void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *type, SV *output)
 {
@@ -405,15 +414,15 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
     }
 }
 
-// Perl knows how to divide and mod, but... C doesn't! So we implement our own wrappers here, to fix the behavior of C.
-int64_t divide_properly(int64_t x, int64_t y) // Only works for a positive 'y'
+/* Perl knows how to divide and mod, but... C doesn't! So we implement our own wrappers here, to fix the behavior of C. */
+int64_t divide_properly(int64_t x, int64_t y) /* Only works for a positive 'y' */
 {
     int divided = x / y;
     if (x % y != 0 && x < 0) divided--;
     return divided;
 }
 
-int64_t mod_properly(int64_t x, int64_t y) // Probably only works for a positive 'y'
+int64_t mod_properly(int64_t x, int64_t y) /* Probably only works for a positive 'y' */
 {
     int mod = x % y;
     if (mod < 0)
@@ -430,7 +439,7 @@ void decode_date(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
 
     ind = ntohl(*(uint32_t*)input);
 
-    // This is why unit tests exist. :-)
+    /* This is why unit tests exist. :-) */
     J = ind;
     J -= 0x80000000 - 2440588;
 

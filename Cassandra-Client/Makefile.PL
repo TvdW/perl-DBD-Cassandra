@@ -33,4 +33,6 @@ WriteMakefile(
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Cassandra-Client-*' },
     TYPEMAPS => ['TYPEMAP'],
+    OBJECT => '$(O_FILES)',
+    INC => '-I.',
 );

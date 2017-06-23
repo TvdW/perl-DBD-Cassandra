@@ -2,13 +2,14 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#include "ppport.h"
 
 #include <arpa/inet.h>
 
 #include "define.h"
-#include "math.c"
-#include "proto.c"
-#include "decode.c"
+#include "type.h"
+#include "proto.h"
+#include "decode.h"
 
 typedef struct {
     int column_count;
@@ -27,8 +28,8 @@ unpack_metadata2(data)
     int32_t flags, column_count;
     Cassandra__Client__RowMeta *row_meta;
 
-    ST(0) = &PL_sv_undef; // Will have our RowMeta instance
-    ST(1) = &PL_sv_undef; // Will have our paging state
+    ST(0) = &PL_sv_undef; /* Will have our RowMeta instance */
+    ST(1) = &PL_sv_undef; /* Will have our paging state */
 
     ptr = SvPV(data, size);
     pos = 0;
@@ -104,7 +105,7 @@ decode(self, data)
     struct cc_column *columns;
 
     RETVAL = newAV();
-    sv_2mortal((SV*)RETVAL); // work around a bug in perl
+    sv_2mortal((SV*)RETVAL); /* work around a bug in perl */
 
     ptr = SvPV(data, size);
     pos = 0;

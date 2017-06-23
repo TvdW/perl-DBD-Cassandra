@@ -4,7 +4,10 @@ MANIFEST
 Makefile.PL
 README
 TYPEMAP
+cc_bignum.c
+cc_bignum.h
 decode.c
+decode.h
 define.h
 lib/Cassandra/Client.pm
 lib/Cassandra/Client/AsyncAnyEvent.pm
@@ -25,7 +28,9 @@ lib/Cassandra/Client/Protocol.pm
 lib/Cassandra/Client/ResultSet.pm
 lib/Cassandra/Client/TLSHandling.pm
 lib/Cassandra/Client/Util.pm
+ppport.h
 proto.c
+proto.h
 t/00-load.t
 t/01-connect.t
 t/02-sync-basic-crud.t
@@ -41,3 +46,4 @@ t/99-long-loop.t
 t/manifest.t
 t/pod.t
 type.c
+type.h

@@ -1,8 +1,10 @@
-void cc_type_destroy(pTHX_ struct cc_type *type);
-int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *output);
-void unpack_type(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *output);
+#define PERL_NO_GET_CONTEXT
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
 
-
+#include "define.h"
+#include "type.h"
 
 int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *output)
 {
@@ -10,7 +12,7 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         return -1;
 
     if (output->type_id > 0 && output->type_id < 0x20) {
-        // Primitives. No further decoding needed
+        /* Primitives. No further decoding needed */
 
     } else if (output->type_id == CC_TYPE_CUSTOM) {
         char *custom_type;
@@ -67,7 +69,7 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
             }
         }
 
-        // If we made it this far, it's not a type we understand. So just copy the name and we're done.
+        /* If we made it this far, it's not a type we understand. So just copy the name and we're done. */
         Newxz(output->custom_name, type_length+1, char);
         memcpy(output->custom_name, custom_type, type_length);
 

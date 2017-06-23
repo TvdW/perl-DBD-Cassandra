@@ -1,20 +1,10 @@
-struct cc_bignum {
-    uint8_t *number; // Little-endian!
-    size_t length;
-    int is_negative;
-};
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "cc_bignum.h"
 
-void cc_bignum_add_1(struct cc_bignum *n);
-void cc_bignum_init_bytes(struct cc_bignum *bn, char *bytes, size_t length);
-void cc_bignum_destroy(struct cc_bignum *bn);
-void cc_bignum_copy(struct cc_bignum *out, struct cc_bignum *in);
-void cc_bignum_move(struct cc_bignum *out, struct cc_bignum *in);
-uint32_t cc_bignum_divide_8bit(struct cc_bignum *n, uint8_t d, struct cc_bignum *out);
-void cc_bignum_stringify(struct cc_bignum *bn, char *out, size_t outlen);
-int cc_bignum_is_zero(struct cc_bignum *n);
-
-// I needed a bignum library but couldn't use GMP because I can't assume it's installed everywhere.
-// Since the amount of things I need to do is really small, I rolled my own.
+/* I needed a bignum library but couldn't use GMP because I can't assume it's installed everywhere.
+   Since the amount of things I need to do is really small, I rolled my own. */
 
 void cc_bignum_init_bytes(struct cc_bignum *bn, char *bytes, size_t length)
 {
@@ -64,7 +54,7 @@ void cc_bignum_move(struct cc_bignum *out, struct cc_bignum *in)
     in->is_negative = 0;
 }
 
-// https://stackoverflow.com/a/10525503
+/*  https://stackoverflow.com/a/10525503 */
 uint32_t cc_bignum_divide_8bit(struct cc_bignum *n, uint8_t d, struct cc_bignum *out)
 {
     size_t i;
@@ -84,7 +74,7 @@ uint32_t cc_bignum_divide_8bit(struct cc_bignum *n, uint8_t d, struct cc_bignum 
     out->length = n->length;
     out->is_negative = n->is_negative;
 
-    // Probably not correct when the number is negative. But good enough for our use cases.
+    /* Probably not correct when the number is negative. But good enough for our use cases. */
     return temp;
 }
 
@@ -116,15 +106,17 @@ int cc_bignum_is_zero(struct cc_bignum *n)
     return 1;
 }
 
-//void cc_bignum_dump(struct cc_bignum *bn)
-//{
-//    int i;
-//    printf("BN: ");
-//    for (i = 0; i < bn->length; i++) {
-//        printf("%.2x ", bn->number[i]);
-//    }
-//    printf("\n");
-//}
+/*
+  void cc_bignum_dump(struct cc_bignum *bn)
+  {
+      int i;
+      printf("BN: ");
+      for (i = 0; i < bn->length; i++) {
+          printf("%.2x ", bn->number[i]);
+      }
+      printf("\n");
+  }
+*/
 
 void cc_bignum_stringify(struct cc_bignum *bn, char *out, size_t outlen)
 {
@@ -139,7 +131,7 @@ void cc_bignum_stringify(struct cc_bignum *bn, char *out, size_t outlen)
         return;
     }
     if (bn->length <= 8) {
-        // libc will be faster than I can be...
+        /* libc will be faster than I can be... */
         char bigint[8];
         memset(bigint, 0, 8);
         memcpy(bigint, bn->number, bn->length);
