@@ -4,7 +4,9 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.11';
+our $VERSION = '0.11_001';
+my $XS_VERSION = $VERSION;
+$VERSION = eval $VERSION;
 
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::AsyncEV;
@@ -27,7 +29,7 @@ use Ref::Util qw/is_ref/;
 use Devel::GlobalDestruction;
 use XSLoader;
 
-XSLoader::load(__PACKAGE__, $VERSION);
+XSLoader::load(__PACKAGE__, $XS_VERSION);
 
 sub new {
     my ($class, %args)= @_;
