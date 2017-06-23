@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 
 #include "define.h"
+#include "math.c"
 #include "proto.c"
 #include "decode.c"
 

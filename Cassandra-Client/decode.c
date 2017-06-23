@@ -383,7 +383,25 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
     } else if (len == 8) {
         decode_bigint(aTHX_ input, len, type, output);
     } else {
-        sv_setpvn(output, "1234", 4);
+        char *tmp, *tmpout;
+        struct cc_bignum bn;
+        int i;
+
+        Newxz(tmp, len, char);
+        Newxz(tmpout, (len*4)+2, char);
+
+        for (i = 0; i < len; i++) {
+            tmp[len-i-1] = input[i];
+        }
+
+        cc_bignum_init_bytes(&bn, tmp, len);
+
+        cc_bignum_stringify(&bn, tmpout, (len*4)+2);
+        sv_setpv(output, tmpout);
+
+        cc_bignum_destroy(&bn);
+        Safefree(tmp);
+        Safefree(tmpout);
     }
 }
 
