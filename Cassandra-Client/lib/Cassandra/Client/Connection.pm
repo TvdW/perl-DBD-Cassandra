@@ -411,17 +411,10 @@ sub decode_result {
         my $metadata= eval { ($decoder, $paging_state)= unpack_metadata2(my $old= $_[3]); unpack_metadata($_[3]) } or return $callback->("Unable to unpack query metadata: $@");
         $decoder= $prepared->{decoder} || $decoder;
 
-        my $rows;
-        eval {
-            $rows= $decoder->decode($_[3]);
-            1;
-        } or do {
-            my $error= $@ || "??";
-            return $callback->("Error while decoding row: $error");
-        };
         $callback->(undef,
             Cassandra::Client::ResultSet->new(
-                $rows,
+                \$_[3],
+                $decoder,
                 [ map { $_->[2] } @{$prepared->{result_metadata}{columns} || $metadata->{columns}} ],
                 $paging_state,
             )

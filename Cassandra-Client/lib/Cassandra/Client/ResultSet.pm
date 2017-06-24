@@ -11,11 +11,12 @@ use warnings;
 =cut
 
 sub new {
-    my ($class, $rows, $headers, $next_page)= @_;
+    my ($class, $raw_data, $decoder, $column_names, $next_page)= @_;
 
     return bless {
-        rows => $rows,
-        headers => $headers,
+        raw_data => $raw_data,
+        decoder => $decoder,
+        column_names => $column_names,
         next_page => $next_page,
     }, $class;
 }
@@ -27,7 +28,7 @@ Returns an arrayref of all rows in the ResultSet. Each row will be represented a
 =cut
 
 sub rows {
-    $_[0]{rows}
+    $_[0]{rows} ||= do { $_[0]{decoder}->decode(${delete $_[0]{raw_data}}) }
 }
 
 =item $result->row_hashes()
@@ -59,7 +60,7 @@ Returns an arrayref with the names of the columns in the result set, to be used 
 =cut
 
 sub column_names {
-    $_[0]{headers}
+    $_[0]{column_names}
 }
 
 =item $result->next_page()
