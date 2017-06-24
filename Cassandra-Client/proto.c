@@ -2,6 +2,7 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#define NEED_newSVpvn_flags_GLOBAL
 #include "ppport.h"
 
 #include "define.h"
