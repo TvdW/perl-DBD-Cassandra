@@ -1,13 +1,8 @@
 package Cassandra::Client::ResultSet;
+
 use 5.010;
 use strict;
 use warnings;
-
-=pod
-
-=head1 NAME
-
-Cassandra::Client::ResultSet - container for rows returned from a query
 
 =head1 METHODS
 

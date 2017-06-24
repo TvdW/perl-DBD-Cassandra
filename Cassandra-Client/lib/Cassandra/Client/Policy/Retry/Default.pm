@@ -1,4 +1,5 @@
 package Cassandra::Client::Policy::Retry::Default;
+
 use 5.010;
 use strict;
 use warnings;

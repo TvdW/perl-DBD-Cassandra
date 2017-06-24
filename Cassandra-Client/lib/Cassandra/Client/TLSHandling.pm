@@ -1,10 +1,11 @@
 package Cassandra::Client::TLSHandling;
+
 use 5.010;
 use strict;
 use warnings;
 
 # SSLeay needs initialization
-use Net::SSLeay qw/die_now MODE_ENABLE_PARTIAL_WRITE MODE_ACCEPT_MOVING_WRITE_BUFFER/;
+use Net::SSLeay 1.63 qw/die_now MODE_ENABLE_PARTIAL_WRITE MODE_ACCEPT_MOVING_WRITE_BUFFER/;
 BEGIN {
     Net::SSLeay::load_error_strings();
     Net::SSLeay::SSLeay_add_ssl_algorithms();
@@ -42,6 +43,7 @@ sub DESTROY {
 1;
 
 package Cassandra::Client::TLSHandling::conn;
+
 use 5.010;
 use strict;
 use warnings;

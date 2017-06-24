@@ -1,4 +1,7 @@
 package DBD::Cassandra::st;
+
+# ABSTRACT: DBD::Cassandra statement handle
+
 use 5.010;
 use strict;
 use warnings;

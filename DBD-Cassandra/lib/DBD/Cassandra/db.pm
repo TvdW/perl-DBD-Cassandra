@@ -1,4 +1,7 @@
 package DBD::Cassandra::db;
+
+# ABSTRACT: DBD::Cassandra database handle
+
 use 5.010;
 use strict;
 use warnings;

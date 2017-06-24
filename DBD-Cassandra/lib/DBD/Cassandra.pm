@@ -1,13 +1,16 @@
 package DBD::Cassandra;
+
+# ABSTRACT: DBI database backend for Cassandra
+
 use 5.010;
 use strict;
 use warnings;
+use DBI 1.621;
 
 use DBD::Cassandra::dr;
 use DBD::Cassandra::db;
 use DBD::Cassandra::st;
 
-our $VERSION= '0.56';
 our $drh= undef;
 
 sub driver {
@@ -19,7 +22,7 @@ sub driver {
     my ($class, $attr)= @_;
     $drh = DBI::_new_drh($class."::dr", {
             'Name' => 'Cassandra',
-            'Version' => $VERSION,
+            'Version' => $DBD::Cassandra::VERSION,
             'Attribution' => 'DBD::Cassandra by Tom van der Woerdt',
         }) or return undef;
 
@@ -32,15 +35,10 @@ sub CLONE {
 
 1;
 
-__END__
+=head1 DESCRIPTION
 
-=pod
-
-=encoding utf8
-
-=head1 NAME
-
-DBD::Cassandra - Database driver for Cassandra's CQL3
+B<DBD::Cassandra> is a Perl5 Database Interface driver for Cassandra,
+using the CQL3 query language.
 
 =head1 EXAMPLE
 
@@ -59,11 +57,6 @@ DBD::Cassandra - Database driver for Cassandra's CQL3
     );
 
     $dbh->disconnect;
-
-=head1 DESCRIPTION
-
-B<DBD::Cassandra> is a Perl5 Database Interface driver for Cassandra,
-using the CQL3 query language.
 
 =head2 Configuration
 
@@ -332,11 +325,3 @@ the two formats is :
 
 If you never used a DBD::Cassandra version prior to 0.25, or do not use floats
 or doubles, this bug does not affect you and upgrading to 0.25 is safe.
-
-=head1 LICENSE
-
-This module is released under the same license as Perl itself.
-
-=head1 AUTHORS
-
-Tom van der Woerdt, L<tvdw@cpan.org|mailto:tvdw@cpan.org>

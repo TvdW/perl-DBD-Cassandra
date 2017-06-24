@@ -1,12 +1,10 @@
 package Cassandra::Client;
 
+# ABSTRACT: Perl library for accessing Cassandra using its binary network protocol
+
 use 5.010;
 use strict;
 use warnings;
-
-our $VERSION = '0.11_002';
-my $XS_VERSION = $VERSION;
-$VERSION = eval $VERSION;
 
 use Cassandra::Client::AsyncAnyEvent;
 use Cassandra::Client::AsyncEV;
@@ -21,14 +19,16 @@ use Cassandra::Client::Pool;
 use Cassandra::Client::TLSHandling;
 use Cassandra::Client::Util qw/series whilst/;
 
-use Clone qw/clone/;
+use Clone 0.36 qw/clone/;
 use List::Util qw/shuffle/;
-use Promises qw/deferred/;
+use Promises 0.93 qw/deferred/;
 use Time::HiRes ();
-use Ref::Util qw/is_ref/;
-use Devel::GlobalDestruction;
+use Ref::Util 0.008 qw/is_ref/;
+use Devel::GlobalDestruction 0.11;
 use XSLoader;
 
+our $XS_VERSION = ($Cassandra::Client::VERSION || '');
+$XS_VERSION =~ s/\A(\d+)\.(\d+)(\d{3})\z/$1.$2_$3/;
 XSLoader::load(__PACKAGE__, $XS_VERSION);
 
 sub new {
@@ -521,11 +521,9 @@ PUBLIC_METHODS: {
 
 1;
 
-=pod
+=head1 DESCRIPTION
 
-=head1 NAME
-
-Cassandra::Client - Perl interface to Cassandra's native protocol
+C<Cassandra::Client> is a Perl library giving its users access to the Cassandra database, through the native protocol. Both synchronous and asynchronous querying is supported, through various common calling styles.
 
 =head1 EXAMPLE
 
@@ -544,10 +542,6 @@ Cassandra::Client - Perl interface to Cassandra's native protocol
             say "$id: $column";
         }
     });
-
-=head1 DESCRIPTION
-
-C<Cassandra::Client> is a Perl library giving its users access to the Cassandra database, through the native protocol. Both synchronous and asynchronous querying is supported, through various common calling styles.
 
 =head1 METHODS
 
@@ -750,13 +744,3 @@ strings will not work, and will likely result in warnings and
 unexpected behavior.
 
 =back
-
-=head1 LICENSE
-
-Copyright (C) 2017 L<Tom van der Woerdt|mailto:tvdw@cpan.org>
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See L<http://dev.perl.org/licenses/> for more information.

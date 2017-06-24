@@ -1,4 +1,5 @@
 package Cassandra::Client::Pool;
+
 use 5.010;
 use strict;
 use warnings;

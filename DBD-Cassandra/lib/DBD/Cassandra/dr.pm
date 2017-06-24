@@ -1,4 +1,7 @@
 package DBD::Cassandra::dr;
+
+# ABSTRACT: DBD::Cassandra driver handle
+
 use 5.010;
 use strict;
 use warnings;
