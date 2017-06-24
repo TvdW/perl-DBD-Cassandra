@@ -7,7 +7,7 @@
 #include "type.h"
 
 /* Long */
-inline int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos)
+int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 8))
         croak("unpack_long: input too short. Data corrupted?");
@@ -22,7 +22,7 @@ inline int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Tinyint */
-inline int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos)
+int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 1))
         croak("unpack_tinyint: input too short. Data corrupted?");
@@ -32,7 +32,7 @@ inline int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Int */
-inline int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
+int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     if (UNLIKELY(len - *pos < 4))
         croak("unpack_int: input too short. Data corrupted?");
@@ -42,7 +42,7 @@ inline int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Float */
-inline float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos)
+float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     int32_t result_bytes = unpack_int(aTHX_ input, len, pos);
     float result = *((float*)&result_bytes);
@@ -50,7 +50,7 @@ inline float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Double */
-inline double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos)
+double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     int64_t result_bytes = unpack_long(aTHX_ input, len, pos);
     double result = *((double*)&result_bytes);
@@ -58,7 +58,7 @@ inline double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Short */
-inline int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out)
+int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out)
 {
     if (UNLIKELY(len - *pos < 2))
         return -1;
@@ -67,7 +67,7 @@ inline int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint
     return 0;
 }
 
-inline uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos)
+uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos)
 {
     uint16_t out;
     if (UNLIKELY(unpack_short_nocroak(aTHX_ input, len, pos, &out) != 0))
@@ -76,7 +76,7 @@ inline uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Bytes */
-inline int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     uint16_t bytes_length = unpack_short(aTHX_ input, len, pos);
     if (UNLIKELY(len - *pos < bytes_length))
@@ -90,7 +90,7 @@ inline int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char *
 }
 
 /* Bytes */
-inline int unpack_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+int unpack_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     int32_t bytes_length = unpack_int(aTHX_ input, len, pos);
     if (bytes_length < 0) {
@@ -120,7 +120,7 @@ SV *unpack_bytes_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* String */
-inline int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     uint16_t string_length = unpack_short(aTHX_ input, len, pos);
 
@@ -134,7 +134,7 @@ inline int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, cha
     return 0;
 }
 
-inline void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     if (UNLIKELY(unpack_string_nocroak(aTHX_ input, len, pos, output, outlen)) != 0)
         croak("unpack_string: input invalid");
@@ -149,7 +149,7 @@ SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
 }
 
 /* Long string */
-inline void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
+void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
     int32_t string_length = unpack_int(aTHX_ input, len, pos);
 
