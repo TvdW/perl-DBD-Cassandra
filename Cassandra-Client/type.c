@@ -5,6 +5,7 @@
 
 #include "define.h"
 #include "type.h"
+#include "proto.h"
 
 int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *output)
 {

@@ -5,6 +5,7 @@
 
 #include "define.h"
 #include "cc_bignum.h"
+#include "proto.h"
 #include "decode.h"
 
 static void decode_bigint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
