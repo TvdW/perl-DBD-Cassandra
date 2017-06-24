@@ -134,6 +134,21 @@ decode(self, data)
   OUTPUT:
     RETVAL
 
+AV*
+column_names(self)
+    Cassandra::Client::RowMeta *self
+  CODE:
+    int i;
+
+    RETVAL = newAV();
+    sv_2mortal((SV*)RETVAL); /* work around a bug in perl */
+
+    for (i = 0; i < self->column_count; i++) {
+        av_push(RETVAL, SvREFCNT_inc(self->columns[i].name));
+    }
+  OUTPUT:
+    RETVAL
+
 void
 DESTROY(self)
     Cassandra::Client::RowMeta *self

@@ -180,7 +180,7 @@ sub execute_prepared {
         return $self->prepare_and_try_execute_again($callback, $queryref, $parameters, $attr, $exec_info);
     };
 
-    my $want_result_metadata= !$prepared->{result_metadata}{columns};
+    my $want_result_metadata= !$prepared->{decoder};
     my $row;
     if ($parameters) {
         eval {
@@ -378,9 +378,14 @@ sub prepare {
             }
 
             my $id= unpack_shortbytes($body);
+
+            my $metadata= eval { unpack_metadata($body) } or return $next->("Unable to unpack query metadata: $@");
+
             my ($encoder, $decoder);
-            my $metadata= eval { unpack_metadata2(my $old= $body); unpack_metadata($body) } or return $next->("Unable to unpack query metadata: $@");
-            my $resultmetadata= eval { ($decoder)= unpack_metadata2(my $old= $body); unpack_metadata($body) } or return $next->("Unable to unpack query result metadata: $@");
+            eval {
+                ($decoder)= unpack_metadata2($body);
+                1;
+            } or return $next->("Unable to unpack query result metadata: $@");
 
             eval {
                 $encoder= make_encoder($metadata);
@@ -390,7 +395,7 @@ sub prepare {
                 return $next->("Error while preparing query, couldn't compile encoder: $error");
             };
 
-            $self->{metadata}->add_prepared($query, $id, $metadata, $resultmetadata, $decoder, $encoder);
+            $self->{metadata}->add_prepared($query, $id, $metadata, $decoder, $encoder);
             return $next->();
         },
     ], sub {
@@ -408,14 +413,13 @@ sub decode_result {
     my $result_type= unpack('l>', substr($_[3], 0, 4, ''));
     if ($result_type == RESULT_ROWS) { # Rows
         my ($paging_state, $decoder);
-        my $metadata= eval { ($decoder, $paging_state)= unpack_metadata2(my $old= $_[3]); unpack_metadata($_[3]) } or return $callback->("Unable to unpack query metadata: $@");
+        eval { ($decoder, $paging_state)= unpack_metadata2($_[3]); 1 } or return $callback->("Unable to unpack query metadata: $@");
         $decoder= $prepared->{decoder} || $decoder;
 
         $callback->(undef,
             Cassandra::Client::ResultSet->new(
                 \$_[3],
                 $decoder,
-                [ map { $_->[2] } @{$prepared->{result_metadata}{columns} || $metadata->{columns}} ],
                 $paging_state,
             )
         );

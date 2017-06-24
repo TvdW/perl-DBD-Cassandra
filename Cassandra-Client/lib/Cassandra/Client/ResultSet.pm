@@ -11,12 +11,11 @@ use warnings;
 =cut
 
 sub new {
-    my ($class, $raw_data, $decoder, $column_names, $next_page)= @_;
+    my ($class, $raw_data, $decoder, $next_page)= @_;
 
     return bless {
         raw_data => $raw_data,
         decoder => $decoder,
-        column_names => $column_names,
         next_page => $next_page,
     }, $class;
 }
@@ -60,7 +59,7 @@ Returns an arrayref with the names of the columns in the result set, to be used 
 =cut
 
 sub column_names {
-    $_[0]{column_names}
+    $_[0]{decoder}->column_names
 }
 
 =item $result->next_page()
