@@ -34,7 +34,7 @@ unpack_metadata2(data)
     ptr = SvPV(data, size);
     pos = 0;
 
-    if (!ptr)
+    if (UNLIKELY(!ptr))
         croak("Missing data argument to unpack_metadata");
 
     flags = unpack_int(aTHX_ ptr, size, &pos);
@@ -66,6 +66,9 @@ unpack_metadata2(data)
         Newxz(row_meta, 1, Cassandra__Client__RowMeta);
         ST(0) = sv_newmortal();
         sv_setref_pv(ST(0), "Cassandra::Client::RowMetaPtr", (void*)row_meta);
+
+        if (UNLIKELY(column_count > size))
+            croak("Invalid protocol data passed to unpack_metadata (reason: column count unlikely)");
 
         row_meta->column_count = column_count;
         Newxz(row_meta->columns, column_count, struct cc_column);
