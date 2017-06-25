@@ -114,7 +114,7 @@ decode(self, data, use_hashes)
     ptr = SvPV(data, size);
     pos = 0;
 
-    if (!ptr)
+    if (UNLIKELY(!ptr))
         croak("Invalid input to decode()");
 
     col_count = self->column_count;
@@ -125,7 +125,7 @@ decode(self, data, use_hashes)
     // This came up while fuzzing: when we have 1000000 rows but no columns, we
     // just flood the memory with empty arrays/hashes. Let's just reject this
     // corner case. If you need this, please contact the author!
-    if (row_count > 1000 && !col_count)
+    if (UNLIKELY(row_count > 1000 && !col_count))
         croak("Refusing to decode %d rows without known column information", row_count);
 
     for (i = 0; i < row_count; i++) {

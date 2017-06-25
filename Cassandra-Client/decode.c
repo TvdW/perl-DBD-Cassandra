@@ -179,7 +179,7 @@ void decode_bigint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         int64_t bigint;
     } bytes_or_bigint;
 
-    if (len != 8)
+    if (UNLIKELY(len != 8))
         croak("decode_bigint: len != 8");
 
     memcpy(bytes_or_bigint.bytes, input, 8);
@@ -199,7 +199,7 @@ void decode_double(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         double doub;
     } bytes_or_double;
 
-    if (len != 8)
+    if (UNLIKELY(len != 8))
         croak("decode_double: len != 8");
 
     memcpy(bytes_or_double.bytes, input, 8);
@@ -214,7 +214,7 @@ void decode_float(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outpu
         float fl;
     } bytes_or_float;
 
-    if (len != 4)
+    if (UNLIKELY(len != 4))
         croak("decode_float: len != 4");
 
     memcpy(bytes_or_float.bytes, input, 4);
@@ -229,7 +229,7 @@ void decode_int(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
         int32_t i;
     } bytes_or_int;
 
-    if (len != 4)
+    if (UNLIKELY(len != 4))
         croak("decode_int: len != 4");
 
     memcpy(bytes_or_int.bytes, input, 4);
@@ -244,7 +244,7 @@ void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *ou
         int16_t i;
     } bytes_or_smallint;
 
-    if (len != 2)
+    if (UNLIKELY(len != 2))
         croak("decode_smallint: len != 2");
 
     memcpy(bytes_or_smallint.bytes, input, 2);
@@ -254,7 +254,7 @@ void decode_smallint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *ou
 
 void decode_tinyint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
-    if (len != 1)
+    if (UNLIKELY(len != 1))
         croak("decode_tinyint: len != 1");
 
     sv_setiv(output, *input);
@@ -268,7 +268,7 @@ void decode_utf8(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
 
 void decode_boolean(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
-    if (len != 1)
+    if (UNLIKELY(len != 1))
         croak("decode_boolean: len != 1");
 
     if (*input)
@@ -303,11 +303,11 @@ void decode_list(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     inner_type = type->inner_type;
     assert(inner_type);
 
-    if (len < 4)
+    if (UNLIKELY(len < 4))
         croak("decode_list: len < 4");
 
     int32_t num_elements = (int32_t)ntohl(*(uint32_t*)(input));
-    if (num_elements < 0)
+    if (UNLIKELY(num_elements < 0))
         croak("decode_list: num_elements < 0");
 
     the_list = newAV();
@@ -329,7 +329,7 @@ void decode_uuid(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
 {
     unsigned char *uinput;
 
-    if (len != 16)
+    if (UNLIKELY(len != 16))
         croak("decode_uuid: len != 16");
 
     uinput = (unsigned char*)input;
@@ -347,7 +347,7 @@ void decode_decimal(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *out
         int32_t scale;
     } bytes_or_scale;
 
-    if (len < 5)
+    if (UNLIKELY(len < 5))
         croak("decode_decimal: len < 5");
 
     memcpy(bytes_or_scale.bytes, input, 4);
@@ -368,7 +368,7 @@ void decode_decimal(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *out
 
 void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
-    if (len <= 0) {
+    if (UNLIKELY(len <= 0)) {
         croak("decode_varint: len <= 0");
     } else if (len == 1) {
         decode_tinyint(aTHX_ input, len, type, output);
@@ -435,7 +435,7 @@ void decode_date(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
 {
     int64_t ind, f, e, J, h, g, Y, M, D;
 
-    if (len != 4)
+    if (UNLIKELY(len != 4))
         croak("decode_date: len != 4");
 
     ind = ntohl(*(uint32_t*)input);
@@ -466,13 +466,13 @@ void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
         int64_t bigint;
     } bytes_or_bigint;
 
-    if (len != 8)
+    if (UNLIKELY(len != 8))
         croak("decode_time: len != 8");
 
     memcpy(bytes_or_bigint.bytes, input, 8);
     bswap8(bytes_or_bigint.bytes);
 
-    if (bytes_or_bigint.bigint < 0 || bytes_or_bigint.bigint > 86399999999999)
+    if (UNLIKELY(bytes_or_bigint.bigint < 0 || bytes_or_bigint.bigint > 86399999999999))
         croak("decode_time: invalid value");
 
     nano =    bytes_or_bigint.bigint % 1000000000;
@@ -502,11 +502,11 @@ void decode_map(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
     value_type = &type->inner_type[1];
     assert(key_type && value_type);
 
-    if (len < 4)
+    if (UNLIKELY(len < 4))
         croak("decode_map: len < 4");
 
     int32_t num_elements = (int32_t)ntohl(*(uint32_t*)(input));
-    if (num_elements < 0)
+    if (UNLIKELY(num_elements < 0))
         croak("decode_map: num_elements < 0");
 
     the_map = newHV();
