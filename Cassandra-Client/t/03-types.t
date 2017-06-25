@@ -30,7 +30,7 @@ sub check_encdec {
             substr($encoded, 0, 2, '');
             $encoded= pack_int(1).$encoded;
         }
-        my $decoded= $decoder->decode($encoded);
+        my $decoded= $decoder->decode($encoded, 0);
         is_deeply($decoded->[0], $expected);
 
         1;

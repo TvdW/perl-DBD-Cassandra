@@ -27,7 +27,7 @@ Returns an arrayref of all rows in the ResultSet. Each row will be represented a
 =cut
 
 sub rows {
-    $_[0]{rows} ||= do { $_[0]{decoder}->decode(${delete $_[0]{raw_data}}) }
+    return $_[0]{rows} ||= $_[0]{decoder}->decode(${$_[0]{raw_data}}, 0);
 }
 
 =item $result->row_hashes()
@@ -37,19 +37,7 @@ Returns an arrayref of all rows in the ResultSet. Each row will be represented a
 =cut
 
 sub row_hashes {
-    my $self= shift;
-    my $rows= $self->rows;
-    my @names= @{$self->column_names};
-
-    my @result;
-
-    for my $row (@$rows) {
-        my $newrow= {};
-        @{$newrow}{@names}= @$row;
-        push @result, $newrow;
-    }
-
-    return \@result;
+    return $_[0]{row_hashes} ||= $_[0]{decoder}->decode(${$_[0]{raw_data}}, 1);
 }
 
 =item $result->column_names()

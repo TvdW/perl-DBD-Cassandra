@@ -85,7 +85,7 @@ unpack_metadata2(data)
                 column->table = unpack_string_sv(aTHX_ ptr, size, &pos);
             }
 
-            column->name = unpack_string_sv(aTHX_ ptr, size, &pos);
+            column->name = unpack_string_sv_hash(aTHX_ ptr, size, &pos, &column->name_hash);
             unpack_type(aTHX_ ptr, size, &pos, &column->type);
         }
     }
@@ -97,9 +97,10 @@ unpack_metadata2(data)
 MODULE = Cassandra::Client  PACKAGE = Cassandra::Client::RowMetaPtr
 
 AV*
-decode(self, data)
+decode(self, data, use_hashes)
     Cassandra::Client::RowMeta *self
     SV *data
+    int use_hashes
   CODE:
     STRLEN size, pos;
     char *ptr;
@@ -121,18 +122,29 @@ decode(self, data)
 
     row_count = unpack_int(aTHX_ ptr, size, &pos);
     for (i = 0; i < row_count; i++) {
-        AV *this_row = newAV();
-        av_push(RETVAL, newRV_noinc((SV*)this_row));
+        if (use_hashes) {
+            HV *this_row = newHV();
+            av_push(RETVAL, newRV_noinc((SV*)this_row));
 
-        for (j = 0; j < col_count; j++) {
-            SV *decoded = newSV(0);
-            av_push(this_row, decoded);
+            for (j = 0; j < col_count; j++) {
+                SV *decoded = newSV(0);
+                hv_store_ent(this_row, columns[j].name, decoded, columns[j].name_hash);
 
-            decode_cell(aTHX_ ptr, size, &pos, &columns[j].type, decoded);
+                decode_cell(aTHX_ ptr, size, &pos, &columns[j].type, decoded);
+            }
+
+        } else {
+            AV *this_row = newAV();
+            av_push(RETVAL, newRV_noinc((SV*)this_row));
+
+            for (j = 0; j < col_count; j++) {
+                SV *decoded = newSV(0);
+                av_push(this_row, decoded);
+
+                decode_cell(aTHX_ ptr, size, &pos, &columns[j].type, decoded);
+            }
         }
     }
-
-    sv_chop(data, ptr+pos);
 
   OUTPUT:
     RETVAL

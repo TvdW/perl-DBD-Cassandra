@@ -68,4 +68,5 @@ struct cc_column {
     SV *table;
     SV *name;
     struct cc_type type;
+    U32 name_hash;
 };

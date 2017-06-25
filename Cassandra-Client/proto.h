@@ -11,4 +11,5 @@ SV *unpack_bytes_sv(pTHX_ char *input, STRLEN len, STRLEN *pos);
 int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos);
+SV *unpack_string_sv_hash(pTHX_ char *input, STRLEN len, STRLEN *pos, U32 *hashout);
 void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);

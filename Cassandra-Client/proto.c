@@ -150,6 +150,15 @@ SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return newSVpvn_utf8(string, str_len, 1);
 }
 
+SV *unpack_string_sv_hash(pTHX_ char *input, STRLEN len, STRLEN *pos, U32 *hashout)
+{
+    char *string;
+    STRLEN str_len;
+    unpack_string(aTHX_ input, len, pos, &string, &str_len);
+    PERL_HASH((*hashout), string, str_len);
+    return newSVpvn_utf8(string, str_len, 1);
+}
+
 /* Long string */
 void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen)
 {
