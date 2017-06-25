@@ -126,7 +126,7 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         }
         output->udt->field_count = field_count;
 
-        if (UNLIKELY(field_count > len)) {
+        if (UNLIKELY(field_count > len || field_count == 0)) {
             return -3;
         }
 
@@ -156,7 +156,7 @@ int unpack_type_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_ty
         }
         output->tuple->field_count = field_count;
 
-        if (UNLIKELY(field_count > len)) {
+        if (UNLIKELY(field_count > len || field_count == 0)) {
             return -3;
         }
 
