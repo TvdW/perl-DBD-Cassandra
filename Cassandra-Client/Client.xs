@@ -121,6 +121,13 @@ decode(self, data, use_hashes)
     columns = self->columns;
 
     row_count = unpack_int(aTHX_ ptr, size, &pos);
+
+    // This came up while fuzzing: when we have 1000000 rows but no columns, we
+    // just flood the memory with empty arrays/hashes. Let's just reject this
+    // corner case. If you need this, please contact the author!
+    if (row_count > 1000 && !col_count)
+        croak("Refusing to decode %d rows without known column information", row_count);
+
     for (i = 0; i < row_count; i++) {
         if (use_hashes) {
             HV *this_row = newHV();
