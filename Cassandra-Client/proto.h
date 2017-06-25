@@ -1,15 +1,9 @@
-int64_t unpack_long(pTHX_ char *input, STRLEN len, STRLEN *pos);
-int8_t unpack_tinyint(pTHX_ char *input, STRLEN len, STRLEN *pos);
 int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos);
-float unpack_float(pTHX_ char *input, STRLEN len, STRLEN *pos);
-double unpack_double(pTHX_ char *input, STRLEN len, STRLEN *pos);
 int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out);
 uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos);
-int unpack_short_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 int unpack_bytes(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 SV *unpack_bytes_sv(pTHX_ char *input, STRLEN len, STRLEN *pos);
 int unpack_string_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 void unpack_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
 SV *unpack_string_sv(pTHX_ char *input, STRLEN len, STRLEN *pos);
 SV *unpack_string_sv_hash(pTHX_ char *input, STRLEN len, STRLEN *pos, U32 *hashout);
-void unpack_long_string(pTHX_ char *input, STRLEN len, STRLEN *pos, char **output, STRLEN *outlen);
