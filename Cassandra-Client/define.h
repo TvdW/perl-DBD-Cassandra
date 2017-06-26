@@ -1,3 +1,9 @@
+#include <stdint.h>
+#include "perl.h"
+
+#ifndef CC_DEFINE_H
+#define CC_DEFINE_H
+
 #define CC_METADATA_FLAG_GLOBAL_TABLES_SPEC 1
 #define CC_METADATA_FLAG_HAS_MORE_PAGES     2
 #define CC_METADATA_FLAG_NO_METADATA        4
@@ -70,3 +76,5 @@ struct cc_column {
     struct cc_type type;
     U32 name_hash;
 };
+
+#endif

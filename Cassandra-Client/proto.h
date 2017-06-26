@@ -1,3 +1,6 @@
+#include <stdint.h>
+#include "perl.h"
+
 int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos);
 int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out);
 uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos);
