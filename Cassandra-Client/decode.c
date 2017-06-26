@@ -152,24 +152,14 @@ inline void bswap8(char *input)
 
 inline void bswap4(char *input)
 {
-    char tmp;
-
-    tmp = input[0];
-    input[0] = input[3];
-    input[3] = tmp;
-
-    tmp = input[1];
-    input[1] = input[2];
-    input[2] = tmp;
+    uint32_t *the_num= (uint32_t*)input;
+    *the_num= ntohl(*the_num);
 }
 
 inline void bswap2(char *input)
 {
-    char tmp;
-
-    tmp = input[0];
-    input[0] = input[1];
-    input[1] = tmp;
+    uint16_t *the_num= (uint16_t*)input;
+    *the_num= ntohs(*the_num);
 }
 
 void decode_bigint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
