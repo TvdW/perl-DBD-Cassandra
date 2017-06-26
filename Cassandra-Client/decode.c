@@ -132,6 +132,9 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
 
 inline void bswap8(char *input)
 {
+    if (IS_BIG_ENDIAN)
+        return;
+
     char tmp;
 
     tmp = input[0];
@@ -153,12 +156,18 @@ inline void bswap8(char *input)
 
 inline void bswap4(char *input)
 {
+    if (IS_BIG_ENDIAN)
+        return;
+
     uint32_t *the_num= (uint32_t*)input;
     *the_num= ntohl(*the_num);
 }
 
 inline void bswap2(char *input)
 {
+    if (IS_BIG_ENDIAN)
+        return;
+
     uint16_t *the_num= (uint16_t*)input;
     *the_num= ntohs(*the_num);
 }
@@ -388,11 +397,15 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         struct cc_bignum bn;
         int i;
 
-        Newxz(tmp, len, char);
         Newxz(tmpout, (len*4)+2, char);
 
-        for (i = 0; i < len; i++) {
-            tmp[len-i-1] = input[i];
+        if (!IS_BIG_ENDIAN) {
+            Newxz(tmp, len, char);
+            for (i = 0; i < len; i++) {
+                tmp[len-i-1] = input[i];
+            }
+        } else {
+            tmp = input;
         }
 
         cc_bignum_init_bytes(&bn, tmp, len);
@@ -401,7 +414,9 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         sv_setpv(output, tmpout);
 
         cc_bignum_destroy(&bn);
-        Safefree(tmp);
+        if (!IS_BIG_ENDIAN) {
+            Safefree(tmp);
+        }
         Safefree(tmpout);
     }
 }

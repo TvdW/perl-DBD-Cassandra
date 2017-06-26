@@ -4,6 +4,8 @@
 #ifndef CC_DEFINE_H
 #define CC_DEFINE_H
 
+#define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
+
 #define CC_METADATA_FLAG_GLOBAL_TABLES_SPEC 1
 #define CC_METADATA_FLAG_HAS_MORE_PAGES     2
 #define CC_METADATA_FLAG_NO_METADATA        4

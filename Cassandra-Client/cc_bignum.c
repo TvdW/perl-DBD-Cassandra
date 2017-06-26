@@ -131,14 +131,6 @@ void cc_bignum_stringify(struct cc_bignum *bn, char *out, size_t outlen)
         assert(outlen >= 2);
         return;
     }
-    if (bn->length <= 8) {
-        /* libc will be faster than I can be... */
-        char bigint[8];
-        memset(bigint, 0, 8);
-        memcpy(bigint, bn->number, bn->length);
-        sprintf(out, "%llu", *((uint64_t*)bigint));
-        return;
-    }
 
     tmp_buf_len = bn->length*4 + 2;
     tmp_buf = calloc(1, tmp_buf_len);
