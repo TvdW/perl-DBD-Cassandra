@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 #include "cc_bignum.h"
 
 /* I needed a bignum library but couldn't use GMP because I can't assume it's installed everywhere.

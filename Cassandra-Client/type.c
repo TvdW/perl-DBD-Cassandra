@@ -4,6 +4,7 @@
 #include "XSUB.h"
 #include "ppport.h"
 
+#include <stdint.h>
 #include "define.h"
 #include "type.h"
 #include "proto.h"

@@ -5,6 +5,7 @@
 #define NEED_newSVpvn_flags_GLOBAL
 #include "ppport.h"
 
+#include <stdint.h>
 #include "define.h"
 #include "type.h"
 

@@ -3,6 +3,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#include <stdint.h>
 #include "define.h"
 #include "cc_bignum.h"
 #include "proto.h"
