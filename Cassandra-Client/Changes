@@ -1,6 +1,6 @@
 Revision history for Cassandra-Client
 
-0.12    unreleased
+0.12    2017/06/27
 
       * Decoder rewritten in XS, for performance
       * Temporarily drops support for 32bit Perl. It will come back in a future version.
