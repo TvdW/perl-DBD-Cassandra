@@ -450,6 +450,7 @@ void decode_date(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     sv_setpvf(output, "%.0lf-%02.0lf-%02.0lf", Y, M, D);
 }
 
+#ifdef CAN_64BIT
 void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
     int64_t nano, seconds, hours, minutes;
@@ -484,6 +485,50 @@ void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
         pvlen--;
     SvCUR_set(output, pvlen);
 }
+#else
+//32bit compat
+void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
+{
+    int32_t nano, seconds, hours, minutes;
+    char *txt;
+    char workbuf[20];
+    STRLEN txt_len;
+
+    decode_varint(aTHX_ input, len, type, output);
+    // output now contains a string represending the ns since midnight
+
+    txt = SvPV(output, txt_len);
+    if (txt_len > 14) {
+        croak("decode_time: invalid value");
+    }
+
+    if (txt_len <= 9) {
+        memset(workbuf, 0, 20);
+        memcpy(workbuf, txt, txt_len);
+        seconds = 0;
+        nano = atoi(workbuf);
+    } else {
+        memset(workbuf, 0, 20);
+        memcpy(workbuf, txt+txt_len-9, 9);
+        nano = atoi(workbuf);
+        memset(workbuf, 0, 20);
+        memcpy(workbuf, txt, txt_len-9);
+        seconds = atoi(workbuf);
+    }
+
+    hours   = seconds / 3600;
+    minutes = (seconds % 3600) / 60;
+    seconds = seconds % 60;
+
+    sv_setpvf(output, "%d:%.2d:%.2d.%d", hours, minutes, seconds, nano);
+    txt = SvPV(output, txt_len);
+    while (txt[txt_len-1] == '0')
+        txt_len--;
+    if (txt[txt_len-1] == '.')
+        txt_len--;
+    SvCUR_set(output, txt_len);
+}
+#endif
 
 void decode_map(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
