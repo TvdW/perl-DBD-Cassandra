@@ -1,5 +1,9 @@
 Revision history for Cassandra-Client
 
+0.13    unreleased
+
+      * Add back 32bit support
+
 0.12    2017/06/27
 
       * Decoder rewritten in XS, for performance
