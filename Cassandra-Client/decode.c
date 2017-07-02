@@ -9,7 +9,9 @@
 #include "proto.h"
 #include "decode.h"
 
+#ifdef CAN_64BIT
 static void decode_bigint  (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
+#endif
 static void decode_blob    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 static void decode_boolean (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
 static void decode_date    (pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output);
@@ -40,12 +42,6 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
     }
 
     switch (type->type_id) {
-        case CC_TYPE_BIGINT:
-        case CC_TYPE_COUNTER:
-        case CC_TYPE_TIMESTAMP:
-            decode_bigint(aTHX_ bytes, bytes_len, type, output);
-            break;
-
         case CC_TYPE_ASCII:
         case CC_TYPE_CUSTOM:
         case CC_TYPE_BLOB:
@@ -54,10 +50,6 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
 
         case CC_TYPE_BOOLEAN:
             decode_boolean(aTHX_ bytes, bytes_len, type, output);
-            break;
-
-        case CC_TYPE_INT:
-            decode_int(aTHX_ bytes, bytes_len, type, output);
             break;
 
         case CC_TYPE_VARCHAR:
@@ -91,15 +83,13 @@ void decode_cell(pTHX_ char *input, STRLEN len, STRLEN *pos, struct cc_type *typ
             decode_decimal(aTHX_ bytes, bytes_len, type, output);
             break;
 
-        case CC_TYPE_TINYINT:
-            decode_tinyint(aTHX_ bytes, bytes_len, type, output);
-            break;
-
-        case CC_TYPE_SMALLINT:
-            decode_smallint(aTHX_ bytes, bytes_len, type, output);
-            break;
-
         case CC_TYPE_VARINT:
+        case CC_TYPE_BIGINT:
+        case CC_TYPE_COUNTER:
+        case CC_TYPE_TIMESTAMP:
+        case CC_TYPE_SMALLINT:
+        case CC_TYPE_TINYINT:
+        case CC_TYPE_INT:
             decode_varint(aTHX_ bytes, bytes_len, type, output);
             break;
 
@@ -172,6 +162,7 @@ inline void bswap2(char *input)
     *the_num= ntohs(*the_num);
 }
 
+#ifdef CAN_64BIT
 void decode_bigint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
     union {
@@ -186,6 +177,7 @@ void decode_bigint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
     bswap8(bytes_or_bigint.bytes);
     sv_setiv(output, bytes_or_bigint.bigint);
 }
+#endif
 
 void decode_blob(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
@@ -386,6 +378,7 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         decode_int(aTHX_ bytes, 4, type, output);
     } else if (len == 4) {
         decode_int(aTHX_ input, len, type, output);
+#ifdef CAN_64BIT
     } else if (len < 8) {
         char bytes[8];
         memset(bytes, (input[0] & 0x80) ? 0xff : 0, 8);
@@ -393,6 +386,7 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
         decode_bigint(aTHX_ bytes, 8, type, output);
     } else if (len == 8) {
         decode_bigint(aTHX_ input, len, type, output);
+#endif
     } else {
         char *tmp, *tmpout;
         struct cc_bignum bn;

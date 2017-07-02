@@ -5,6 +5,12 @@
 #define CC_DEFINE_H
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
+#if INTPTR_MAX == INT64_MAX
+#define CAN_64BIT
+#elif INTPTR_MAX == INT32_MAX
+#else
+#error Unknown pointer size. Please make sure your compiler understands C99 and has a stdint.h
+#endif
 
 #define CC_METADATA_FLAG_GLOBAL_TABLES_SPEC 1
 #define CC_METADATA_FLAG_HAS_MORE_PAGES     2
