@@ -416,17 +416,10 @@ void decode_varint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *outp
     }
 }
 
-/* Perl knows how to divide and mod, but... C doesn't! So we implement our own wrappers here, to fix the behavior of C. */
-int64_t divide_properly(int64_t x, int64_t y) /* Only works for a positive 'y' */
+/* fun fact: fmod() doesn't actually implement the modulo operation... */
+double fmod_properly(double x, double y)
 {
-    int divided = x / y;
-    if (x % y != 0 && x < 0) divided--;
-    return divided;
-}
-
-int64_t mod_properly(int64_t x, int64_t y) /* Probably only works for a positive 'y' */
-{
-    int mod = x % y;
+    double mod = fmod(x, y);
     if (mod < 0)
         mod += y;
     return mod;
@@ -434,7 +427,8 @@ int64_t mod_properly(int64_t x, int64_t y) /* Probably only works for a positive
 
 void decode_date(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
-    int64_t ind, f, e, J, h, g, Y, M, D;
+    uint32_t ind;
+    double f, e, J, h, g, Y, M, D;
 
     if (UNLIKELY(len != 4))
         croak("decode_date: len != 4");
@@ -445,15 +439,15 @@ void decode_date(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     J = ind;
     J -= 0x80000000 - 2440588;
 
-    f = J + 1401 + divide_properly((divide_properly((4 * J + 274277), 146097) * 3), 4) - 38;
+    f = J + 1401 + floor((floor((4 * J + 274277) / 146097) * 3) / 4) - 38;
     e = (4 * f) + 3;
-    g = divide_properly(mod_properly(e, 1461), 4);
+    g = floor(fmod_properly(e, 1461) / 4);
     h = 5 * g + 2;
-    D = divide_properly(mod_properly(h, 153), 5) + 1;
-    M = mod_properly(divide_properly(h, 153) + 2, 12) + 1;
-    Y = divide_properly(e, 1461) - 4716 + divide_properly(12 + 2 - M, 12);
+    D = floor(fmod_properly(h, 153) / 5) + 1;
+    M = fmod_properly((floor(h / 153) + 2), 12) + 1;
+    Y = floor(e / 1461) - 4716 + floor((12 + 2 - M) / 12);
 
-    sv_setpvf(output, "%lld-%.2lld-%.2lld", Y, M, D);
+    sv_setpvf(output, "%.0lf-%02.0lf-%02.0lf", Y, M, D);
 }
 
 void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
