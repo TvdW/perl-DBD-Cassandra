@@ -1,4 +1,5 @@
 #include <stdint.h>
+#define PERL_NO_GET_CONTEXT
 #include "perl.h"
 
 #ifndef CC_DEFINE_H

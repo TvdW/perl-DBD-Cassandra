@@ -1,3 +1,4 @@
+#define PERL_NO_GET_CONTEXT
 #include "perl.h"
 #include "define.h"
 

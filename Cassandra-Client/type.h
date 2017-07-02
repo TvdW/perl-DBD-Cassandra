@@ -1,3 +1,4 @@
+#define PERL_NO_GET_CONTEXT
 #include "perl.h"
 
 void cc_type_destroy(pTHX_ struct cc_type *type);

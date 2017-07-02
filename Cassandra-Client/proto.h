@@ -1,4 +1,5 @@
 #include <stdint.h>
+#define PERL_NO_GET_CONTEXT
 #include "perl.h"
 
 int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos);
