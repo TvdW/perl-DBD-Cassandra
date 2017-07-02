@@ -257,7 +257,8 @@ void decode_tinyint(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *out
     if (UNLIKELY(len != 1))
         croak("decode_tinyint: len != 1");
 
-    sv_setiv(output, *input);
+    int8_t number = *input;
+    sv_setiv(output, number);
 }
 
 void decode_utf8(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
