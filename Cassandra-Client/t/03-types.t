@@ -223,7 +223,8 @@ check_enc([TYPE_LIST, [ TYPE_INT ] ], [ 1, 2, 3 ], "\0\0\0\3\0\0\0\4\0\0\0\1\0\0
 check_simple([TYPE_MAP, [ TYPE_INT ], [ TYPE_BOOLEAN ] ], [
                                                             { 1 => !1, 2 => !0 },
                                                           ]);
-check_enc([TYPE_MAP, [ TYPE_INT ], [ TYPE_BOOLEAN ] ], { 1 => !1, 2 => !0 }, "\0\0\0\2\0\0\0\4\0\0\0\1\0\0\0\1\0\0\0\0\4\0\0\0\2\0\0\0\1\1");
+check_enc([TYPE_MAP, [ TYPE_INT ], [ TYPE_BOOLEAN ] ], { 2 => !0 }, "\0\0\0\1\0\0\0\4\0\0\0\2\0\0\0\1\1");
+check_enc([TYPE_MAP, [ TYPE_INT ], [ TYPE_BOOLEAN ] ], { 1 => !1 }, "\0\0\0\1\0\0\0\4\0\0\0\1\0\0\0\1\0");
 
 # Set
 check_simple([TYPE_SET, [ TYPE_INT ]], [
@@ -249,8 +250,8 @@ check_simple([TYPE_LIST, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]], [
                                                                     [ { 1 => !1, 2 => !0 } ]
                                                                   ]);
 check_enc([TYPE_LIST, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]],
-    [ { 1 => !1, 2 => !0} ],
-    pack("H*", '000000010000001e000000020000000400000001000000010000000004000000020000000101')
+    [ { 1 => !1 } ],
+    pack("H*", '00000001000000110000000100000004000000010000000100')
 );
 
 # set<frozen<map<int,boolean>>>
@@ -258,8 +259,8 @@ check_simple([TYPE_SET, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]], [
                                                                     [ { 1 => !1, 2 => !0 } ],
                                                                  ]);
 check_enc([TYPE_SET, [TYPE_MAP, [TYPE_INT], [TYPE_BOOLEAN]]],
-    [ { 1 => !1, 2 => !0 } ],
-    pack('H*', '000000010000001e000000020000000400000001000000010000000004000000020000000101')
+    [ { 1 => !1 } ],
+    pack('H*', '00000001000000110000000100000004000000010000000100')
 );
 
 # map<int,frozen<list<int>>>
@@ -267,8 +268,8 @@ check_simple([TYPE_MAP, [TYPE_INT], [TYPE_LIST, [TYPE_INT]]], [
                                                                 { 1 => [2], 2 => [3] }
                                                               ]);
 check_enc([TYPE_MAP, [TYPE_INT], [TYPE_LIST, [TYPE_INT]]],
-    { 1 => [2], 2 => [3] },
-    pack('H*', '0000000200000004000000010000000c00000001000000040000000200000004000000020000000c000000010000000400000003')
+    { 1 => [2] },
+    pack('H*', '0000000100000004000000010000000c000000010000000400000002')
 );
 
 
