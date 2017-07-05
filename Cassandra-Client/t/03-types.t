@@ -206,6 +206,7 @@ check_simple([TYPE_INET], [undef, qw/
                                      1::1
                                      127.0.0.1
                                      1.2.3.4
+                                     255.255.255.255
                                      ::a:b:123
                                      123::123
                                      1::1
@@ -213,6 +214,7 @@ check_simple([TYPE_INET], [undef, qw/
                                      ::1
                                     /]);
 check_enc([TYPE_INET], "1.2.3.4", "\1\2\3\4");
+check_enc([TYPE_INET], "255.255.255.255", "\xff\xff\xff\xff");
 check_enc([TYPE_INET], "::1", "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1");
 
 # List
