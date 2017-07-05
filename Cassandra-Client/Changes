@@ -2,6 +2,8 @@ Revision history for Cassandra-Client
 
 0.13    unreleased
 
+      * Fix a critical bug in the INET type decoder.
+        If you run 0.12, upgrade immediately!
       * Add back 32bit support
 
 0.12    2017/06/27

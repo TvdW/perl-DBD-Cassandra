@@ -273,7 +273,9 @@ void decode_boolean(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *out
 void decode_inet(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
     if (len == 4) {
-        sv_setpvf(output, "%d.%d.%d.%d", input[0], input[1], input[2], input[3]);
+        char str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, input, str, INET_ADDRSTRLEN);
+        sv_setpv(output, str);
 
     } else if (len == 16) {
         char str[INET6_ADDRSTRLEN];
