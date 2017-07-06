@@ -9,7 +9,10 @@ use Encode;
 require Exporter;
 our @ISA= qw(Exporter);
 
-use Cassandra::Client::Error;
+use Cassandra::Client::Error::Base;
+use Cassandra::Client::Error::ReadTimeoutException;
+use Cassandra::Client::Error::WriteTimeoutException;
+use Cassandra::Client::Error::UnavailableException;
 
 use constant BIGINT_SUPPORTED => eval { unpack('q>', "\0\0\0\0\0\0\0\1") };
 use if !BIGINT_SUPPORTED, 'Math::BigInt';
@@ -533,21 +536,24 @@ sub unpack_errordata {
         $error{cl}= &unpack_short;
         $error{required}= &unpack_int;
         $error{alive}= &unpack_int;
+        return Cassandra::Client::Error::UnavailableException->new(%error);
     } elsif ($code == 0x1100) {
         # Write timeout
         $error{cl}= &unpack_short;
         $error{received}= &unpack_int;
         $error{blockfor}= &unpack_int;
         $error{write_type}= &unpack_string;
+        return Cassandra::Client::Error::WriteTimeoutException->new(%error);
     } elsif ($code == 0x1200) {
         # Read timeout
         $error{cl}= &unpack_short;
         $error{received}= &unpack_int;
         $error{blockfor}= &unpack_int;
         $error{data_present}= &unpack_char;
+        return Cassandra::Client::Error::ReadTimeoutException->new(%error);
     }
 
-    return Cassandra::Client::Error->new(%error);
+    return Cassandra::Client::Error::Base->new(%error);
 }
 
 # Support for 32bit perl

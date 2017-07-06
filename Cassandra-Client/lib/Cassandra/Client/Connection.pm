@@ -35,7 +35,7 @@ use Cassandra::Client::Protocol qw/
 use Cassandra::Client::Encoder qw/
     make_encoder
 /;
-use Cassandra::Client::Error;
+use Cassandra::Client::Error::Base;
 use Cassandra::Client::ResultSet;
 use Cassandra::Client::TLSHandling;
 
@@ -214,7 +214,7 @@ sub execute_prepared {
 
         if ($code != OPCODE_RESULT) {
             # This shouldn't ever happen...
-            return $callback->(Cassandra::Client::Error->new(
+            return $callback->(Cassandra::Client::Error::Base->new(
                 message         => "Expected a RESULT frame but got something else; considering the query failed",
                 request_error   => 1,
             ));
@@ -313,7 +313,7 @@ sub execute_batch {
 
         if ($code != OPCODE_RESULT) {
             # This shouldn't ever happen...
-            return $callback->(Cassandra::Client::Error->new(
+            return $callback->(Cassandra::Client::Error::Base->new(
                 message         => "Expected a RESULT frame but got something else; considering the batch failed",
                 request_error   => 1,
             ));
@@ -719,7 +719,7 @@ sub connect {
 sub request {
     # my $body= $_[3] (let's avoid copying that blob). Yes, this code assumes ownership of the body.
     my ($self, $cb, $opcode)= @_;
-    return $cb->(Cassandra::Client::Error->new(
+    return $cb->(Cassandra::Client::Error::Base->new(
         message => "Connection shutting down",
         request_error => 1,
     )) if $self->{shutdown};
@@ -730,7 +730,7 @@ sub request {
     my $attempts= 0;
     while (exists($pending->{$stream_id}) || $stream_id >= STREAM_ID_LIMIT) {
         $stream_id= (++$stream_id) % STREAM_ID_LIMIT;
-        return $cb->(Cassandra::Client::Error->new(
+        return $cb->(Cassandra::Client::Error::Base->new(
             message => "Cannot find a stream ID to post query with",
             request_error => 1,
         )) if ++$attempts >= STREAM_ID_LIMIT;
@@ -786,7 +786,7 @@ sub request {
                     $self->shutdown($error);
 
                     # Now fail our stream properly, but include the retry notice
-                    $my_stream->[0]->(Cassandra::Client::Error->new(
+                    $my_stream->[0]->(Cassandra::Client::Error::Base->new(
                         message       => "Disconnected: $error",
                         do_retry      => 1,
                         request_error => 1,
@@ -816,7 +816,7 @@ sub request {
                 $self->shutdown($error);
 
                 # Now fail our stream properly, but include the retry notice
-                $my_stream->[0]->(Cassandra::Client::Error->new(
+                $my_stream->[0]->(Cassandra::Client::Error::Base->new(
                     message       => "Disconnected: $error",
                     do_retry      => 1,
                     request_error => 1,
@@ -991,7 +991,7 @@ sub can_timeout {
     my ($self, $id)= @_;
     my $stream= delete $self->{pending_streams}{$id};
     $self->{pending_streams}{$id}= [ sub{}, \(my $zero= 0) ]; # fake it
-    $stream->[0]->(Cassandra::Client::Error->new(
+    $stream->[0]->(Cassandra::Client::Error::Base->new(
         message         => "Request timed out",
         is_timeout      => 1,
         request_error   => 1,
@@ -1020,7 +1020,7 @@ sub shutdown {
     $self->{socket}->close;
 
     for (values %$pending) {
-        $_->[0]->(Cassandra::Client::Error->new(
+        $_->[0]->(Cassandra::Client::Error::Base->new(
             message       => "Disconnected: $shutdown_reason",
             request_error => 1,
         ));

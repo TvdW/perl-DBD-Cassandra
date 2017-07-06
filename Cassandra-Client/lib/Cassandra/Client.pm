@@ -325,16 +325,16 @@ sub _command_failed {
     return $callback->($error) unless is_ref($error);
 
     my $retry_decision;
-    if ($error->{do_retry}) {
+    if ($error->do_retry) {
         $retry_decision= Cassandra::Client::Policy::Retry::retry;
-    } elsif ($error->{request_error}) {
+    } elsif ($error->is_request_error) {
         $retry_decision= $self->{retry_policy}->on_request_error(undef, undef, $error, ($command_info->{retries}||0));
-    } elsif ($error->code == 0x1100) {
-        $retry_decision= $self->{retry_policy}->on_write_timeout(undef, @$error{qw/cl write_type blockfor received/}, ($command_info->{retries}||0));
-    } elsif ($error->code == 0x1200) {
-        $retry_decision= $self->{retry_policy}->on_read_timeout(undef, @$error{qw/cl blockfor received data_retrieved/}, ($command_info->{retries}||0));
-    } elsif ($error->code == 0x1000) {
-        $retry_decision= $self->{retry_policy}->on_unavailable(undef, @$error{qw/cl required alive/}, ($command_info->{retries}||0));
+    } elsif ($error->isa('Cassandra::Client::Error::WriteTimeoutException')) {
+        $retry_decision= $self->{retry_policy}->on_write_timeout(undef, $error->cl, $error->write_type, $error->blockfor, $error->received, ($command_info->{retries}||0));
+    } elsif ($error->isa('Cassandra::Client::Error::ReadTimeoutException')) {
+        $retry_decision= $self->{retry_policy}->on_read_timeout(undef, $error->cl, $error->blockfor, $error->received, $error->data_retrieved, ($command_info->{retries}||0));
+    } elsif ($error->isa('Cassandra::Client::Error::UnavailableException')) {
+        $retry_decision= $self->{retry_policy}->on_unavailable(undef, $error->cl, $error->required, $error->alive, ($command_info->{retries}||0));
     } else {
         $retry_decision= Cassandra::Client::Policy::Retry::rethrow;
     }

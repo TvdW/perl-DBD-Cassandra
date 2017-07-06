@@ -43,7 +43,7 @@ sub should_fail {
 sub count {
     my ($self, $error, $force_error)= @_;
     $self->{window_total}++;
-    my $success= !(is_blessed_ref($error) && $error->{is_timeout}) && !$force_error;
+    my $success= !(is_blessed_ref($error) && $error->is_timeout) && !$force_error;
     push @{$self->{window}}, [ Time::HiRes::clock_gettime(CLOCK_MONOTONIC)+$self->{time}, $success ];
     $self->{window_success}++ if $success;
     return;
