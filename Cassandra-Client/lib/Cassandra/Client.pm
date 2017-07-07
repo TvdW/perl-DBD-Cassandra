@@ -14,7 +14,7 @@ use Cassandra::Client::Metadata;
 use Cassandra::Client::Policy::Queue::Default;
 use Cassandra::Client::Policy::Retry::Default;
 use Cassandra::Client::Policy::Retry;
-use Cassandra::Client::Policy::Throttle::Adaptive;
+use Cassandra::Client::Policy::Throttle::Default;
 use Cassandra::Client::Pool;
 use Cassandra::Client::TLSHandling;
 use Cassandra::Client::Util qw/series whilst/;
@@ -58,25 +58,17 @@ sub new {
         metadata => $metadata,
         async_io => $async_io,
     );
-    my $command_queue= Cassandra::Client::Policy::Queue::Default->new(
-        %{ $options->{command_queue_config} || {} },
-    );
-    my $retry_policy= Cassandra::Client::Policy::Retry::Default->new();
     my $tls= $options->{tls} ? Cassandra::Client::TLSHandling->new() : undef;
 
     $self->{options}= $options;
     $self->{async_io}= $async_io;
     $self->{metadata}= $metadata;
     $self->{pool}= $pool;
-    $self->{command_queue}= $command_queue;
-    $self->{retry_policy}= $retry_policy;
     $self->{tls}= $tls;
-    if ($options->{throttler}) {
-        my $throttler_class= "Cassandra::Client::Policy::Throttle::$options->{throttler}";
-        $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
-    } else {
-        $self->{throttler}= undef;
-    }
+
+    $self->{throttler}= $options->{throttler} || Cassandra::Client::Policy::Throttle::Default->new();
+    $self->{retry_policy}= $options->{retry_policy} || Cassandra::Client::Policy::Retry::Default->new();
+    $self->{command_queue}= $options->{command_queue} || Cassandra::Client::Policy::Queue::Default->new();
 
     return $self;
 }
@@ -231,7 +223,7 @@ sub _command {
     };
 
     # Handle overloads
-    goto FAILFAST if $self->{throttler} && $self->{throttler}->should_fail();
+    goto FAILFAST if $self->{throttler}->should_fail();
 
     goto OVERFLOW if $self->{active_queries} >= $self->{options}{max_concurrent_queries};
 
@@ -243,9 +235,7 @@ sub _command {
     $self->{active_queries}++;
     $connection->$command(sub {
         my ($error, $result)= @_;
-        if (my $throttler= $self->{throttler}) {
-            $throttler->count($error);
-        }
+        $self->{throttler}->count($error);
 
         $self->{active_queries}--;
         $self->_command_dequeue if $self->{command_queue}{has_any};
@@ -283,16 +273,14 @@ sub _command_slowpath {
             # Yes, if we immediately take the slow path, which we would if we're not connected, we're going to throttle twice
             # For now, I'm okay with that, but let's mark it with a TODO anyway.
             # XXX
-            if ($self->{throttler} && $self->{throttler}->should_fail()) {
+            if ($self->{throttler}->should_fail()) {
                 return $next->("Client-induced failure by throttling mechanism");
             }
             $connection->$command($next, @$args);
         }
     ], sub {
         my ($error, $result)= @_;
-        if (my $throttler= $self->{throttler}) {
-            $throttler->count($error);
-        }
+        $self->{throttler}->count($error);
 
         $self->{active_queries}--;
         $self->_command_dequeue if $self->{command_queue}{has_any};

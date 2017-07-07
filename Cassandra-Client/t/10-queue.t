@@ -17,9 +17,9 @@ my $client= Cassandra::Client->new(
 
     # This test
     max_concurrent_queries => 5,
-    command_queue_config => {
+    command_queue => Cassandra::Client::Policy::Queue::Default->new(
         max_entries => 5,
-    }
+    ),
 );
 $client->connect();
 

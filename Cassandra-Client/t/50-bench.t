@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use Cassandra::Client;
+use Cassandra::Client::Policy::Throttle::Adaptive;
 use Time::HiRes qw/time/;
 use Promises qw/collect/, backend => ['AnyEvent'];
 use AnyEvent;
@@ -15,7 +16,7 @@ my $client= Cassandra::Client->new(
     username  => $ENV{CASSANDRA_USER},
     password  => $ENV{CASSANDRA_AUTH},
     anyevent  => 1,
-    throttler => "Adaptive",
+    throttler => Cassandra::Client::Policy::Throttle::Adaptive->new(),
     tls       => $ENV{CASSANDRA_TLS},
 );
 $client->connect();

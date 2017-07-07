@@ -1,5 +1,6 @@
 package Cassandra::Client::Policy::Throttle::Adaptive;
 
+use parent 'Cassandra::Client::Policy::Throttle::Default';
 use 5.010;
 use strict;
 use warnings;
