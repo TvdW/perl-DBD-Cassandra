@@ -236,7 +236,7 @@ sub spawn_new_connection {
 
                 for my $waiter (@$waiters) {
                     if ((++$waiter->{attempts}) >= $max_attempts || !%{$self->{connecting}}) {
-                        $waiter->{callback}->("Failed to connect to server");
+                        $waiter->{callback}->("Failed to connect to server: $error");
                     } else {
                         push @{$self->{wait_connect} ||= []}, $waiter;
                     }
