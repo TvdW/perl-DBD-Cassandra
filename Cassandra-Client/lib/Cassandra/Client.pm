@@ -72,7 +72,6 @@ sub new {
     $self->{retry_policy}= $retry_policy;
     $self->{tls}= $tls;
     if ($options->{throttler}) {
-        $options->{throttler}= 'Adaptive' if $options->{throttler} eq 'AdaptiveThrottler'; # Temporary.
         my $throttler_class= "Cassandra::Client::Policy::Throttle::$options->{throttler}";
         $options->{throttler}= $throttler_class->new(%{$options->{throttler_config}});
     } else {
