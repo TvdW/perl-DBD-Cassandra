@@ -1,5 +1,9 @@
 Revision history for Cassandra-Client
 
+0.14    unreleased
+
+      * Refactor a series of (for now) undocumented APIs
+
 0.13    2017/07/05
 
       * Fix a critical bug in the INET type decoder.
