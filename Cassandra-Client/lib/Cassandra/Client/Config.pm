@@ -28,6 +28,7 @@ sub new {
         throttler               => undef,
         command_queue           => undef,
         retry_policy            => undef,
+        load_balancing_policy   => undef,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -76,6 +77,11 @@ sub new {
         die "command_queue must be a Cassandra::Client::Policy::Queue::Default"
             unless $config->{command_queue}->isa("Cassandra::Client::Policy::Queue::Default");
         $self->{command_queue}= $config->{command_queue};
+    }
+    if (exists($config->{load_balancing_policy})) {
+        die "load_balancing_policy must be a Cassandra::Client::Policy::LoadBalancing::Default"
+            unless $config->{load_balancing_policy}->isa("Cassandra::Client::Policy::LoadBalancing::Default");
+        $self->{load_balancing_policy}= $config->{load_balancing_policy};
     }
 
     $self->{username}= $config->{username};

@@ -15,6 +15,7 @@ use Cassandra::Client::Policy::Queue::Default;
 use Cassandra::Client::Policy::Retry::Default;
 use Cassandra::Client::Policy::Retry;
 use Cassandra::Client::Policy::Throttle::Default;
+use Cassandra::Client::Policy::LoadBalancing::Default;
 use Cassandra::Client::Pool;
 use Cassandra::Client::TLSHandling;
 use Cassandra::Client::Util qw/series whilst/;
@@ -45,6 +46,12 @@ sub new {
     my $options= Cassandra::Client::Config->new(
         \%args
     );
+
+    $self->{throttler}= $options->{throttler} || Cassandra::Client::Policy::Throttle::Default->new();
+    $self->{retry_policy}= $options->{retry_policy} || Cassandra::Client::Policy::Retry::Default->new();
+    $self->{command_queue}= $options->{command_queue} || Cassandra::Client::Policy::Queue::Default->new();
+    $self->{load_balancing_policy}= $options->{load_balancing_policy} || Cassandra::Client::Policy::LoadBalancing::Default->new();
+
     my $async_class= $options->{anyevent} ? "Cassandra::Client::AsyncAnyEvent" : "Cassandra::Client::AsyncEV";
     my $async_io= $async_class->new(
         options => $options,
@@ -57,6 +64,7 @@ sub new {
         options  => $options,
         metadata => $metadata,
         async_io => $async_io,
+        load_balancing_policy => $self->{load_balancing_policy},
     );
     my $tls= $options->{tls} ? Cassandra::Client::TLSHandling->new() : undef;
 
@@ -65,10 +73,6 @@ sub new {
     $self->{metadata}= $metadata;
     $self->{pool}= $pool;
     $self->{tls}= $tls;
-
-    $self->{throttler}= $options->{throttler} || Cassandra::Client::Policy::Throttle::Default->new();
-    $self->{retry_policy}= $options->{retry_policy} || Cassandra::Client::Policy::Retry::Default->new();
-    $self->{command_queue}= $options->{command_queue} || Cassandra::Client::Policy::Queue::Default->new();
 
     return $self;
 }

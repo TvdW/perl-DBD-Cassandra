@@ -6,7 +6,6 @@ use warnings;
 
 use Scalar::Util 'weaken';
 use Cassandra::Client::Util;
-use Cassandra::Client::Policy::LoadBalancing::Default;
 use Cassandra::Client::NetworkStatus;
 
 sub new {
@@ -17,7 +16,7 @@ sub new {
         metadata => $args{metadata},
         max_connections => $args{options}{max_connections},
         async_io => $args{async_io},
-        policy => Cassandra::Client::Policy::LoadBalancing::Default->new(),
+        policy => $args{load_balancing_policy},
 
         shutdown => 0,
         pool => {},
