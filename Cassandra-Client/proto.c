@@ -19,6 +19,31 @@ int32_t unpack_int(pTHX_ char *input, STRLEN len, STRLEN *pos)
     return result;
 }
 
+STRLEN pack_int(pTHX_ SV *dest, int32_t number)
+{
+    union {
+        int32_t number;
+        char bytes[4];
+    } int_or_bytes;
+    int_or_bytes.number = htonl(number);
+    sv_catpvn(dest, int_or_bytes.bytes, 4);
+    return SvCUR(dest)-4;
+}
+
+void set_packed_int(pTHX_ SV *dest, STRLEN pos, int32_t number)
+{
+    STRLEN len;
+    char *ptr;
+    union {
+        int32_t number;
+        char bytes[4];
+    } int_or_bytes;
+    int_or_bytes.number = htonl(number);
+    ptr = SvPV(dest, len);
+    assert(pos <= len-4);
+    memcpy(ptr+pos, int_or_bytes.bytes, 4);
+}
+
 /* Short */
 int unpack_short_nocroak(pTHX_ char *input, STRLEN len, STRLEN *pos, uint16_t *out)
 {
@@ -35,6 +60,16 @@ uint16_t unpack_short(pTHX_ char *input, STRLEN len, STRLEN *pos)
     if (UNLIKELY(unpack_short_nocroak(aTHX_ input, len, pos, &out) != 0))
         croak("unpack_short: invalid input");
     return out;
+}
+
+void pack_short(pTHX_ SV *dest, uint16_t number)
+{
+    union {
+        uint16_t number;
+        char bytes[2];
+    } short_or_bytes;
+    short_or_bytes.number = htons(number);
+    sv_catpvn(dest, short_or_bytes.bytes, 2);
 }
 
 /* Bytes */

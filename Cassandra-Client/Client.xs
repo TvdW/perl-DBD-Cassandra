@@ -9,6 +9,7 @@
 #include "type.h"
 #include "proto.h"
 #include "decode.h"
+#include "encode.h"
 
 typedef struct {
     int column_count;
@@ -19,7 +20,7 @@ MODULE = Cassandra::Client  PACKAGE = Cassandra::Client::Protocol
 PROTOTYPES: DISABLE
 
 void
-unpack_metadata2(data)
+unpack_metadata(data)
     SV *data
   PPCODE:
     STRLEN pos, size;
@@ -149,6 +150,78 @@ decode(self, data, use_hashes)
 
                 decode_cell(aTHX_ ptr, size, &pos, &columns[j].type, decoded);
             }
+        }
+    }
+
+  OUTPUT:
+    RETVAL
+
+SV*
+encode(self, row)
+    Cassandra::Client::RowMeta *self
+    SV* row
+  CODE:
+    int column_count, i, use_hash;
+    STRLEN size_estimate;
+    AV *row_a;
+    HV *row_h;
+
+    if (UNLIKELY(row == NULL))
+        croak("row must be passed");
+    if (UNLIKELY(!SvROK(row)))
+        croak("encode: argument must be a reference");
+
+    column_count = self->column_count;
+
+    if (SvTYPE(SvRV(row)) == SVt_PVAV) {
+        row_a = (AV*)SvRV(row);
+        use_hash = 0;
+        if (UNLIKELY((av_len(row_a)+1) != column_count))
+            croak("row encoder expected %d column(s), but got %d", column_count, ((int)av_len(row_a))+1);
+
+    } else if (SvTYPE(SvRV(row)) == SVt_PVHV) {
+        row_h = (HV*)SvRV(row);
+        use_hash = 1;
+        if (UNLIKELY(HvUSEDKEYS(row_h) != column_count))
+            croak("row encoder expected %d column(s), but got %d", column_count, (int)HvUSEDKEYS(row_h));
+
+    } else {
+        croak("encode: argument must be an ARRAY or HASH reference");
+    }
+
+    // Rough estimate. We only use it to predict Sv size, we don't rely on it being accurate.
+    // If we overshoot, we waste some memory, and if we undershoot we copy a bit too often.
+    size_estimate = 2 + (column_count * 12);
+    if (size_estimate <= 0) // overflows aren't impossible, I guess
+        size_estimate = 0; // wing it
+
+    RETVAL = newSV(size_estimate);
+    sv_setpvn(RETVAL, "", 0);
+    pack_short(aTHX_ RETVAL, column_count);
+
+    if (!use_hash) {
+        for (i = 0; i < column_count; i++) {
+            SV **maybe_cell = av_fetch(row_a, i, 0);
+            if (UNLIKELY(maybe_cell == NULL))
+                croak("row encoder error. bailing out");
+            encode_cell(aTHX_ RETVAL, *maybe_cell, &self->columns[i].type);
+        }
+
+    } else {
+        for (i = 0; i < column_count; i++) {
+            struct cc_column *column;
+            HE *ent;
+
+            column = &self->columns[i];
+            ent = hv_fetch_ent(row_h, column->name, 0, column->name_hash);
+            if (UNLIKELY(!ent)) {
+                SV *error = sv_2mortal(newSVpv("missing value for required entry <", 0));
+                sv_catsv(error, column->name);
+                sv_catpvn(error, ">", 1);
+                croak_sv(error);
+            }
+
+            encode_cell(aTHX_ RETVAL, HeVAL(ent), &column->type);
         }
     }
 

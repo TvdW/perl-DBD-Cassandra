@@ -128,9 +128,9 @@ for my $type (@$type_table) {
         $dbh->do("insert into test_type_$tablename (id, test) values (?, ?)", undef, $random_id, $test_val);
         my $row= $dbh->selectrow_arrayref("select test from test_type_$tablename where id=$random_id", { async => 1 });
         if (!defined $output_val) {
-            ok(0);
+            ok(0, "defined $typename");
         } elsif (!is_ref($output_val) && $output_val eq $warn) {
-            ok($did_warn);
+            ok($did_warn, "warned $typename");
         } elsif (!is_ref($output_val) && $output_val eq $input) {
             is_deeply([$row->[0]], [$test_val], "input match $typename");
         } else {
