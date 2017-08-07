@@ -17,10 +17,9 @@ sub prepare_cache {
 }
 
 sub add_prepared {
-    my ($self, $query, $id, $input_metadata, $decoder, $encoder)= @_;
+    my ($self, $query, $id, $decoder, $encoder)= @_;
     $self->{prepare_cache}{$query}= {
         id => $id,
-        input_metadata => $input_metadata,
         decoder => $decoder,
         encoder => $encoder
     };

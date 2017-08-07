@@ -27,13 +27,9 @@ use Cassandra::Client::Protocol qw/
     unpack_inet
     unpack_int
     unpack_metadata
-    unpack_metadata2
     unpack_shortbytes
     unpack_string
     unpack_stringmultimap
-/;
-use Cassandra::Client::Encoder qw/
-    make_encoder
 /;
 use Cassandra::Client::Error::Base;
 use Cassandra::Client::ResultSet;
@@ -184,7 +180,7 @@ sub execute_prepared {
     my $row;
     if ($parameters) {
         eval {
-            $row= $prepared->{encoder}->($parameters);
+            $row= $prepared->{encoder}->encode($parameters);
             1;
         } or do {
             my $error= $@ || "??";
@@ -296,7 +292,7 @@ sub execute_batch {
 
     my $batch_frame= pack('Cn', $batch_type, (0+@prepared));
     for my $prep (@prepared) {
-        $batch_frame .= pack('C', 1).pack_shortbytes($prep->[0]{id}).$prep->[0]{encoder}->($prep->[1]);
+        $batch_frame .= pack('C', 1).pack_shortbytes($prep->[0]{id}).$prep->[0]{encoder}->encode($prep->[1]);
     }
     $batch_frame .= pack('nC', $consistency, 0);
 
@@ -379,23 +375,17 @@ sub prepare {
 
             my $id= unpack_shortbytes($body);
 
-            my $metadata= eval { unpack_metadata($body) } or return $next->("Unable to unpack query metadata: $@");
-
             my ($encoder, $decoder);
             eval {
-                ($decoder)= unpack_metadata2($body);
+                ($encoder)= unpack_metadata($body);
+                1;
+            } or return $next->("Unable to unpack query metadata: $@");
+            eval {
+                ($decoder)= unpack_metadata($body);
                 1;
             } or return $next->("Unable to unpack query result metadata: $@");
 
-            eval {
-                $encoder= make_encoder($metadata);
-                1;
-            } or do {
-                my $error= $@ || "??";
-                return $next->("Error while preparing query, couldn't compile encoder: $error");
-            };
-
-            $self->{metadata}->add_prepared($query, $id, $metadata, $decoder, $encoder);
+            $self->{metadata}->add_prepared($query, $id, $decoder, $encoder);
             return $next->();
         },
     ], sub {
@@ -413,7 +403,7 @@ sub decode_result {
     my $result_type= unpack('l>', substr($_[3], 0, 4, ''));
     if ($result_type == RESULT_ROWS) { # Rows
         my ($paging_state, $decoder);
-        eval { ($decoder, $paging_state)= unpack_metadata2($_[3]); 1 } or return $callback->("Unable to unpack query metadata: $@");
+        eval { ($decoder, $paging_state)= unpack_metadata($_[3]); 1 } or return $callback->("Unable to unpack query metadata: $@");
         $decoder= $prepared->{decoder} || $decoder;
 
         $callback->(undef,
