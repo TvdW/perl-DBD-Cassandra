@@ -304,7 +304,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
     work = calloc(1, size+1);
     memcpy(work, ptr, size);
 
-    if (semicolon) { // IPv6
+    if (semicolon) { /* IPv6 */
         out[3] = 16;
 
         if (inet_pton(AF_INET6, work, out+4)) {
@@ -452,7 +452,7 @@ void encode_varint(pTHX_ SV *dest, SV *src, int* int_out)
         stuff.number = SvIV(src);
         bswap4(stuff.bytes);
 #endif
-        if (stuff.bytes[0] & 0x80) { // negative
+        if (stuff.bytes[0] & 0x80) { /* negative */
             for (i = 0; i < sizeof(stuff.bytes); i++) {
                 if (stuff.bytes[i] != 0xff || (i < (sizeof(stuff.bytes)-1) && !(stuff.bytes[i+1]&0x80)))
                     break;
@@ -520,11 +520,11 @@ void encode_decimal(pTHX_ SV *dest, SV *src)
         sv_catpvn(tmp, ptr+pos, 1);
     }
     for (; pos < size && ptr[pos] >= '0' && ptr[pos] <= '9'; pos++) {
-        // Main number
+        /* Main number */
         sv_catpvn(tmp, ptr+pos, 1);
     }
     if (ptr[pos] == '.') {
-        // Decimal point
+        /* Decimal point */
         pos++;
         for (; pos < size && ptr[pos] >= '0' && ptr[pos] <= '9'; pos++) {
             sv_catpvn(tmp, ptr+pos, 1);
@@ -532,7 +532,7 @@ void encode_decimal(pTHX_ SV *dest, SV *src)
         }
     }
     if (ptr[pos] == 'e' || ptr[pos] == 'E') {
-        // Explicit scale
+        /* Explicit scale */
         int explicit_scale = 0, neg = 0;
         pos++;
         if (ptr[pos] == '-') {

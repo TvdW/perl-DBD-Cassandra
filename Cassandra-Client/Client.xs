@@ -122,9 +122,9 @@ decode(self, data, use_hashes)
 
     row_count = unpack_int(aTHX_ ptr, size, &pos);
 
-    // This came up while fuzzing: when we have 1000000 rows but no columns, we
-    // just flood the memory with empty arrays/hashes. Let's just reject this
-    // corner case. If you need this, please contact the author!
+    /* This came up while fuzzing: when we have 1000000 rows but no columns, we
+     * just flood the memory with empty arrays/hashes. Let's just reject this
+     * corner case. If you need this, please contact the author! */
     if (UNLIKELY(row_count > 1000 && !col_count))
         croak("Refusing to decode %d rows without known column information", row_count);
 
@@ -189,11 +189,11 @@ encode(self, row)
         croak("encode: argument must be an ARRAY or HASH reference");
     }
 
-    // Rough estimate. We only use it to predict Sv size, we don't rely on it being accurate.
-    // If we overshoot, we waste some memory, and if we undershoot we copy a bit too often.
+    /* Rough estimate. We only use it to predict Sv size, we don't rely on it being accurate.
+       If we overshoot, we waste some memory, and if we undershoot we copy a bit too often. */
     size_estimate = 2 + (column_count * 12);
-    if (size_estimate <= 0) // overflows aren't impossible, I guess
-        size_estimate = 0; // wing it
+    if (size_estimate <= 0) /* overflows aren't impossible, I guess */
+        size_estimate = 0; /* wing it */
 
     RETVAL = newSV(size_estimate);
     sv_setpvn(RETVAL, "", 0);

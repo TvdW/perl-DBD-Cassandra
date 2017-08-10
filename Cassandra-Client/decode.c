@@ -447,7 +447,7 @@ void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     SvCUR_set(output, pvlen);
 }
 #else
-//32bit compat
+/* 32bit compat */
 void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output)
 {
     int32_t nano, seconds, hours, minutes;
@@ -456,7 +456,7 @@ void decode_time(pTHX_ char *input, STRLEN len, struct cc_type *type, SV *output
     STRLEN txt_len;
 
     decode_varint(aTHX_ input, len, type, output);
-    // output now contains a string represending the ns since midnight
+    /* output now contains a string represending the ns since midnight */
 
     txt = SvPV(output, txt_len);
     if (txt_len > 14) {
