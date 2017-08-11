@@ -289,7 +289,6 @@ void encode_inet(pTHX_ SV *dest, SV *src)
     STRLEN size;
     int semicolon, i;
     char out[20];
-    char *work;
 
     ptr = SvPV(src, size);
     semicolon = 0;
@@ -301,13 +300,10 @@ void encode_inet(pTHX_ SV *dest, SV *src)
 
     memset(out, 0, 20);
 
-    work = calloc(1, size+1);
-    memcpy(work, ptr, size);
-
     if (semicolon) { /* IPv6 */
         out[3] = 16;
 
-        if (inet_pton(AF_INET6, work, out+4)) {
+        if (inet_pton(AF_INET6, ptr, out+4)) {
             sv_catpvn(dest, out, 20);
         } else {
             warn("Invalid IPv6 address");
@@ -316,15 +312,13 @@ void encode_inet(pTHX_ SV *dest, SV *src)
     } else {
         out[3] = 4;
 
-        if (inet_pton(AF_INET, work, out+4)) {
+        if (inet_pton(AF_INET, ptr, out+4)) {
             sv_catpvn(dest, out, 8);
         } else {
             warn("Invalid IPv4 address");
             encode_undef(aTHX_ dest);
         }
     }
-
-    free(work);
 }
 
 void encode_time(pTHX_ SV *dest, SV *src)
