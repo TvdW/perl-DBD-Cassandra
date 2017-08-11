@@ -135,7 +135,7 @@ void encode_tinyint(pTHX_ SV *dest, SV *src)
 
     number = SvIV(src);
     if (number > 127 || number < -128) {
-        warn("encode_tinyint: number out of range");
+        warn("encode_tinyint: number '%s' out of range", SvPV_nolen(src));
     }
 
     memset(bytes, 0, 3);
@@ -279,7 +279,7 @@ void encode_uuid(pTHX_ SV *dest, SV *src)
     }
 
     if (j != 32)
-        warn("Invalid UUID");
+        warn("UUID '%s' is invalid", ptr);
 
     sv_catpvn(dest, work, 20);
 }
@@ -307,7 +307,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
         if (inet_pton(AF_INET6, ptr, out+4)) {
             sv_catpvn(dest, out, 20);
         } else {
-            warn("Invalid IPv6 address");
+            warn("Inet address '%s' is invalid", ptr);
             encode_undef(aTHX_ dest);
         }
     } else {
@@ -316,7 +316,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
         if (inet_pton(AF_INET, ptr, out+4)) {
             sv_catpvn(dest, out, 8);
         } else {
-            warn("Invalid IPv4 address");
+            warn("Inet address '%s' is invalid", ptr);
             encode_undef(aTHX_ dest);
         }
     }
@@ -341,7 +341,7 @@ void encode_time(pTHX_ SV *dest, SV *src)
             j++;
             k = 0;
             if (j > 3)
-                croak("encode_time: invalid time passed");
+                croak("Time '%s' is invalid", ptr);
         } else if (ptr[i] >= '0' && ptr[i] <= '9') {
             numbers[j] *= 10;
             numbers[j] += ptr[i]-'0';
@@ -378,7 +378,7 @@ void encode_date(pTHX_ SV *dest, SV *src)
 
     ptr = SvPV(src, size);
     if (UNLIKELY(size < 5))
-        croak("encode_date: invalid date passed");
+        croak("Date '%s' is invalid", ptr);
 
     pos = 0;
     if (ptr[pos] == '-') {
@@ -393,12 +393,12 @@ void encode_date(pTHX_ SV *dest, SV *src)
         if (ptr[pos] == '-') {
             i++;
             if (UNLIKELY(i >= 3))
-                croak("encode_date: invalid date passed");
+                croak("Date '%s' is invalid", ptr);
         } else if (ptr[pos] >= '0' && ptr[pos] <= '9') {
             numbers[i] *= 10;
             numbers[i] += ptr[pos] - '0';
         } else {
-            croak("encode_date: invalid date passed");
+            croak("Date '%s' is invalid", ptr);
         }
 
         pos++;
@@ -547,7 +547,7 @@ void encode_decimal(pTHX_ SV *dest, SV *src)
     }
 
     if (pos != size)
-        warn("encode_decimal: invalid number in input");
+        warn("Decimal '%s' is invalid", ptr);
 
     size_pos = pack_int(aTHX_ dest, 0);
     pack_int(aTHX_ dest, scale*-1);
