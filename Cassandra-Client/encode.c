@@ -168,6 +168,7 @@ void encode_int(pTHX_ SV *dest, SV *src)
     sv_catpvn(dest, stuff.c, 8);
 }
 
+// XXX: this will break on some 32bit systems.
 void encode_bigint(pTHX_ SV *dest, SV *src)
 {
     char work[12];
