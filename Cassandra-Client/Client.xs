@@ -215,10 +215,7 @@ encode(self, row)
             column = &self->columns[i];
             ent = hv_fetch_ent(row_h, column->name, 0, column->name_hash);
             if (UNLIKELY(!ent)) {
-                SV *error = sv_2mortal(newSVpv("missing value for required entry <", 0));
-                sv_catsv(error, column->name);
-                sv_catpvn(error, ">", 1);
-                croak_sv(error);
+                croak("missing value for required entry <%s>", SvPV_nolen(column->name));
             }
 
             encode_cell(aTHX_ RETVAL, HeVAL(ent), &column->type);
