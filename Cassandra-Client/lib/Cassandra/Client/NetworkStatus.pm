@@ -38,6 +38,8 @@ sub select_master {
     }
     push @{$self->{waiting_for_cb}}, $callback;
 
+    my $pool= $self->{pool}; # non-weak
+
     my $attempts= 0;
     whilst(
         sub { # condition
@@ -57,7 +59,7 @@ sub select_master {
                 },
                 sub {
                     my ($next)= @_;
-                    $self->{pool}->get_one_cb($next);
+                    $pool->get_one_cb($next);
                 },
                 sub {
                     my ($next, $connection)= @_;
