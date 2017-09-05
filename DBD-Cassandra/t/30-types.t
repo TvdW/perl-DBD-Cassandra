@@ -31,7 +31,7 @@ my $type_table= [
     ['uuid',        'bad16', 'bad16000-0000-0000-0000-000000000000'],
     ['timeuuid',    '34945442-c1d4-47db-bddd-5d2138b42cbc', undef], # that's not a valid timeuuid
     ['timeuuid',    '568ef050-5aca-11e5-9c6b-eb15c19b7bc8', $input],
-    ['timeuuid',    'bad16', $warn],
+    ['timeuuid',    'bad16', undef],
     ['tinyint',     127,    $input],
     ['tinyint',     0,      $input],
     ['tinyint',     -128,   $input],
@@ -136,7 +136,7 @@ for my $type (@$type_table) {
         } else {
             is_deeply([$row->[0]], [$output_val], "perfect match $typename");
         }
-        if ($did_warn && !is_ref($output_val) && $output_val ne $warn) {
+        if ($did_warn && !is_ref($output_val) && defined($output_val) && $output_val ne $warn) {
             diag("Warning: $did_warn (input: $test_val)");
         }
         1;
