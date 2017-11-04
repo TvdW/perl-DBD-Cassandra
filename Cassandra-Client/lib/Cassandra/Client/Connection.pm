@@ -7,6 +7,7 @@ use vars qw/$BUFFER/;
 
 use Ref::Util qw/is_blessed_ref is_plain_arrayref/;
 use IO::Socket::INET;
+use IO::Socket::INET6;
 use Errno qw/EAGAIN/;
 use Socket qw/SOL_SOCKET IPPROTO_TCP SO_KEEPALIVE TCP_NODELAY/;
 use Scalar::Util qw/weaken/;
@@ -664,12 +665,23 @@ sub connect {
     my $socket; {
         local $@;
 
-        $socket= IO::Socket::INET->new(
-            PeerAddr => $self->{host},
-            PeerPort => $self->{options}{port},
-            Proto    => 'tcp',
-            Blocking => 0,
-        );
+        if ($self->{host} =~ /:/) {
+            # IPv6
+            $socket= IO::Socket::INET6->new(
+                PeerAddr => $self->{host},
+                PeerPort => $self->{options}{port},
+                Proto    => 'tcp',
+                Blocking => 0,
+            );
+        } else {
+            # IPv6
+            $socket= IO::Socket::INET->new(
+                PeerAddr => $self->{host},
+                PeerPort => $self->{options}{port},
+                Proto    => 'tcp',
+                Blocking => 0,
+            );
+        }
 
         unless ($socket) {
             my $error= "Could not connect: $@";
