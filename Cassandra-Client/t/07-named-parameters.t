@@ -30,3 +30,5 @@ $client->execute("delete from $db.test_int where id=?", { id => 6 });
     my $rows= $result->rows;
     ok(@$rows == 0);
 }
+
+$client->execute("insert into $db.test_int (id, value) values (:num, :num)", { num => 9 });
