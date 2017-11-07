@@ -13,6 +13,7 @@
 
 typedef struct {
     int column_count;
+    int uniq_column_count;
     struct cc_column *columns;
 } Cassandra__Client__RowMeta;
 
@@ -25,7 +26,7 @@ unpack_metadata(data)
   PPCODE:
     STRLEN pos, size;
     char *ptr;
-    int32_t flags, column_count;
+    int32_t flags, column_count, uniq_column_count;
     Cassandra__Client__RowMeta *row_meta;
 
     ST(0) = &PL_sv_undef; /* Will have our RowMeta instance */
@@ -53,6 +54,7 @@ unpack_metadata(data)
     if (!(flags & CC_METADATA_FLAG_NO_METADATA)) {
         int i, have_global_spec;
         SV *global_keyspace, *global_table;
+        HV *name_hash;
 
         have_global_spec = flags & CC_METADATA_FLAG_GLOBAL_TABLES_SPEC;
 
@@ -73,6 +75,9 @@ unpack_metadata(data)
         row_meta->column_count = column_count;
         Newxz(row_meta->columns, column_count, struct cc_column);
 
+        name_hash = (HV*)sv_2mortal( (SV*)newHV() );
+        uniq_column_count = 0;
+
         for (i = 0; i < column_count; i++) {
             struct cc_column *column = &(row_meta->columns[i]);
             if (have_global_spec) {
@@ -87,7 +92,13 @@ unpack_metadata(data)
 
             column->name = unpack_string_sv_hash(aTHX_ ptr, size, &pos, &column->name_hash);
             unpack_type(aTHX_ ptr, size, &pos, &column->type);
+            if (!hv_exists_ent(name_hash, column->name, column->name_hash)) {
+                uniq_column_count++;
+                hv_store_ent(name_hash, column->name, &PL_sv_undef, column->name_hash);
+            }
         }
+
+        row_meta->uniq_column_count = uniq_column_count;
     }
 
     sv_chop(data, ptr+pos);
@@ -182,8 +193,8 @@ encode(self, row)
     } else if (SvTYPE(SvRV(row)) == SVt_PVHV) {
         row_h = (HV*)SvRV(row);
         use_hash = 1;
-        if (UNLIKELY(HvUSEDKEYS(row_h) != column_count))
-            croak("row encoder expected %d column(s), but got %d", column_count, (int)HvUSEDKEYS(row_h));
+        if (UNLIKELY(HvUSEDKEYS(row_h) != self->uniq_column_count))
+            croak("row encoder expected %d column(s), but got %d", self->uniq_column_count, (int)HvUSEDKEYS(row_h));
 
     } else {
         croak("encode: argument must be an ARRAY or HASH reference");
