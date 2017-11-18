@@ -70,7 +70,7 @@ sub get_next_candidate {
     return shift @$candidates;
 }
 
-my @all_backoff= (1, 5, 20, 60, 180, 600);
+my @all_backoff= map { $_ * (rand()*.4 + 0.8) } (1, 5, 20, 60, 180, 600);
 sub check_backoff {
     my ($self, $peer)= @_;
     my $times= $self->{try_times}{$peer};
