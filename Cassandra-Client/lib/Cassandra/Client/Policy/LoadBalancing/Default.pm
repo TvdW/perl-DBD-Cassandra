@@ -68,9 +68,14 @@ sub get_next_candidate {
     return shift @$candidates;
 }
 
-sub set_connected {
+sub set_connecting {
     my ($self, $peer)= @_;
     $self->{connected}{$peer}= 1;
+}
+
+sub set_connected {
+    my ($self, $peer)= @_;
+    warn "BUG" unless $self->{connected}{$peer};
 }
 
 sub set_disconnected {

@@ -45,6 +45,7 @@ sub init {
     $self->{policy}{datacenter} ||= $first_connection->{datacenter};
 
     $self->add($first_connection);
+    $self->{policy}->set_connecting($first_connection->ip_address);
     $self->{policy}->set_connected($first_connection->ip_address);
 
     # Master selection, warmup, etc
@@ -216,7 +217,7 @@ sub spawn_new_connection {
     );
 
     $self->{connecting}{$host}= $connection;
-    $self->{policy}->set_connected($host);
+    $self->{policy}->set_connecting($host);
 
     $connection->connect(sub {
         my ($error)= @_;
@@ -245,6 +246,8 @@ sub spawn_new_connection {
 
             $self->connect_if_needed;
         } else {
+            $self->{policy}->set_connected($host);
+
             $self->add($connection);
         }
 
