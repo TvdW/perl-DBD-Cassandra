@@ -82,6 +82,11 @@ sub _connect {
     return _cb($callback) if $self->{connected};
     return _cb($callback, 'Cannot connect: shutdown() has been called') if $self->{shutdown};
 
+    # This is ONLY useful if the user doesn't throw away the C::C object on connect errors.
+    if (!$self->{connecting} && $self->{throttler}->should_fail()) {
+        return _cb($callback, "Client-induced connection failure by throttling mechanism");
+    }
+
     push @{$self->{connect_callbacks}||=[]}, $callback;
     if ($self->{connecting}++) {
         return;
@@ -119,6 +124,7 @@ sub _connect {
             },
         ], sub {
             my $error= shift;
+            $self->{throttler}->count($error);
             if ($error) {
                 $last_error= "On $contact_point: $error";
                 return $next_connect->();
