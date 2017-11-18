@@ -6,6 +6,8 @@ use 5.010;
 use strict;
 use warnings;
 
+use Devel::GlobalDestruction;
+
 # This cargocult comes straight from DBI::DBD docs. No idea what it does.
 $DBD::Cassandra::db::imp_data_size = 0;
 
@@ -73,6 +75,8 @@ sub FETCH {
 sub disconnect {
     my ($dbh)= @_;
     $dbh->STORE('Active', 0);
+
+    return if in_global_destruction;
 
     $dbh->{cass_client}->shutdown;
 }
