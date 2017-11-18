@@ -232,15 +232,14 @@ sub _command {
         start_time => Time::HiRes::time(),
     };
 
-    # Handle overloads
-    goto FAILFAST if $self->{throttler}->should_fail();
-
     goto OVERFLOW if $self->{active_queries} >= $self->{options}{max_concurrent_queries};
 
     goto SLOWPATH if !$self->{connected};
 
     my $connection= $self->{pool}->get_one;
     goto SLOWPATH if !$connection;
+
+    goto FAILFAST if $self->{throttler}->should_fail();
 
     $self->{active_queries}++;
     $connection->$command(sub {
@@ -280,9 +279,6 @@ sub _command_slowpath {
             $self->{pool}->get_one_cb($next);
         }, sub {
             my ($next, $connection)= @_;
-            # Yes, if we immediately take the slow path, which we would if we're not connected, we're going to throttle twice
-            # For now, I'm okay with that, but let's mark it with a TODO anyway.
-            # XXX
             if ($self->{throttler}->should_fail()) {
                 return $next->("Client-induced failure by throttling mechanism");
             }
