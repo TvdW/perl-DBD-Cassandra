@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use List::Util 'shuffle';
+use Time::HiRes qw/time/;
 
 sub new {
     my ($class, %args)= @_;
@@ -13,6 +14,7 @@ sub new {
         local_nodes => {},
         connected => {},
         candidates => [],
+        try_times => {},
     }, $class;
 }
 
@@ -60,22 +62,41 @@ sub get_next_candidate {
     my ($self)= @_;
     my $candidates= $self->{candidates};
     while (my $maybe= shift @$candidates) {
-        if ($self->{local_nodes}{$maybe} && !$self->{connected}{$maybe}) {
+        if ($self->{local_nodes}{$maybe} && !$self->{connected}{$maybe} && $self->check_backoff($maybe)) {
             return $maybe;
         }
     }
-    @$candidates= shuffle grep { !$self->{connected}{$_} } keys %{$self->{local_nodes}};
+    @$candidates= shuffle grep { !$self->{connected}{$_} && $self->check_backoff($_) } keys %{$self->{local_nodes}};
     return shift @$candidates;
+}
+
+my @all_backoff= (1, 5, 20, 60, 180, 600);
+sub check_backoff {
+    my ($self, $peer)= @_;
+    my $times= $self->{try_times}{$peer};
+    return 1 unless $times;
+
+    my $count= 0+@$times;
+    $count= @all_backoff if $count > @all_backoff;
+    my $backoff= $all_backoff[$count-1];
+
+    if (time() - $times->[-1] < $backoff) {
+        return;
+    }
+
+    return 1;
 }
 
 sub set_connecting {
     my ($self, $peer)= @_;
     $self->{connected}{$peer}= 1;
+    push @{$self->{try_times}{$peer} ||= []}, time;
 }
 
 sub set_connected {
     my ($self, $peer)= @_;
     warn "BUG" unless $self->{connected}{$peer};
+    delete $self->{try_times}{$peer};
 }
 
 sub set_disconnected {
