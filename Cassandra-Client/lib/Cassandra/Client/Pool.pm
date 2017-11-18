@@ -192,6 +192,7 @@ sub connect_if_needed {
 
             if ($done == $expect) {
                 $callback->() if $callback;
+                undef $callback;
             }
         });
     }
