@@ -215,10 +215,10 @@ void encode_bigint(pTHX_ SV *dest, SV *src)
     assert(sv_len > 0);
     ptr = SvPV_nolen(tmp_sv);
     if (ptr[0] & 0x80) {
-        // Negative
+        /* Negative */
         memset(work+4, 0xff, 8);
     } else {
-        // Positive
+        /* Positive */
         memset(work+4, 0, 8);
     }
     memcpy(work+4+(8-sv_len), ptr, sv_len);
