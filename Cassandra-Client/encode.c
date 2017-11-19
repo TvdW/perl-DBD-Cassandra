@@ -168,7 +168,7 @@ void encode_int(pTHX_ SV *dest, SV *src)
     sv_catpvn(dest, stuff.c, 8);
 }
 
-// XXX: this will break on some 32bit systems.
+#ifdef CAN_64BIT
 void encode_bigint(pTHX_ SV *dest, SV *src)
 {
     char work[12];
@@ -186,6 +186,46 @@ void encode_bigint(pTHX_ SV *dest, SV *src)
     memcpy(work+4, stuff.c, 8);
     sv_catpvn(dest, work, 12);
 }
+#else
+void encode_bigint(pTHX_ SV *dest, SV *src)
+{
+    SV *tmp_sv;
+    int sv_len;
+    char *ptr;
+    char work[12];
+
+    work[0] = 0;
+    work[1] = 0;
+    work[2] = 0;
+    work[3] = 8;
+
+    tmp_sv = sv_2mortal(newSV(8));
+    SvPOK_on(tmp_sv);
+    SvCUR_set(tmp_sv, 0);
+
+    encode_varint(aTHX_ tmp_sv, src, &sv_len);
+    if (UNLIKELY(sv_len > 8)) {
+        /* Unlike our 64bit code, we have the chance to actually detect wrapping.
+         * So if you're "lucky" and run a 32bit Perl, enjoy a warning on top of
+         * the wrapping you probably didn't want to happen. */
+        warn("Truncating scalar value: does not fit bigint");
+        sv_chop(tmp_sv, SvPV_nolen(tmp_sv)+(sv_len-8));
+        sv_len = 8;
+    }
+    assert(sv_len > 0);
+    ptr = SvPV_nolen(tmp_sv);
+    if (ptr[0] & 0x80) {
+        // Negative
+        memset(work+4, 0xff, 8);
+    } else {
+        // Positive
+        memset(work+4, 0, 8);
+    }
+    memcpy(work+4+(8-sv_len), ptr, sv_len);
+
+    sv_catpvn(dest, work, 12);
+}
+#endif
 
 void encode_blob(pTHX_ SV *dest, SV *src)
 {
