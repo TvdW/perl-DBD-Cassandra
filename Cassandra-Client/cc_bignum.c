@@ -7,7 +7,7 @@
 /* I needed a bignum library but couldn't use GMP because I can't assume it's installed everywhere.
    Since the amount of things I need to do is really small, I rolled my own. */
 
-void cc_bignum_init_bytes(struct cc_bignum *bn, char *bytes, size_t length)
+void cc_bignum_init_bytes(struct cc_bignum *bn, unsigned char *bytes, size_t length)
 {
     if (length > 0) {
         bn->number = malloc(length);
@@ -208,7 +208,7 @@ void cc_bignum_stringify(struct cc_bignum *bn, char *out, size_t outlen)
     cc_bignum_destroy(&cur);
 }
 
-size_t cc_bignum_byteify(struct cc_bignum *bn, char *out, size_t outlen)
+size_t cc_bignum_byteify(struct cc_bignum *bn, unsigned char *out, size_t outlen)
 {
     struct cc_bignum copy;
     size_t needed_bytes;

@@ -25,14 +25,14 @@ unpack_metadata(data)
     SV *data
   PPCODE:
     STRLEN pos, size;
-    char *ptr;
+    unsigned char *ptr;
     int32_t flags, column_count, uniq_column_count;
     Cassandra__Client__RowMeta *row_meta;
 
     ST(0) = &PL_sv_undef; /* Will have our RowMeta instance */
     ST(1) = &PL_sv_undef; /* Will have our paging state */
 
-    ptr = SvPV(data, size);
+    ptr = (unsigned char*)SvPV(data, size);
     pos = 0;
 
     if (UNLIKELY(!ptr))
@@ -101,7 +101,7 @@ unpack_metadata(data)
         row_meta->uniq_column_count = uniq_column_count;
     }
 
-    sv_chop(data, ptr+pos);
+    sv_chop(data, (char*)ptr+pos);
 
     XSRETURN(2);
 
@@ -114,7 +114,7 @@ decode(self, data, use_hashes)
     int use_hashes
   CODE:
     STRLEN size, pos;
-    char *ptr;
+    unsigned char *ptr;
     int32_t row_count;
     int i, j, col_count;
     struct cc_column *columns;
@@ -122,7 +122,7 @@ decode(self, data, use_hashes)
     RETVAL = newAV();
     sv_2mortal((SV*)RETVAL); /* work around a bug in perl */
 
-    ptr = SvPV(data, size);
+    ptr = (unsigned char*)SvPV(data, size);
     pos = 0;
 
     if (UNLIKELY(!ptr))

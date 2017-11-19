@@ -130,7 +130,7 @@ void encode_cell(pTHX_ SV *dest, SV *src, struct cc_type *type)
 
 void encode_tinyint(pTHX_ SV *dest, SV *src)
 {
-    char bytes[5];
+    unsigned char bytes[5];
     int number;
 
     number = SvIV(src);
@@ -141,40 +141,40 @@ void encode_tinyint(pTHX_ SV *dest, SV *src)
     memset(bytes, 0, 3);
     bytes[3] = 1;
     bytes[4] = number;
-    sv_catpvn(dest, bytes, 5);
+    sv_catpvn(dest, (char*)bytes, 5);
 }
 
 void encode_smallint(pTHX_ SV *dest, SV *src)
 {
     union {
         uint16_t s[3];
-        char c[6];
+        unsigned char c[6];
     } stuff;
     memset(stuff.c, 0, 3);
     stuff.c[3] = 2;
     stuff.s[2] = htons((int16_t)SvIV(src));
-    sv_catpvn(dest, stuff.c, 6);
+    sv_catpvn(dest, (char*)stuff.c, 6);
 }
 
 void encode_int(pTHX_ SV *dest, SV *src)
 {
     union {
         uint32_t s[2];
-        char c[8];
+        unsigned char c[8];
     } stuff;
     memset(stuff.c, 0, 3);
     stuff.c[3] = 4;
     stuff.s[1] = htonl((int32_t)SvIV(src));
-    sv_catpvn(dest, stuff.c, 8);
+    sv_catpvn(dest, (char*)stuff.c, 8);
 }
 
 #ifdef CAN_64BIT
 void encode_bigint(pTHX_ SV *dest, SV *src)
 {
-    char work[12];
+    unsigned char work[12];
     union {
         int64_t iv;
-        char c[8];
+        unsigned char c[8];
     } stuff;
     stuff.iv = SvIV(src);
 
@@ -184,7 +184,7 @@ void encode_bigint(pTHX_ SV *dest, SV *src)
     work[3] = 8;
     bswap8(stuff.c);
     memcpy(work+4, stuff.c, 8);
-    sv_catpvn(dest, work, 12);
+    sv_catpvn(dest, (char*)work, 12);
 }
 #else
 void encode_bigint(pTHX_ SV *dest, SV *src)
@@ -192,7 +192,7 @@ void encode_bigint(pTHX_ SV *dest, SV *src)
     SV *tmp_sv;
     int sv_len;
     char *ptr;
-    char work[12];
+    unsigned char work[12];
 
     work[0] = 0;
     work[1] = 0;
@@ -223,7 +223,7 @@ void encode_bigint(pTHX_ SV *dest, SV *src)
     }
     memcpy(work+4+(8-sv_len), ptr, sv_len);
 
-    sv_catpvn(dest, work, 12);
+    sv_catpvn(dest, (char*)work, 12);
 }
 #endif
 
@@ -242,10 +242,10 @@ void encode_blob(pTHX_ SV *dest, SV *src)
 
 void encode_float(pTHX_ SV *dest, SV *src)
 {
-    char work[8];
+    unsigned char work[8];
     union {
         float f;
-        char c[8];
+        unsigned char c[8];
     } stuff;
     stuff.f = SvNV(src);
     work[0] = 0;
@@ -254,15 +254,15 @@ void encode_float(pTHX_ SV *dest, SV *src)
     work[3] = 4;
     bswap4(stuff.c);
     memcpy(work+4, stuff.c, 4);
-    sv_catpvn(dest, work, 8);
+    sv_catpvn(dest, (char*)work, 8);
 }
 
 void encode_double(pTHX_ SV *dest, SV *src)
 {
-    char work[12];
+    unsigned char work[12];
     union {
         double d;
-        char c[8];
+        unsigned char c[8];
     } stuff;
     stuff.d = SvNV(src);
     work[0] = 0;
@@ -271,12 +271,12 @@ void encode_double(pTHX_ SV *dest, SV *src)
     work[3] = 8;
     bswap8(stuff.c);
     memcpy(work+4, stuff.c, 8);
-    sv_catpvn(dest, work, 12);
+    sv_catpvn(dest, (char*)work, 12);
 }
 
 void encode_boolean(pTHX_ SV *dest, SV *src)
 {
-    char bytes[5];
+    unsigned char bytes[5];
     memset(bytes, 0, 3);
     bytes[3] = 1;
     if (SvTRUE(src)) {
@@ -284,7 +284,7 @@ void encode_boolean(pTHX_ SV *dest, SV *src)
     } else {
         bytes[4] = 0;
     }
-    sv_catpvn(dest, bytes, 5);
+    sv_catpvn(dest, (char*)bytes, 5);
 }
 
 void encode_uuid(pTHX_ SV *dest, SV *src)
@@ -292,7 +292,7 @@ void encode_uuid(pTHX_ SV *dest, SV *src)
     char *ptr;
     STRLEN size;
     int i, j;
-    char work[20];
+    unsigned char work[20];
     memset(work, 0, 20);
 
     work[3] = 16;
@@ -321,7 +321,7 @@ void encode_uuid(pTHX_ SV *dest, SV *src)
     if (j != 32)
         warn("UUID '%s' is invalid", ptr);
 
-    sv_catpvn(dest, work, 20);
+    sv_catpvn(dest, (char*)work, 20);
 }
 
 void encode_inet(pTHX_ SV *dest, SV *src)
@@ -329,7 +329,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
     char *ptr;
     STRLEN size;
     int semicolon, i;
-    char out[20];
+    unsigned char out[20];
 
     ptr = SvPV(src, size);
     semicolon = 0;
@@ -345,7 +345,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
         out[3] = 16;
 
         if (inet_pton(AF_INET6, ptr, out+4)) {
-            sv_catpvn(dest, out, 20);
+            sv_catpvn(dest, (char*)out, 20);
         } else {
             warn("Inet address '%s' is invalid", ptr);
             encode_undef(aTHX_ dest);
@@ -354,7 +354,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
         out[3] = 4;
 
         if (inet_pton(AF_INET, ptr, out+4)) {
-            sv_catpvn(dest, out, 8);
+            sv_catpvn(dest, (char*)out, 8);
         } else {
             warn("Inet address '%s' is invalid", ptr);
             encode_undef(aTHX_ dest);
@@ -364,7 +364,7 @@ void encode_inet(pTHX_ SV *dest, SV *src)
 
 void encode_time(pTHX_ SV *dest, SV *src)
 {
-    char out[12];
+    unsigned char out[12];
     STRLEN size, i, j, k;
     char *ptr;
     int numbers[4];
@@ -397,7 +397,7 @@ void encode_time(pTHX_ SV *dest, SV *src)
     seconds = (((numbers[0]%24) * 3600) + (numbers[1] * 60) + numbers[2]) % 86400;
     *((int64_t*)(out+4)) = (((int64_t)seconds)*1000000000L) + (int64_t)nano;
     bswap8(out+4);
-    sv_catpvn(dest, out, 12);
+    sv_catpvn(dest, (char*)out, 12);
 }
 
 inline int div_properly(int a, int b)
@@ -508,13 +508,13 @@ void encode_varint(pTHX_ SV *dest, SV *src, int* int_out)
 
     } else {
         struct cc_bignum bn;
-        char *tmp, *tmp2;
+        unsigned char *tmp, *tmp2;
         size_t encoded_len, i;
 
         cc_bignum_init_string(&bn, ptr, size);
 
-        Newxz(tmp, bn.length+2, char);
-        Newxz(tmp2, bn.length+2, char);
+        Newxz(tmp, bn.length+2, unsigned char);
+        Newxz(tmp2, bn.length+2, unsigned char);
 
         encoded_len = cc_bignum_byteify(&bn, tmp, bn.length+2);
         for (i = 0; i < encoded_len; i++) {
@@ -525,7 +525,7 @@ void encode_varint(pTHX_ SV *dest, SV *src, int* int_out)
             *int_out= encoded_len;
         else
             pack_int(aTHX_ dest, encoded_len);
-        sv_catpvn(dest, tmp2, encoded_len);
+        sv_catpvn(dest, (char*)tmp2, encoded_len);
 
         Safefree(tmp);
         Safefree(tmp2);

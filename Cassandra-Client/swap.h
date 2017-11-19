@@ -1,12 +1,12 @@
 #include <stdint.h>
 #include "define.h"
 
-static inline void bswap8(char *input)
+static inline void bswap8(unsigned char *input)
 {
     if (IS_BIG_ENDIAN)
         return;
 
-    char tmp;
+    unsigned char tmp;
 
     tmp = input[0];
     input[0] = input[7];
@@ -25,7 +25,7 @@ static inline void bswap8(char *input)
     input[4] = tmp;
 }
 
-static inline void bswap4(char *input)
+static inline void bswap4(unsigned char *input)
 {
     if (IS_BIG_ENDIAN)
         return;
@@ -34,7 +34,7 @@ static inline void bswap4(char *input)
     *the_num= ntohl(*the_num);
 }
 
-static inline void bswap2(char *input)
+static inline void bswap2(unsigned char *input)
 {
     if (IS_BIG_ENDIAN)
         return;
