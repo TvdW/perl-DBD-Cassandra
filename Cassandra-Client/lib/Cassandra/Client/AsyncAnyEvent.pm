@@ -144,6 +144,11 @@ sub timer {
     });
 }
 
+sub later {
+    my ($self, $callback)= @_;
+    &AE::postpone($callback);
+}
+
 # $something->($async->wait(my $w)); my ($error, $result)= $w->();
 sub wait {
     my ($self)= @_;

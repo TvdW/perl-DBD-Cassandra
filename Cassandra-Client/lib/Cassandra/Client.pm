@@ -249,7 +249,7 @@ sub _command {
         $self->{throttler}->count($error);
 
         $self->{active_queries}--;
-        $self->_command_dequeue if $self->{command_queue}{has_any};
+        $self->_schedule_command_dequeue if $self->{command_queue}{has_any};
 
         return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
         return _cb($callback, $error, $result);
@@ -288,7 +288,7 @@ sub _command_slowpath {
         $self->{throttler}->count($error);
 
         $self->{active_queries}--;
-        $self->_command_dequeue if $self->{command_queue}{has_any};
+        $self->_schedule_command_dequeue if $self->{command_queue}{has_any};
 
         return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
         return _cb($callback, $error, $result);
@@ -346,11 +346,18 @@ sub _command_enqueue {
     return;
 }
 
-sub _command_dequeue {
+sub _schedule_command_dequeue {
     my ($self)= @_;
-    my $item= $self->{command_queue}->dequeue or return;
-    $self->_command_slowpath(@$item);
-    return;
+    unless ($self->{command_callback_scheduled}++) {
+        $self->{async_io}->later(sub {
+            delete $self->{command_callback_scheduled};
+
+            while ($self->{command_queue}{has_any} && $self->{active_queries} < $self->{options}{max_concurrent_queries}) {
+                my $item= $self->{command_queue}->dequeue or return;
+                $self->_command_slowpath(@$item);
+            }
+        });
+    }
 }
 
 # Utility functions that wrap query functions

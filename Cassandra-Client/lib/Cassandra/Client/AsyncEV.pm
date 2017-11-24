@@ -129,6 +129,11 @@ sub timer {
     });
 }
 
+sub later {
+    my ($self, $callback)= @_;
+    $self->timer($callback, 0);
+}
+
 # $something->($async->wait(my $w)); my ($error, $result)= $w->();
 sub wait {
     my ($self)= @_;
