@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Time::HiRes qw/CLOCK_MONOTONIC/;
 use Ref::Util qw/is_blessed_ref/;
+use Cassandra::Client::Error::ClientThrottlingError;
 
 sub new {
     my ($class, %args)= @_;
@@ -38,11 +39,14 @@ sub should_fail {
     return unless $fail;
 
     $self->count(undef, 1);
-    return 1;
+    return Cassandra::Client::Error::ClientThrottlingError->new;
 }
 
 sub count {
     my ($self, $error, $force_error)= @_;
+
+    return if is_blessed_ref($error) && $error->isa('Cassandra::Client::Error::ClientThrottlingError');
+
     $self->{window_total}++;
     my $success= !(is_blessed_ref($error) && $error->is_timeout) && !$force_error;
     push @{$self->{window}}, [ Time::HiRes::clock_gettime(CLOCK_MONOTONIC)+$self->{time}, $success ];

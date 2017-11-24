@@ -83,8 +83,8 @@ sub _connect {
     return _cb($callback, 'Cannot connect: shutdown() has been called') if $self->{shutdown};
 
     # This is ONLY useful if the user doesn't throw away the C::C object on connect errors.
-    if (!$self->{connecting} && $self->{throttler}->should_fail()) {
-        return _cb($callback, "Client-induced connection failure by throttling mechanism");
+    if (!$self->{connecting} && (my $error= $self->{throttler}->should_fail())) {
+        return _cb($callback, $error);
     }
 
     push @{$self->{connect_callbacks}||=[]}, $callback;
@@ -239,7 +239,9 @@ sub _command {
     my $connection= $self->{pool}->get_one;
     goto SLOWPATH if !$connection;
 
-    goto FAILFAST if $self->{throttler}->should_fail();
+    if (my $error= $self->{throttler}->should_fail()) {
+        return _cb($callback, $error);
+    }
 
     $self->{active_queries}++;
     $connection->$command(sub {
@@ -257,9 +259,6 @@ sub _command {
 
 SLOWPATH:
     return $self->_command_slowpath($command, $callback, $args, $command_info);
-
-FAILFAST:
-    return _cb($callback, "Client-induced failure by throttling mechanism");
 
 OVERFLOW:
     return $self->_command_enqueue($command, $callback, $args, $command_info);
@@ -279,8 +278,8 @@ sub _command_slowpath {
             $self->{pool}->get_one_cb($next);
         }, sub {
             my ($next, $connection)= @_;
-            if ($self->{throttler}->should_fail()) {
-                return $next->("Client-induced failure by throttling mechanism");
+            if (my $error= $self->{throttler}->should_fail()) {
+                return $next->($error);
             }
             $connection->$command($next, @$args);
         }
