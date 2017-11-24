@@ -14,6 +14,7 @@ my $client= Cassandra::Client->new(
     password => $ENV{CASSANDRA_AUTH},
     anyevent => (rand()<.5),
     tls      => $ENV{CASSANDRA_TLS},
+    port     => $ENV{CASSANDRA_PORT},
 
     # This test
     max_concurrent_queries => 5,

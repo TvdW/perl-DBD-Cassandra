@@ -18,6 +18,7 @@ my $client= Cassandra::Client->new(
     anyevent  => 1,
     throttler => Cassandra::Client::Policy::Throttle::Adaptive->new(),
     tls       => $ENV{CASSANDRA_TLS},
+    port      => $ENV{CASSANDRA_PORT},
 );
 $client->connect();
 
