@@ -193,7 +193,7 @@ This will also work for C<IN> queries, which accept an array.
     }
 
 B<DBD::Cassandra> supports asynchronous queries in an easy to use form.
-When C<async => 1> is passed to C<prepare()>, any subsequent executes
+When C<< async => 1 >> is passed to C<prepare()>, any subsequent executes
 on the handle are not read back immediately. Instead, these are delayed
 until the result is actually needed.
 
