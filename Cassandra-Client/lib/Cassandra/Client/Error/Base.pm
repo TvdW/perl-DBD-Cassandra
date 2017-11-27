@@ -5,7 +5,8 @@ use strict;
 use warnings;
 
 sub new { my $class= shift; bless { code => -1, message => "An unknown error occurred", @_ }, $class }
-use overload '""' => sub { "Error $_[0]{code}: $_[0]{message}" };
+use overload '""' => sub { $_[0]->to_string };
+sub to_string { "Error $_[0]{code}: $_[0]{message}" }
 sub code { $_[0]{code} }
 sub message { $_[0]{message} }
 sub is_request_error { $_[0]{request_error} }
