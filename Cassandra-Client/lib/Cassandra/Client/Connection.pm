@@ -68,6 +68,8 @@ sub new {
         pending_write   => undef,
         shutdown        => 0,
         read_buffer     => \(my $empty= ''),
+        bytes_sent      => 0,
+        bytes_read      => 0,
 
         tls             => undef,
         tls_want_write  => undef,
@@ -759,10 +761,12 @@ sub request {
             my $length= length $data;
             my $rv= Net::SSLeay::write(${$self->{tls}}, $data);
             if ($rv == $length) {
+                $self->{bytes_sent} += $rv;
                 # All good
             } elsif ($rv > 0) {
                 # Partital write
                 substr($data, 0, $rv, '');
+                $self->{bytes_sent} += $rv;
                 $self->{pending_write}= $data;
                 $self->{async_io}->register_write($self->{fileno});
             } else {
@@ -800,9 +804,11 @@ sub request {
             my $length= length $data;
             my $result= syswrite($self->{socket}, $data, $length);
             if ($result && $result == $length) {
+                $self->{bytes_sent} += $result;
                 # All good
             } elsif (defined $result || $! == EAGAIN) {
                 substr($data, 0, $result, '') if $result;
+                $self->{bytes_sent} += $result;
                 $self->{pending_write}= $data;
                 $self->{async_io}->register_write($self->{fileno});
             } else {
@@ -846,6 +852,7 @@ READ:
                 $BUFFER .= $bytes;
                 $bufsize += $rv;
                 $should_read_more= 1;
+                $self->{bytes_read} += $rv;
             }
 
             if ($rv <= 0) {
@@ -873,6 +880,7 @@ READ:
             if ($read_cnt) {
                 $bufsize += $read_cnt;
                 $should_read_more= 1 if $read_cnt >= 16384;
+                $self->{bytes_read} += $read_cnt;
 
             } elsif (!defined $read_cnt) {
                 if ($! != EAGAIN) {
@@ -942,6 +950,7 @@ sub can_write {
         my $rv= Net::SSLeay::write(${$self->{tls}}, $self->{pending_write});
         if ($rv > 0) {
             substr($self->{pending_write}, 0, $rv, '');
+            $self->{bytes_sent} += $rv;
             if (!length $self->{pending_write}) {
                 $self->{async_io}->unregister_write($self->{fileno});
                 delete $self->{pending_write};
@@ -979,6 +988,7 @@ sub can_write {
         }
         if ($result == 0) { return; } # No idea whether that happens, but guard anyway.
         substr($self->{pending_write}, 0, $result, '');
+        $self->{bytes_sent} += $result;
 
         if (!length $self->{pending_write}) {
             $self->{async_io}->unregister_write($self->{fileno});
