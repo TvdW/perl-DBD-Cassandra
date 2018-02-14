@@ -73,6 +73,8 @@ sub new {
 
         tls             => undef,
         tls_want_write  => undef,
+
+        healthcheck     => undef,
     }, $class;
     weaken($self->{async_io});
     weaken($self->{client});
@@ -1008,7 +1010,37 @@ sub can_timeout {
         is_timeout      => 1,
         request_error   => 1,
     ));
+    $self->maybe_healthcheck;
     return;
+}
+
+sub maybe_healthcheck {
+    my ($self)= @_;
+    return if $self->{healthcheck};
+    my $check= $self->{healthcheck}= {};
+
+    # Mark how many bytes we've read right now
+    $check->{bytes_read}= $self->{bytes_read};
+
+    series([
+        sub {
+            my ($next)= @_;
+            $self->request($next, OPCODE_OPTIONS, '');
+        }
+    ], sub {
+        my ($error)= @_;
+        $self->{healthcheck}= undef;
+        if ($self->{bytes_read} > $check->{bytes_read}) {
+            # Don't care what happened, the connection is still fine
+        } elsif (!$error) {
+            # All good
+        } elsif (is_blessed_ref($error) && $error->is_request_error && $error->is_timeout) {
+            # Not good.
+            $self->shutdown("health check timed out");
+        } else {
+            # No clue. :-)
+        }
+    });
 }
 
 sub shutdown {

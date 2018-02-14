@@ -1,6 +1,10 @@
 Revision history for Cassandra-Client
 
-0.14    unreleased
+0.15    unreleased
+
+      * Implement stricter timeout checks in case nodes go away
+
+0.14    2017/11/27
 
       * Refactor a series of (for now) undocumented APIs
       * Encoder rewritten in XS, for performance
