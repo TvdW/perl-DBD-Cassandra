@@ -4,6 +4,7 @@ Revision history for DBD-Cassandra
 
       * Documentation and unit test changes
       * Deal with unhandled error while disconnecting a dbh during global destruction
+      * Pass through protocol_version to Cassandra::Client
 
 0.56    2017/05/06
 

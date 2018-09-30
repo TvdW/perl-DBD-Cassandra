@@ -110,6 +110,11 @@ There are several versions of the CQL language and this option lets you
 pick one. Defaults to the highest available version. Consult your
 Cassandra manual to see which versions your database supports.
 
+=item protocol_version
+
+Protocol version to use when connecting to Cassandra. May be needed when connecting to older
+Cassandra versions.
+
 =item consistency
 
 See the chapter on consistency levels

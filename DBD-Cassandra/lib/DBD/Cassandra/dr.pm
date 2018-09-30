@@ -38,6 +38,7 @@ sub connect {
     my $write_timeout= delete $attr->{cass_write_timeout};
     my $connect_timeout= delete $attr->{cass_connect_timeout}; #XXX
     my $request_timeout= delete $attr->{cass_request_timeout};
+    my $protocol_version= delete $attr->{cass_protocol_version};
     my $tls= delete $attr->{cass_tls};
     if ($read_timeout || $write_timeout) {
         if ($request_timeout) {
@@ -59,6 +60,7 @@ sub connect {
         request_timeout => $request_timeout,
         anyevent => 0,
         tls => $tls,
+        ($protocol_version ? (protocol_version => $protocol_version) : ()),
     );
     my ($error)= $client->call_connect;
     return $drh->set_err($DBI::stderr, "Can't connect to $dr_dsn: $error") if $error;
