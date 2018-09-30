@@ -29,6 +29,7 @@ sub new {
         command_queue           => undef,
         retry_policy            => undef,
         load_balancing_policy   => undef,
+        protocol_version        => 4,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -86,6 +87,14 @@ sub new {
 
     $self->{username}= $config->{username};
     $self->{password}= $config->{password};
+
+    if (exists $config->{protocol_version}) {
+        if ($config->{protocol_version} == 3 || $config->{protocol_version} == 4) {
+            $self->{protocol_version}= 0+ $config->{protocol_version};
+        } else {
+            die "Invalid protocol_version: must be one of [3, 4]";
+        }
+    }
 
     return $self;
 }

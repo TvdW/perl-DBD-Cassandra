@@ -600,6 +600,10 @@ Maximum time to wait for a query, in seconds. Defaults to C<11>.
 
 Whether to connect to the full cluster in C<connect()>, or delay that until queries come in.
 
+=item protocol_version
+
+Cassandra protocol version to use. Currently defaults to C<4>, can also be set to C<3> for compatibility with older versions of Cassandra.
+
 =back
 
 =item $client->batch($queries[, $attributes])

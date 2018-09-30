@@ -333,7 +333,8 @@ sub unpack_stringmultimap {
 
 # Metadata
 sub pack_metadata {
-    my ($metadata)= @_;
+    my ($protoversion, $is_result, $metadata)= @_;
+    die "pack_metadata can only encode v4 results" unless $protoversion == 4 and $is_result;
     my $columns= $metadata->{columns};
     my $paging_state= $metadata->{paging_state};
 

@@ -30,6 +30,7 @@ use Cassandra::Client::Protocol qw/
     unpack_metadata
     unpack_shortbytes
     unpack_string
+    unpack_stringlist
     unpack_stringmultimap
 /;
 use Cassandra::Client::Error::Base;
@@ -75,6 +76,7 @@ sub new {
         tls_want_write  => undef,
 
         healthcheck     => undef,
+        protocol_version => $args{options}{protocol_version},
     }, $class;
     weaken($self->{async_io});
     weaken($self->{client});
@@ -382,11 +384,11 @@ sub prepare {
 
             my ($encoder, $decoder);
             eval {
-                ($encoder)= unpack_metadata($body);
+                ($encoder)= unpack_metadata($self->{protocol_version}, 0, $body);
                 1;
             } or return $next->("Unable to unpack query metadata: $@");
             eval {
-                ($decoder)= unpack_metadata($body);
+                ($decoder)= unpack_metadata($self->{protocol_version}, 1, $body);
                 1;
             } or return $next->("Unable to unpack query result metadata: $@");
 
@@ -408,7 +410,12 @@ sub decode_result {
     my $result_type= unpack('l>', substr($_[3], 0, 4, ''));
     if ($result_type == RESULT_ROWS) { # Rows
         my ($paging_state, $decoder);
-        eval { ($decoder, $paging_state)= unpack_metadata($_[3]); 1 } or return $callback->("Unable to unpack query metadata: $@");
+        eval {
+            ($decoder, $paging_state)= unpack_metadata($self->{protocol_version}, 1, $_[3]);
+            1;
+        } or do {
+            return $callback->("Unable to unpack query metadata: $@");
+        };
         $decoder= $prepared->{decoder} || $decoder;
 
         $callback->(undef,
@@ -752,7 +759,7 @@ sub request {
             $compress_func->($_[3]);
         }
 
-        my $data= pack('CCsCN/a', 3, $flags, $stream_id, $opcode, $_[3]);
+        my $data= pack('CCsCN/a', $self->{protocol_version}, $flags, $stream_id, $opcode, $_[3]);
 
         if (defined $self->{pending_write}) {
             $self->{pending_write} .= $data;
@@ -905,9 +912,20 @@ READ_NEXT:
         my $body= substr($BUFFER, 0, $bodylen, '');
         $bufsize -= 9 + $bodylen;
 
-        # Decompress if needed
         if (($flags & 1) && $body) {
+            # Decompress if needed
             $self->{decompress_func}->($body);
+        }
+        if ($flags & 4) {
+            # FIXME: If we reach this (we shouldn't!), we're corrupting the user's data.
+            warn 'BUG: unexpectedly received custom QueryHandler payload';
+        }
+        if ($flags & 8) {
+            # Warnings were sent from the server. Relay them.
+            my $warnings= unpack_stringlist($body);
+            for my $warning (@$warnings) {
+                warn $warning;
+            }
         }
 
         if ($stream_id != -1) {
