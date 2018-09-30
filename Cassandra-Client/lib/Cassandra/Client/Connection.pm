@@ -450,7 +450,7 @@ sub wait_for_schema_agreement {
 
     my $waited= 0;
     my $wait_delay= 0.5;
-    my $max_wait= 5;
+    my $max_wait= 20;
 
     my $done;
     whilst(
