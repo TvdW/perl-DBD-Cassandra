@@ -458,17 +458,7 @@ sub wait_for_schema_agreement {
         sub {
             my ($whilst_next)= @_;
 
-            series([
-                sub {
-                    my ($next)= @_;
-                    $self->{async_io}->timer($next, $wait_delay);
-                },
-                sub {
-                    my ($next)= @_;
-                    $waited += $wait_delay;
-                    $self->get_network_status($next);
-                },
-            ], sub {
+            $self->get_network_status(sub {
                 my ($error, $network_status)= @_;
                 return $whilst_next->($error) if $error;
 
@@ -478,10 +468,13 @@ sub wait_for_schema_agreement {
                     if ($waited >= $max_wait) {
                         return $whilst_next->("wait_for_schema_agreement timed out after $waited seconds");
                     }
+
+                    $waited += $wait_delay;
+                    return $self->{async_io}->timer($whilst_next, $wait_delay);
                 } else {
                     $done= 1;
+                    return $whilst_next->();
                 }
-                return $whilst_next->();
             });
         },
         $callback,
