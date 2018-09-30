@@ -193,7 +193,7 @@ sub _prepare {
         return _cb($callback);
     }
 
-    $self->_command("prepare", [ $callback, $query ]);
+    $self->_command("prepare", $callback, [ $query ]);
     return;
 }
 

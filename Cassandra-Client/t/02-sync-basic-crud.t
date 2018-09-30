@@ -17,6 +17,7 @@ $client->execute("drop keyspace if exists $db");
 $client->execute("create keyspace $db with replication={'class':'SimpleStrategy', 'replication_factor': 1}");
 $client->execute("create table $db.test_int (id int primary key, value int)");
 $client->execute("insert into $db.test_int (id, value) values (5, 6)");
+$client->prepare("insert into $db.test_int (id, value) values (5, 7)");
 {
     my ($result)= $client->execute("select id, value from $db.test_int where id=5");
     my $rows= $result->rows;
