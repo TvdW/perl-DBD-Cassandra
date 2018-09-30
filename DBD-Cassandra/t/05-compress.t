@@ -1,21 +1,17 @@
 use 5.010;
 use warnings;
 use strict;
-use DBI;
+use File::Basename qw//; use lib File::Basename::dirname(__FILE__).'/lib';
+use TestCassandra;
 use Test::More;
 
-unless ($ENV{CASSANDRA_HOST}) {
-    plan skip_all => "CASSANDRA_HOST not set";
-}
-
+plan skip_all => "Missing Cassandra test environment" unless TestCassandra->is_ok;
 plan tests => 6;
 
 my $keyspace= "dbd_cassandra_tests";
 
 for my $compression (qw/lz4 snappy none/) {
-    my $tls= $ENV{CASSANDRA_TLS} // '';
-    my $port= $ENV{CASSANDRA_PORT} ? ";port=$ENV{CASSANDRA_PORT}" : "";
-    my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};compression=$compression;tls=$tls$port", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
+    my $dbh= TestCassandra->get(";compression=$compression");
     ok($dbh);
 
     $dbh->do("drop keyspace if exists $keyspace");

@@ -1,29 +1,23 @@
 use 5.010;
 use warnings;
 use strict;
-use DBI;
+use File::Basename qw//; use lib File::Basename::dirname(__FILE__).'/lib';
+use TestCassandra;
 use Test::More;
 
-unless ($ENV{CASSANDRA_HOST}) {
-    plan skip_all => "CASSANDRA_HOST not set";
-}
-
+plan skip_all => "Missing Cassandra test environment" unless TestCassandra->is_ok;
 plan tests => 2;
 
 my $keyspace= "dbd_cassandra_tests";
 
 {
-    my $tls= $ENV{CASSANDRA_TLS} // '';
-    my $port= $ENV{CASSANDRA_PORT} ? ";port=$ENV{CASSANDRA_PORT}" : "";
-    my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};tls=$tls$port", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
+    my $dbh= TestCassandra->get;
     ok($dbh);
     $dbh->disconnect;
 }
 {
     eval {
-        my $tls= $ENV{CASSANDRA_TLS} // '';
-        my $port= $ENV{CASSANDRA_PORT} ? ";port=$ENV{CASSANDRA_PORT}" : "";
-        my $dbh= DBI->connect("dbi:Cassandra:host=$ENV{CASSANDRA_HOST};cql_version=1.2.3;tls=$tls$port", $ENV{CASSANDRA_USER}, $ENV{CASSANDRA_AUTH}, {RaiseError => 1});
+        my $dbh= TestCassandra->get(";cql_version=1.2.3");
         ok(0);
     } or do {
         ok(1);
