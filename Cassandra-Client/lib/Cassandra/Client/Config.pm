@@ -45,12 +45,13 @@ sub new {
         }
     }
 
-    # Numbers
+    # Numbers, ignore undef
     for (qw/port timer_granularity request_timeout max_connections max_concurrent_queries/) {
         if (defined($config->{$_})) {
             $self->{$_}= 0+ $config->{$_};
         }
     }
+    # Numbers, undef actually means undef
     for (qw/max_page_size/) {
         if (exists($config->{$_})) {
             $self->{$_}= defined($config->{$_}) ? (0+ $config->{$_}) : undef;
