@@ -7,6 +7,7 @@ Revision history for Cassandra-Client
         protocol_version argument was added.
       * Fix a bug that would stop prepare() from working
       * Address performance issue executing DDL on a single-node cluster
+      * Add statistics hook to get timing information about queries
 
 0.14    2017/11/27
 

@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Ref::Util qw/is_plain_arrayref/;
+use Ref::Util qw/is_plain_arrayref is_plain_coderef/;
 
 sub new {
     my ($class, $config)= @_;
@@ -30,6 +30,8 @@ sub new {
         retry_policy            => undef,
         load_balancing_policy   => undef,
         protocol_version        => 4,
+
+        stats_hook              => undef,
     }, $class;
 
     if (my $cp= $config->{contact_points}) {
@@ -62,6 +64,14 @@ sub new {
     for (qw/cql_version keyspace compression default_consistency/) {
         if (exists($config->{$_})) {
             $self->{$_}= defined($config->{$_}) ? "$config->{$_}" : undef;
+        }
+    }
+
+    # Coderefs
+    for (qw/stats_hook/) {
+        if (defined($config->{$_})) {
+            die "$_ must be a CODE reference" unless is_plain_coderef($config->{$_});
+            $self->{$_}= $config->{$_};
         }
     }
 

@@ -240,7 +240,7 @@ sub _command {
     goto SLOWPATH if !$connection;
 
     if (my $error= $self->{throttler}->should_fail()) {
-        return _cb($callback, $error);
+        return $self->_command_failed($command, $callback, $args, $command_info, $error);
     }
 
     $self->{active_queries}++;
@@ -252,6 +252,8 @@ sub _command {
         $self->_schedule_command_dequeue if $self->{command_queue}{has_any};
 
         return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
+
+        $self->_report_stats($command, $command_info);
         return _cb($callback, $error, $result);
     }, @$args);
 
@@ -291,6 +293,8 @@ sub _command_slowpath {
         $self->_schedule_command_dequeue if $self->{command_queue}{has_any};
 
         return $self->_command_failed($command, $callback, $args, $command_info, $error) if $error;
+
+        $self->_report_stats($command, $command_info);
         return _cb($callback, $error, $result);
     });
     return;
@@ -314,34 +318,35 @@ sub _command_retry {
 sub _command_failed {
     my ($self, $command, $callback, $args, $command_info, $error)= @_;
 
-    return $callback->($error) unless is_ref($error);
+    if (is_ref($error)) {
+        my $retry_decision;
+        if ($error->do_retry) {
+            $retry_decision= Cassandra::Client::Policy::Retry::retry;
+        } elsif ($error->is_request_error) {
+            $retry_decision= $self->{retry_policy}->on_request_error(undef, undef, $error, ($command_info->{retries}||0));
+        } elsif ($error->isa('Cassandra::Client::Error::WriteTimeoutException')) {
+            $retry_decision= $self->{retry_policy}->on_write_timeout(undef, $error->cl, $error->write_type, $error->blockfor, $error->received, ($command_info->{retries}||0));
+        } elsif ($error->isa('Cassandra::Client::Error::ReadTimeoutException')) {
+            $retry_decision= $self->{retry_policy}->on_read_timeout(undef, $error->cl, $error->blockfor, $error->received, $error->data_retrieved, ($command_info->{retries}||0));
+        } elsif ($error->isa('Cassandra::Client::Error::UnavailableException')) {
+            $retry_decision= $self->{retry_policy}->on_unavailable(undef, $error->cl, $error->required, $error->alive, ($command_info->{retries}||0));
+        } else {
+            $retry_decision= Cassandra::Client::Policy::Retry::rethrow;
+        }
 
-    my $retry_decision;
-    if ($error->do_retry) {
-        $retry_decision= Cassandra::Client::Policy::Retry::retry;
-    } elsif ($error->is_request_error) {
-        $retry_decision= $self->{retry_policy}->on_request_error(undef, undef, $error, ($command_info->{retries}||0));
-    } elsif ($error->isa('Cassandra::Client::Error::WriteTimeoutException')) {
-        $retry_decision= $self->{retry_policy}->on_write_timeout(undef, $error->cl, $error->write_type, $error->blockfor, $error->received, ($command_info->{retries}||0));
-    } elsif ($error->isa('Cassandra::Client::Error::ReadTimeoutException')) {
-        $retry_decision= $self->{retry_policy}->on_read_timeout(undef, $error->cl, $error->blockfor, $error->received, $error->data_retrieved, ($command_info->{retries}||0));
-    } elsif ($error->isa('Cassandra::Client::Error::UnavailableException')) {
-        $retry_decision= $self->{retry_policy}->on_unavailable(undef, $error->cl, $error->required, $error->alive, ($command_info->{retries}||0));
-    } else {
-        $retry_decision= Cassandra::Client::Policy::Retry::rethrow;
+        if ($retry_decision && $retry_decision eq 'retry') {
+            return $self->_command_retry($command, $callback, $args, $command_info);
+        }
     }
 
-    if ($retry_decision && $retry_decision eq 'retry') {
-        return $self->_command_retry($command, $callback, $args, $command_info);
-    }
-
+    $self->_report_stats($command, $command_info);
     return $callback->($error);
 }
 
 sub _command_enqueue {
     my ($self, $command, $callback, $args, $command_info)= @_;
     if (my $error= $self->{command_queue}->enqueue([$command, $callback, $args, $command_info])) {
-        return $callback->("Cannot $command: $error");
+        return $self->_command_failed($command, $callback, $args, $command_info, "Cannot $command: $error");
     }
     return;
 }
@@ -356,6 +361,20 @@ sub _schedule_command_dequeue {
                 my $item= $self->{command_queue}->dequeue or return;
                 $self->_command_slowpath(@$item);
             }
+        });
+    }
+}
+
+sub _report_stats {
+    my ($self, $command, $command_info)= @_;
+
+    $command_info->{end_time}= Time::HiRes::time();
+
+    if (my $stats_hook= $self->{options}{stats_hook}) {
+        _cb($stats_hook, timing => {
+            command     => $command,
+            start_time  => $command_info->{start_time},
+            end_time    => $command_info->{end_time},
         });
     }
 }
