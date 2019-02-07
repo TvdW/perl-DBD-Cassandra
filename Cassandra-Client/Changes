@@ -8,6 +8,7 @@ Revision history for Cassandra-Client
       * Fix a bug that would stop prepare() from working
       * Address performance issue executing DDL on a single-node cluster
       * Add statistics hook to get timing information about queries
+      * Switch promises library to AnyEvent::XSPromises
 
 0.14    2017/11/27
 

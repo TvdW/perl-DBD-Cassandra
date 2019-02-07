@@ -22,7 +22,7 @@ use Cassandra::Client::Util qw/series whilst/;
 
 use Clone 0.36 qw/clone/;
 use List::Util qw/shuffle/;
-use Promises 0.93 qw/deferred/;
+use AnyEvent::XSPromises qw/deferred/;
 use Time::HiRes ();
 use Ref::Util 0.008 qw/is_ref/;
 use Devel::GlobalDestruction 0.11;
@@ -690,7 +690,7 @@ All C<Cassandra::Client> methods are available as synchronous methods by using t
 
 =head2 Promises
 
-C<Cassandra::Client> methods are also available as promises (see perldoc L<Promises>). This integrates well with other libraries that deal with promises or asynchronous callbacks. Note that for promises to work, C<AnyEvent> is required, and needs to be enabled by passing C<< anyevent => 1 >> to C<< Cassandra::Client->new() >>.
+C<Cassandra::Client> methods are also available as promises (see perldoc L<AnyEvent::XSPromises>). This integrates well with other libraries that deal with promises or asynchronous callbacks. Note that for promises to work, C<AnyEvent> is required, and needs to be enabled by passing C<< anyevent => 1 >> to C<< Cassandra::Client->new() >>.
 
 Promise variants are available by prefixing method names with C<async_>, eg. C<async_connect>, C<async_execute>, etc. The usual result of the method is passed to the promise's success handler, or to the failure handler if there was an error.
 
@@ -708,7 +708,7 @@ Promise variants are available by prefixing method names with C<async_>, eg. C<a
 
 Promises normally get resolved from event loops, so for this to work you need one. Normally you would deal with that by collecting all your promises and then waiting for that :
 
-    use Promises qw/collect/;
+    use AnyEvent::XSPromises qw/collect/;
     use AnyEvent;
 
     my @promises= ( ... ); # See other examples

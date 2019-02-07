@@ -7,7 +7,7 @@ use Test::More;
 use TestCassandra;
 use Cassandra::Client::Policy::Throttle::Adaptive;
 use Time::HiRes qw/time/;
-use Promises qw/collect/, backend => ['AnyEvent'];
+use AnyEvent::XSPromises qw/collect/;
 use AnyEvent;
 
 plan skip_all => "Missing Cassandra test environment" unless TestCassandra->is_ok;
