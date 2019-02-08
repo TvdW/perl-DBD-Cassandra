@@ -1,6 +1,10 @@
 Revision history for Cassandra-Client
 
-0.15    unreleased
+0.16    2019/02/08
+
+      * Fix issue in the requirements list
+
+0.15    2019/02/08
 
       * Implement stricter timeout checks in case nodes go away
       * The client now defaults to protocol version 4. A backwards-compatible
