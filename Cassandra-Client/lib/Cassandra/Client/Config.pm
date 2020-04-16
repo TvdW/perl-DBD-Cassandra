@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Ref::Util qw/is_plain_arrayref is_plain_coderef/;
+use Ref::Util qw/is_plain_arrayref is_plain_coderef is_blessed_ref/;
 
 sub new {
     my ($class, $config)= @_;
@@ -75,25 +75,13 @@ sub new {
         }
     }
 
-    if (exists($config->{throttler})) {
-        die "throttler must be a Cassandra::Client::Policy::Throttle::Default"
-            unless $config->{throttler}->isa("Cassandra::Client::Policy::Throttle::Default");
-        $self->{throttler}= $config->{throttler};
-    }
-    if (exists($config->{retry_policy})) {
-        die "retry_policy must be a Cassandra::Client::Policy::Retry::Default"
-            unless $config->{retry_policy}->isa("Cassandra::Client::Policy::Retry::Default");
-        $self->{retry_policy}= $config->{retry_policy};
-    }
-    if (exists($config->{command_queue})) {
-        die "command_queue must be a Cassandra::Client::Policy::Queue::Default"
-            unless $config->{command_queue}->isa("Cassandra::Client::Policy::Queue::Default");
-        $self->{command_queue}= $config->{command_queue};
-    }
-    if (exists($config->{load_balancing_policy})) {
-        die "load_balancing_policy must be a Cassandra::Client::Policy::LoadBalancing::Default"
-            unless $config->{load_balancing_policy}->isa("Cassandra::Client::Policy::LoadBalancing::Default");
-        $self->{load_balancing_policy}= $config->{load_balancing_policy};
+    # Policies
+    for (qw/throttler retry_policy command_queue load_balancing_policy/) {
+        if (exists($config->{$_})) {
+            die "$_ must be a blessed reference implementing the correct API"
+                unless is_blessed_ref($config->{$_});
+            $self->{$_}= $config->{$_};
+        }
     }
 
     $self->{username}= $config->{username};
