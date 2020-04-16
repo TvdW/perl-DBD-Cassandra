@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Ref::Util qw/is_plain_arrayref is_plain_coderef is_blessed_ref/;
+use Cassandra::Client::Policy::Auth::Password;
 
 sub new {
     my ($class, $config)= @_;
@@ -24,12 +25,13 @@ sub new {
         warmup                  => 0,
         max_concurrent_queries  => 1000,
         tls                     => 0,
+        protocol_version        => 4,
 
         throttler               => undef,
         command_queue           => undef,
         retry_policy            => undef,
         load_balancing_policy   => undef,
-        protocol_version        => 4,
+        authentication          => undef,
 
         stats_hook              => undef,
     }, $class;
@@ -76,7 +78,7 @@ sub new {
     }
 
     # Policies
-    for (qw/throttler retry_policy command_queue load_balancing_policy/) {
+    for (qw/throttler retry_policy command_queue load_balancing_policy authentication/) {
         if (exists($config->{$_})) {
             die "$_ must be a blessed reference implementing the correct API"
                 unless is_blessed_ref($config->{$_});
@@ -84,8 +86,12 @@ sub new {
         }
     }
 
-    $self->{username}= $config->{username};
-    $self->{password}= $config->{password};
+    if (exists($config->{username}) || exists($config->{password})) {
+        $self->{authentication}= Cassandra::Client::Policy::Auth::Password->new(
+            username => $config->{username},
+            password => $config->{password},
+        );
+    }
 
     if (exists $config->{protocol_version}) {
         if ($config->{protocol_version} == 3 || $config->{protocol_version} == 4) {

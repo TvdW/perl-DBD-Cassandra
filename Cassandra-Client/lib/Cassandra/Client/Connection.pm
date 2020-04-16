@@ -18,7 +18,6 @@ use Cassandra::Client::Protocol qw/
     :constants
     %consistency_lookup
     %batch_type_lookup
-    pack_bytes
     pack_longstring
     pack_queryparameters
     pack_shortbytes
@@ -548,7 +547,7 @@ sub handshake {
             }
 
             if ($response_code == OPCODE_AUTHENTICATE) {
-                return $self->authenticate($next, unpack_string($body));
+                return $self->authenticate($next, $body);
             }
 
             return $next->("Unexpected response from the server");
@@ -585,32 +584,65 @@ sub handshake {
 }
 
 sub authenticate {
-    my ($self, $callback, $authenticator)= @_;
+    my ($self, $callback, $initial_challenge)= @_;
 
-    my $user= "$self->{options}{username}";
-    my $pass= "$self->{options}{password}";
-    utf8::encode($user) if utf8::is_utf8($user);
-    utf8::encode($pass) if utf8::is_utf8($pass);
-
-    if (!$user || !$pass) {
+    my $authenticator= unpack_string($initial_challenge);
+    if (!$self->{options}{authentication}) {
         return $callback->("Server expected authentication using <$authenticator> but no credentials were set");
     }
 
-    series([
+    my $auth;
+    eval {
+        $auth= $self->{options}{authentication}->begin;
+        1;
+    } or do {
+        my $error= "Failed to initialize authentication mechanism: $@";
+        return $callback->($error);
+    };
+
+    my $auth_done;
+    my $next_challenge= $initial_challenge;
+    whilst(
+        sub { !$auth_done },
         sub {
-            my ($next)= @_;
-            my $auth_body= pack_bytes("\0$user\0$pass");
-            $self->request($next, OPCODE_AUTH_RESPONSE, $auth_body);
+            my ($whilst_next)= @_;
+
+            series([
+                sub {
+                    my $next= shift;
+                    eval {
+                        $auth->evaluate($next, $next_challenge);
+                        1;
+                    } or do {
+                        return $next->("Failed to evaluate challenge: $@");
+                    };
+                },
+                sub {
+                    my ($next, $auth_response)= @_;
+                    $self->request($next, OPCODE_AUTH_RESPONSE, $auth_response);
+                },
+                sub {
+                    my ($next, $opcode, $body)= @_;
+                    if ($opcode == OPCODE_AUTH_CHALLENGE) {
+                        $next_challenge= $body;
+                        return $next->();
+                    }
+                    if ($opcode == OPCODE_AUTH_SUCCESS) {
+                        $auth_done= 1;
+                        eval {
+                            $auth->success($body);
+                            1;
+                        } or do {
+                            return $next->("Failed while finishing authentication: $@");
+                        };
+                        return $next->();
+                    }
+                    return $next->("Received unexpected opcode $opcode during authentication");
+                },
+            ], $whilst_next);
         },
-        sub {
-            my ($next, $code, $body)= @_;
-            if ($code == OPCODE_AUTH_SUCCESS) {
-                $next->();
-            } else {
-                $next->("Failed to authenticate: unknown error");
-            }
-        },
-    ], $callback);
+        $callback,
+    );
 
     return;
 }
