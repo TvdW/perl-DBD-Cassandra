@@ -18,6 +18,7 @@ sub new {
         keyspace                => undef,
         compression             => undef,
         default_consistency     => undef,
+        default_idempotency     => 0,
         max_page_size           => 5000,
         max_connections         => 2,
         timer_granularity       => 0.1,
@@ -43,7 +44,7 @@ sub new {
     } else { die "contact_points not specified"; }
 
     # Booleans
-    for (qw/anyevent warmup tls/) {
+    for (qw/anyevent warmup tls default_idempotency/) {
         if (exists($config->{$_})) {
             $self->{$_}= !!$config->{$_};
         }

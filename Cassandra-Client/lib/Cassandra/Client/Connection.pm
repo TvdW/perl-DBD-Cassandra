@@ -225,6 +225,8 @@ sub execute_prepared {
         $self->decode_result($callback, $prepared, $_[2]);
     };
 
+    return $callback->($attr->{_synthetic_error}) if ($attr->{_synthetic_error});
+
     $self->request($on_completion, OPCODE_EXECUTE, $execute_body);
 
     return;
