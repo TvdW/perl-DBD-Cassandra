@@ -1,6 +1,6 @@
 Revision history for Cassandra-Client
 
-0.18    unreleased
+0.18    2020/11/12
 
       * Improve SASL interface
 
