@@ -4,8 +4,6 @@ use 5.010;
 use strict;
 use warnings;
 
-use Cassandra::Client::Protocol qw/pack_bytes/;
-
 sub new {
     my ($class, %args)= @_;
 
@@ -29,7 +27,7 @@ sub evaluate {
     my $pass= $self->{password};
     utf8::encode($user) if utf8::is_utf8($user);
     utf8::encode($pass) if utf8::is_utf8($pass);
-    return $callback->(undef, pack_bytes("\0$user\0$pass"));
+    return $callback->(undef, "\0$user\0$pass");
 }
 
 sub success {

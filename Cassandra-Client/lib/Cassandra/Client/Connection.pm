@@ -18,11 +18,13 @@ use Cassandra::Client::Protocol qw/
     :constants
     %consistency_lookup
     %batch_type_lookup
+    pack_bytes
     pack_longstring
     pack_queryparameters
     pack_shortbytes
     pack_stringmap
     pack_stringlist
+    unpack_bytes
     unpack_errordata
     unpack_inet
     unpack_int
@@ -595,7 +597,7 @@ sub authenticate {
 
     my $auth;
     eval {
-        $auth= $self->{options}{authentication}->begin;
+        $auth= $self->{options}{authentication}->begin($authenticator);
         1;
     } or do {
         my $error= "Failed to initialize authentication mechanism: $@";
@@ -603,7 +605,7 @@ sub authenticate {
     };
 
     my $auth_done;
-    my $next_challenge= $initial_challenge;
+    my $next_challenge= undef;
     whilst(
         sub { !$auth_done },
         sub {
@@ -621,18 +623,18 @@ sub authenticate {
                 },
                 sub {
                     my ($next, $auth_response)= @_;
-                    $self->request($next, OPCODE_AUTH_RESPONSE, $auth_response);
+                    $self->request($next, OPCODE_AUTH_RESPONSE, pack_bytes($auth_response));
                 },
                 sub {
                     my ($next, $opcode, $body)= @_;
                     if ($opcode == OPCODE_AUTH_CHALLENGE) {
-                        $next_challenge= $body;
+                        $next_challenge= unpack_bytes($body);
                         return $next->();
                     }
                     if ($opcode == OPCODE_AUTH_SUCCESS) {
                         $auth_done= 1;
                         eval {
-                            $auth->success($body);
+                            $auth->success(unpack_bytes($body));
                             1;
                         } or do {
                             return $next->("Failed while finishing authentication: $@");
