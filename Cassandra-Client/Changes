@@ -1,5 +1,10 @@
 Revision history for Cassandra-Client
 
+0.20    2022/06/20
+
+      * Use query to set keyspace instead of prepared statements
+
+
 0.19    2022/03/03
 
       * Fix bug with multiple async requests returning result for other

@@ -559,7 +559,8 @@ sub handshake {
         sub {
             my ($next)= @_;
             if ($self->{options}{keyspace}) {
-                return $self->execute_prepared($next, \('use "'.$self->{options}{keyspace}.'"'));
+                my $query = 'use "'.$self->{options}{keyspace}.'"';
+                return $self->request($next, OPCODE_QUERY, pack_longstring($query).pack_queryparameters(1, 0, 0, 0, undef, undef));
             }
             return $next->();
         },
